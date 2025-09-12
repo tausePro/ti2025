@@ -1,0 +1,176 @@
+// Tipos principales del sistema
+export type UserRole = 'super_admin' | 'admin' | 'gerente' | 'supervisor' | 'residente' | 'cliente'
+export type ProjectStatus = 'planificacion' | 'activo' | 'pausado' | 'finalizado' | 'active' | 'paused' | 'completed'
+export type ReportStatus = 'borrador' | 'revision' | 'aprobado' | 'firmado' | 'enviado' | 'draft'
+export type InterventionType = 'supervision_tecnica' | 'interventoria_administrativa'
+
+// Interfaces de permisos
+export interface Permission {
+  module: string
+  action: string
+  allowed: boolean
+}
+
+export interface UserWithPermissions {
+  id: string
+  email: string
+  full_name: string
+  role: UserRole
+  permissions: Permission[]
+  signature_url?: string
+}
+
+// Tipos de módulos y acciones para permisos
+export type PermissionModule = 'projects' | 'reports' | 'financial' | 'users' | 'companies' | 'bitacora'
+export type PermissionAction = 'create' | 'read' | 'update' | 'delete' | 'approve' | 'sign' | 'assign'
+
+// Interfaces para proyectos
+export interface Project {
+  id: string
+  name: string
+  description?: string
+  company_id: string
+  address: string
+  intervention_type: InterventionType[]
+  status: ProjectStatus
+  budget?: number
+  start_date?: string
+  estimated_end_date?: string
+  custom_fields_config?: Record<string, any>
+  company?: {
+    name: string
+  }
+  created_at: string
+  updated_at: string
+}
+
+// Interfaces para bitácoras
+export interface DailyLog {
+  id: string
+  project_id: string
+  user_id: string
+  date: string
+  weather: string
+  personnel: string[]
+  activities: string
+  materials: string
+  equipment: string
+  observations: string
+  photos: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface BitacoraEntry {
+  id: string
+  project_id: string
+  entry_date: string
+  weather: string
+  temperature?: number
+  personnel_count?: number
+  activities?: Array<{
+    description: string
+    progress?: number
+  }>
+  materials?: Array<{
+    name: string
+    quantity: number
+    unit: string
+  }>
+  equipment?: Array<{
+    name: string
+    status: string
+  }>
+  observations?: string
+  photos?: Array<{
+    url: string
+    caption?: string
+  }>
+  status: 'draft' | 'published'
+  created_by: string
+  created_at: string
+  updated_at: string
+  created_by_user?: {
+    id: string
+    email: string
+    profile?: {
+      full_name: string
+    }
+  }
+}
+
+// Interfaces para reportes
+export interface Report {
+  id: string
+  project_id: string
+  title: string
+  description?: string
+  content?: string
+  report_type: 'daily' | 'weekly' | 'monthly' | 'progress' | 'final'
+  status: ReportStatus
+  period_start?: string
+  period_end?: string
+  bitacora_entries_count?: number
+  pages_count?: number
+  photos_count?: number
+  pdf_url?: string
+  created_by: string
+  approved_by?: string
+  signed_by?: string
+  submitted_at?: string
+  approved_at?: string
+  signed_at?: string
+  review_comments?: string
+  created_at: string
+  updated_at: string
+  created_by_user?: {
+    id: string
+    email: string
+    profile?: {
+      full_name: string
+    }
+  }
+  approved_by_user?: {
+    id: string
+    email: string
+    profile?: {
+      full_name: string
+    }
+  }
+}
+
+// Interfaces para chat
+export interface ChatMessage {
+  id: string
+  project_id: string
+  user_id: string
+  message: string
+  message_type: 'text' | 'image' | 'file'
+  attachment_url?: string
+  created_at: string
+  user?: {
+    id: string
+    email: string
+    profile?: {
+      full_name: string
+      avatar_url?: string
+    }
+  }
+}
+
+// Interfaces para empresas
+export interface Company {
+  id: string
+  name: string
+  nit: string
+  address: string
+  phone?: string
+  email?: string
+  contact_person?: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+// Re-exportar tipos de la base de datos
+export * from './database'

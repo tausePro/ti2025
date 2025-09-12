@@ -1,0 +1,73 @@
+-- Crear usuario de prueba directamente en auth.users
+INSERT INTO auth.users (
+  instance_id,
+  id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  confirmation_sent_at,
+  confirmation_token,
+  recovery_sent_at,
+  recovery_token,
+  email_change_sent_at,
+  email_change,
+  email_change_token_new,
+  email_change_token_current,
+  phone_change_sent_at,
+  phone_change,
+  phone_change_token,
+  created_at,
+  updated_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  is_super_admin,
+  last_sign_in_at
+) VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  gen_random_uuid(),
+  'authenticated',
+  'authenticated',
+  'admin@talento.com',
+  crypt('admin123456', gen_salt('bf')),
+  NOW(),
+  NOW(),
+  '',
+  NULL,
+  '',
+  NULL,
+  '',
+  '',
+  '',
+  NULL,
+  '',
+  '',
+  NOW(),
+  NOW(),
+  '{"provider": "email", "providers": ["email"]}',
+  '{"full_name": "Administrador Talento", "phone": "+57 300 123 4567", "role": "supervisor"}',
+  false,
+  NULL
+);
+
+-- Crear perfil correspondiente
+INSERT INTO public.profiles (
+  id,
+  email,
+  full_name,
+  phone,
+  role,
+  is_active,
+  created_at,
+  updated_at
+) VALUES (
+  (SELECT id FROM auth.users WHERE email = 'admin@talento.com'),
+  'admin@talento.com',
+  'Administrador Talento',
+  '+57 300 123 4567',
+  'supervisor',
+  true,
+  NOW(),
+  NOW()
+);
