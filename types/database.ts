@@ -165,41 +165,148 @@ export interface Database {
           company_id: string
           name: string
           code?: string
+          project_code?: string
           address: string
           city?: string
-          intervention_type: ('tecnica' | 'administrativa')[]
-          status: 'activo' | 'pausado' | 'finalizado'
+          intervention_type: ('supervision_tecnica' | 'interventoria_administrativa')[]
+          status: 'planificacion' | 'activo' | 'pausado' | 'finalizado'
           start_date?: string
           end_date?: string
           custom_fields_config: Record<string, any> | null
           created_by?: string
           created_at: string
           updated_at: string
+          logo_url?: string
+          progress_percentage: number
+          last_activity_at: string
+          is_archived: boolean
+          budget?: number
+          description?: string
+          estimated_duration_days?: number
+          actual_duration_days?: number
         }
         Insert: {
           company_id: string
           name: string
           code?: string
+          project_code?: string
           address: string
           city?: string
-          intervention_type: ('tecnica' | 'administrativa')[]
-          status?: 'activo' | 'pausado' | 'finalizado'
+          intervention_type: ('supervision_tecnica' | 'interventoria_administrativa')[]
+          status?: 'planificacion' | 'activo' | 'pausado' | 'finalizado'
           start_date?: string
           end_date?: string
           custom_fields_config?: Record<string, any> | null
           created_by?: string
+          logo_url?: string
+          progress_percentage?: number
+          last_activity_at?: string
+          is_archived?: boolean
+          budget?: number
+          description?: string
+          estimated_duration_days?: number
+          actual_duration_days?: number
         }
         Update: {
           company_id?: string
           name?: string
           code?: string
+          project_code?: string
           address?: string
           city?: string
-          intervention_type?: ('tecnica' | 'administrativa')[]
-          status?: 'activo' | 'pausado' | 'finalizado'
+          intervention_type?: ('supervision_tecnica' | 'interventoria_administrativa')[]
+          status?: 'planificacion' | 'activo' | 'pausado' | 'finalizado'
           start_date?: string
           end_date?: string
           custom_fields_config?: Record<string, any> | null
+          logo_url?: string
+          progress_percentage?: number
+          last_activity_at?: string
+          is_archived?: boolean
+          budget?: number
+          description?: string
+          estimated_duration_days?: number
+          actual_duration_days?: number
+        }
+      }
+      project_members: {
+        Row: {
+          id: string
+          project_id: string
+          user_id: string
+          role_in_project: 'supervisor' | 'residente' | 'ayudante' | 'especialista'
+          is_active: boolean
+          assigned_at: string
+          assigned_by?: string
+          notes?: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          project_id: string
+          user_id: string
+          role_in_project: 'supervisor' | 'residente' | 'ayudante' | 'especialista'
+          is_active?: boolean
+          assigned_by?: string
+          notes?: string
+        }
+        Update: {
+          role_in_project?: 'supervisor' | 'residente' | 'ayudante' | 'especialista'
+          is_active?: boolean
+          notes?: string
+        }
+      }
+      project_documents: {
+        Row: {
+          id: string
+          project_id: string
+          file_name: string
+          file_url: string
+          file_type: 'logo' | 'contract' | 'report' | 'photo' | 'drawing' | 'other'
+          file_size?: number
+          mime_type?: string
+          uploaded_by: string
+          uploaded_at: string
+          description?: string
+          is_public: boolean
+        }
+        Insert: {
+          project_id: string
+          file_name: string
+          file_url: string
+          file_type: 'logo' | 'contract' | 'report' | 'photo' | 'drawing' | 'other'
+          file_size?: number
+          mime_type?: string
+          uploaded_by: string
+          description?: string
+          is_public?: boolean
+        }
+        Update: {
+          file_name?: string
+          description?: string
+          is_public?: boolean
+        }
+      }
+      project_activities: {
+        Row: {
+          id: string
+          project_id: string
+          user_id: string
+          activity_type: 'created' | 'updated' | 'status_changed' | 'member_added' | 'member_removed' | 'document_uploaded' | 'report_generated'
+          description: string
+          metadata?: Record<string, any>
+          created_at: string
+        }
+        Insert: {
+          project_id: string
+          user_id: string
+          activity_type: 'created' | 'updated' | 'status_changed' | 'member_added' | 'member_removed' | 'document_uploaded' | 'report_generated'
+          description: string
+          metadata?: Record<string, any>
+        }
+        Update: {
+          description?: string
+          metadata?: Record<string, any>
         }
       }
       daily_logs: {

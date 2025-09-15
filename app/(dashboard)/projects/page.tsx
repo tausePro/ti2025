@@ -5,126 +5,93 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Plus, Search, Filter, Building2, MapPin, Calendar, Users } from 'lucide-react'
+import { Plus, Building2, Grid, List, Download } from 'lucide-react'
 import Link from 'next/link'
-import { Project, Company, ProjectStatus, InterventionType } from '@/types'
-
-interface ProjectWithCompany extends Project {
-  company: Company
-}
+import { Project, ProjectFilters } from '@/types'
+import { useProjects } from '@/hooks/useProjects'
+import { ProjectCard } from '@/components/projects/ProjectCard'
+import { ProjectFilters as ProjectFiltersComponent } from '@/components/projects/ProjectFilters'
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<ProjectWithCompany[]>([])
-  const [filteredProjects, setFilteredProjects] = useState<ProjectWithCompany[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all')
-  const [typeFilter, setTypeFilter] = useState<InterventionType | 'all'>('all')
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards')
+  const [filters, setFilters] = useState<ProjectFilters>({
+    search: '',
+    status: 'all',
+    interventionType: 'all',
+    clientId: 'all',
+    dateRange: null,
+    progressRange: null
+  })
+  const [companies, setCompanies] = useState<Array<{ id: string; name: string; logo_url?: string }>>([])
   
   const { hasPermission } = useAuth()
   const router = useRouter()
   const supabase = createClient()
 
+  const { 
+    projects, 
+    loading, 
+    error, 
+    totalCount, 
+    hasMore, 
+    refreshProjects 
+  } = useProjects({
+    page: 1,
+    pageSize: 20,
+    filters,
+    includeArchived: false
+  })
+
   useEffect(() => {
-    loadProjects()
+    loadCompanies()
   }, [])
 
-  useEffect(() => {
-    filterProjects()
-  }, [projects, searchTerm, statusFilter, typeFilter])
-
-  const loadProjects = async () => {
+  const loadCompanies = async () => {
     try {
       const { data, error } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          company:companies(*)
-        `)
-        .order('created_at', { ascending: false })
+        .from('companies')
+        .select('id, name, logo_url')
+        .eq('is_active', true)
+        .order('name')
 
       if (error) throw error
-
-      setProjects(data || [])
+      setCompanies(data || [])
     } catch (error) {
-      console.error('Error loading projects:', error)
-    } finally {
-      setLoading(false)
+      console.error('Error loading companies:', error)
     }
   }
 
-  const filterProjects = () => {
-    let filtered = projects
-
-    // Filtro por búsqueda
-    if (searchTerm) {
-      filtered = filtered.filter(project =>
-        project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.company?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.address.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    }
-
-    // Filtro por estado
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(project => project.status === statusFilter)
-    }
-
-    // Filtro por tipo de intervención
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter(project => 
-        project.intervention_type.includes(typeFilter)
-      )
-    }
-
-    setFilteredProjects(filtered)
+  const handleEditProject = (project: Project) => {
+    router.push(`/projects/${project.id}/edit`)
   }
 
-  const getStatusColor = (status: ProjectStatus) => {
-    switch (status) {
-      case 'activo':
-        return 'bg-green-100 text-green-800'
-      case 'pausado':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'finalizado':
-        return 'bg-gray-100 text-gray-800'
-      case 'planificacion':
-        return 'bg-blue-100 text-blue-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
+  const handleAssignTeam = (project: Project) => {
+    // TODO: Implementar modal de asignación de equipo
+    console.log('Assign team to project:', project.id)
   }
 
-  const getStatusText = (status: ProjectStatus) => {
-    switch (status) {
-      case 'activo':
-        return 'Activo'
-      case 'pausado':
-        return 'Pausado'
-      case 'finalizado':
-        return 'Finalizado'
-      case 'planificacion':
-        return 'Planificación'
-      default:
-        return status
-    }
+  const handleGenerateReport = (project: Project) => {
+    router.push(`/projects/${project.id}/reports`)
   }
 
-  const getInterventionTypeText = (types: InterventionType[]) => {
-    return types.map(type => {
-      switch (type) {
-        case 'supervision_tecnica':
-          return 'Supervisión Técnica'
-        case 'interventoria_administrativa':
-          return 'Interventoría Administrativa'
-        default:
-          return type
-      }
-    }).join(', ')
+  const handleViewFinancial = (project: Project) => {
+    router.push(`/projects/${project.id}/financial`)
+  }
+
+  const handleArchiveProject = (project: Project) => {
+    // TODO: Implementar archivar proyecto
+    console.log('Archive project:', project.id)
+  }
+
+  const handleDuplicateProject = (project: Project) => {
+    // TODO: Implementar duplicar proyecto
+    console.log('Duplicate project:', project.id)
+  }
+
+  const handleExportProjects = () => {
+    // TODO: Implementar exportación a Excel
+    console.log('Export projects to Excel')
   }
 
   if (loading) {
@@ -135,136 +102,108 @@ export default function ProjectsPage() {
     )
   }
 
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Building2 className="h-12 w-12 text-red-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Error al cargar proyectos
+          </h3>
+          <p className="text-gray-500 text-center mb-6">
+            {error}
+          </p>
+          <Button onClick={refreshProjects}>
+            Intentar de nuevo
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Proyectos</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Gestión de Proyectos</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Gestiona y supervisa todos los proyectos de construcción
+            {totalCount} proyectos • {projects.filter(p => p.status === 'activo').length} activos
           </p>
         </div>
-        {hasPermission('projects', 'create') && (
-          <Button asChild className="mt-4 sm:mt-0">
-            <Link href="/dashboard/projects/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Proyecto
-            </Link>
-          </Button>
-        )}
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar proyectos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Status Filter */}
-            <Select value={statusFilter} onValueChange={(value: ProjectStatus | 'all') => setStatusFilter(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                <SelectItem value="planificacion">Planificación</SelectItem>
-                <SelectItem value="activo">Activo</SelectItem>
-                <SelectItem value="pausado">Pausado</SelectItem>
-                <SelectItem value="finalizado">Finalizado</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Type Filter */}
-            <Select value={typeFilter} onValueChange={(value: InterventionType | 'all') => setTypeFilter(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Tipo de intervención" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los tipos</SelectItem>
-                <SelectItem value="supervision_tecnica">Supervisión Técnica</SelectItem>
-                <SelectItem value="interventoria_administrativa">Interventoría Administrativa</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Clear Filters */}
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setSearchTerm('')
-                setStatusFilter('all')
-                setTypeFilter('all')
-              }}
+        <div className="flex items-center gap-2 mt-4 sm:mt-0">
+          {/* Toggle de vista */}
+          <div className="flex items-center border rounded-lg">
+            <Button
+              variant={viewMode === 'cards' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('cards')}
+              className="rounded-r-none"
             >
-              <Filter className="h-4 w-4 mr-2" />
-              Limpiar
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
             </Button>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Projects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProjects.map((project) => (
-          <Card key={project.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-            <Link href={`/dashboard/projects/${project.id}`}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg line-clamp-2">{project.name}</CardTitle>
-                    <CardDescription className="mt-1">
-                      {project.company?.name}
-                    </CardDescription>
-                  </div>
-                  <Badge className={getStatusColor(project.status)}>
-                    {getStatusText(project.status)}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {/* Address */}
-                  <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span className="line-clamp-1">{project.address}</span>
-                  </div>
+          {/* Botón de exportar */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportProjects}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Exportar
+          </Button>
 
-                  {/* Intervention Types */}
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Building2 className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span className="line-clamp-1">
-                      {getInterventionTypeText(project.intervention_type)}
-                    </span>
-                  </div>
-
-                  {/* Created Date */}
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span>
-                      Creado: {new Date(project.created_at).toLocaleDateString('es-CO')}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Link>
-          </Card>
-        ))}
+          {/* Botón de nuevo proyecto */}
+          {hasPermission('projects', 'create') && (
+            <Button asChild>
+              <Link href="/projects/new">
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Proyecto
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Empty State */}
-      {filteredProjects.length === 0 && !loading && (
+      {/* Filtros */}
+      <ProjectFiltersComponent
+        filters={filters}
+        onFiltersChange={setFilters}
+        companies={companies}
+        loading={loading}
+      />
+
+      {/* Proyectos */}
+      {projects.length > 0 ? (
+        <div className={
+          viewMode === 'cards' 
+            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            : "space-y-4"
+        }>
+          {projects.map((project) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onEdit={hasPermission('projects', 'update') ? handleEditProject : undefined}
+              onAssignTeam={hasPermission('projects', 'update') ? handleAssignTeam : undefined}
+              onGenerateReport={hasPermission('reports', 'create') ? handleGenerateReport : undefined}
+              onViewFinancial={hasPermission('financial', 'read') ? handleViewFinancial : undefined}
+              onArchive={hasPermission('projects', 'delete') ? handleArchiveProject : undefined}
+              onDuplicate={hasPermission('projects', 'create') ? handleDuplicateProject : undefined}
+              showActions={true}
+            />
+          ))}
+        </div>
+      ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Building2 className="h-12 w-12 text-gray-400 mb-4" />
@@ -272,14 +211,14 @@ export default function ProjectsPage() {
               No se encontraron proyectos
             </h3>
             <p className="text-gray-500 text-center mb-6">
-              {projects.length === 0 
+              {totalCount === 0 
                 ? 'Aún no hay proyectos creados. Crea tu primer proyecto para comenzar.'
                 : 'No hay proyectos que coincidan con los filtros aplicados.'
               }
             </p>
-            {hasPermission('projects', 'create') && projects.length === 0 && (
+            {hasPermission('projects', 'create') && totalCount === 0 && (
               <Button asChild>
-                <Link href="/dashboard/projects/new">
+                <Link href="/projects/new">
                   <Plus className="h-4 w-4 mr-2" />
                   Crear Primer Proyecto
                 </Link>
@@ -287,6 +226,15 @@ export default function ProjectsPage() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Cargar más */}
+      {hasMore && (
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={() => {/* TODO: Implementar paginación */}}>
+            Cargar más proyectos
+          </Button>
+        </div>
       )}
     </div>
   )

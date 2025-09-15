@@ -31,17 +31,86 @@ export interface Project {
   description?: string
   company_id: string
   address: string
+  city?: string
   intervention_type: InterventionType[]
   status: ProjectStatus
   budget?: number
   start_date?: string
+  end_date?: string
   estimated_end_date?: string
   custom_fields_config?: Record<string, any>
+  project_code?: string
+  logo_url?: string
+  progress_percentage: number
+  last_activity_at: string
+  is_archived: boolean
+  estimated_duration_days?: number
+  actual_duration_days?: number
   company?: {
+    id: string
     name: string
+    logo_url?: string
+    company_type?: string
   }
+  created_by?: string
   created_at: string
   updated_at: string
+}
+
+// Interfaces para miembros del proyecto
+export interface ProjectMember {
+  id: string
+  project_id: string
+  user_id: string
+  role_in_project: 'supervisor' | 'residente' | 'ayudante' | 'especialista'
+  is_active: boolean
+  assigned_at: string
+  assigned_by?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  user?: {
+    id: string
+    full_name: string
+    email: string
+    avatar_url?: string
+  }
+}
+
+// Interfaces para documentos del proyecto
+export interface ProjectDocument {
+  id: string
+  project_id: string
+  file_name: string
+  file_url: string
+  file_type: 'logo' | 'contract' | 'report' | 'photo' | 'drawing' | 'other'
+  file_size?: number
+  mime_type?: string
+  uploaded_by: string
+  uploaded_at: string
+  description?: string
+  is_public: boolean
+  uploaded_by_user?: {
+    id: string
+    full_name: string
+    email: string
+  }
+}
+
+// Interfaces para actividades del proyecto
+export interface ProjectActivity {
+  id: string
+  project_id: string
+  user_id: string
+  activity_type: 'created' | 'updated' | 'status_changed' | 'member_added' | 'member_removed' | 'document_uploaded' | 'report_generated'
+  description: string
+  metadata?: Record<string, any>
+  created_at: string
+  user?: {
+    id: string
+    full_name: string
+    email: string
+  }
 }
 
 // Interfaces para bitácoras
