@@ -32,7 +32,7 @@ export interface Project {
   company_id: string
   address: string
   city?: string
-  intervention_type: InterventionType[]
+  intervention_types: InterventionType[]
   status: ProjectStatus
   budget?: number
   start_date?: string

@@ -13,9 +13,9 @@ ADD COLUMN IF NOT EXISTS project_code VARCHAR(50) UNIQUE,
 ADD COLUMN IF NOT EXISTS estimated_duration_days INTEGER,
 ADD COLUMN IF NOT EXISTS actual_duration_days INTEGER;
 
--- 2. Actualizar el campo intervention_type para usar los valores correctos
+-- 2. Actualizar el campo intervention_types para usar los valores correctos
 ALTER TABLE projects 
-ALTER COLUMN intervention_type TYPE TEXT[] USING intervention_type::TEXT[];
+ALTER COLUMN intervention_types TYPE TEXT[] USING intervention_types::TEXT[];
 
 -- 3. Agregar estado 'planificacion' al enum de status
 ALTER TABLE projects 

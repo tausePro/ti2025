@@ -168,7 +168,7 @@ export interface Database {
           project_code?: string
           address: string
           city?: string
-          intervention_type: ('supervision_tecnica' | 'interventoria_administrativa')[]
+          intervention_types: ('supervision_tecnica' | 'interventoria_administrativa')[]
           status: 'planificacion' | 'activo' | 'pausado' | 'finalizado'
           start_date?: string
           end_date?: string
@@ -192,7 +192,7 @@ export interface Database {
           project_code?: string
           address: string
           city?: string
-          intervention_type: ('supervision_tecnica' | 'interventoria_administrativa')[]
+          intervention_types: ('supervision_tecnica' | 'interventoria_administrativa')[]
           status?: 'planificacion' | 'activo' | 'pausado' | 'finalizado'
           start_date?: string
           end_date?: string

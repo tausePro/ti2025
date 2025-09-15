@@ -71,7 +71,7 @@ export function useProjects(options: UseProjectsOptions = {}) {
       }
 
       if (filters.interventionType && filters.interventionType !== 'all') {
-        query = query.contains('intervention_type', [filters.interventionType])
+        query = query.contains('intervention_types', [filters.interventionType])
       }
 
       if (filters.clientId && filters.clientId !== 'all') {

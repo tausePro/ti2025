@@ -56,7 +56,7 @@ export function ProjectCard({
 }: ProjectCardProps) {
   const [imageError, setImageError] = useState(false)
 
-  const getInterventionTypeText = (types: string[]) => {
+  const getInterventionTypesText = (types: string[]) => {
     return types.map(type => {
       switch (type) {
         case 'supervision_tecnica':
@@ -69,7 +69,7 @@ export function ProjectCard({
     }).join(', ')
   }
 
-  const getInterventionIcons = (types: string[]) => {
+  const getInterventionTypesIcons = (types: string[]) => {
     return types.map(type => {
       switch (type) {
         case 'supervision_tecnica':
@@ -189,7 +189,7 @@ export function ProjectCard({
                     Generar informe
                   </DropdownMenuItem>
                 )}
-                {onViewFinancial && project.intervention_type.includes('interventoria_administrativa') && (
+                {onViewFinancial && project.intervention_types.includes('interventoria_administrativa') && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => onViewFinancial(project)}>
@@ -239,10 +239,10 @@ export function ProjectCard({
         {/* Tipos de intervención */}
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <div className="flex items-center gap-1">
-            {getInterventionIcons(project.intervention_type)}
+            {getInterventionTypesIcons(project.intervention_types)}
           </div>
           <span className="line-clamp-1">
-            {getInterventionTypeText(project.intervention_type)}
+            {getInterventionTypesText(project.intervention_types)}
           </span>
         </div>
 

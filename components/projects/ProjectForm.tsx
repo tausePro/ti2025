@@ -24,13 +24,13 @@ const projectSchema = z.object({
   city: z.string().min(1, 'La ciudad es requerida'),
   start_date: z.string().optional(),
   end_date: z.string().optional(),
-  intervention_type: z.array(z.enum(['supervision_tecnica', 'interventoria_administrativa']))
+  intervention_types: z.array(z.enum(['supervision_tecnica', 'interventoria_administrativa']))
     .min(1, 'Debe seleccionar al menos un tipo de intervención'),
   budget: z.number().optional(),
   description: z.string().optional()
 }).refine((data) => {
   // Si tiene interventoría administrativa, el presupuesto es requerido
-  if (data.intervention_type.includes('interventoria_administrativa') && !data.budget) {
+  if (data.intervention_types.includes('interventoria_administrativa') && !data.budget) {
     return false
   }
   return true
