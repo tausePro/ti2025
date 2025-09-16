@@ -15,11 +15,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Building2, MapPin, Calendar, DollarSign } from 'lucide-react'
 import { Project, Company, InterventionType } from '@/types'
+import { FiduciaryInfoForm } from './FiduciaryInfoForm'
 
 // Esquema de validación
 const projectSchema = z.object({
   name: z.string().min(1, 'El nombre del proyecto es requerido'),
-  company_id: z.string().min(1, 'Debe seleccionar una empresa'),
+  client_company_id: z.string().min(1, 'Debe seleccionar una empresa'),
   address: z.string().min(1, 'La dirección es requerida'),
   city: z.string().min(1, 'La ciudad es requerida'),
   start_date: z.string().optional(),
@@ -57,9 +58,20 @@ interface ProjectFormProps {
   onCancel: () => void
   loading?: boolean
   submitButtonText?: string | React.ReactElement
+  showFiduciaryForm?: boolean
+  onFiduciarySubmit?: (data: any) => Promise<void>
 }
 
-export function ProjectForm({ project, initialData, onSubmit, onCancel, loading = false, submitButtonText = 'Guardar Proyecto' }: ProjectFormProps) {
+export function ProjectForm({ 
+  project, 
+  initialData, 
+  onSubmit, 
+  onCancel, 
+  loading = false, 
+  submitButtonText = 'Guardar Proyecto',
+  showFiduciaryForm = false,
+  onFiduciarySubmit
+}: ProjectFormProps) {
   const [companies, setCompanies] = useState<Company[]>([])
   const [loadingCompanies, setLoadingCompanies] = useState(true)
   const supabase = createClient()
@@ -74,24 +86,33 @@ export function ProjectForm({ project, initialData, onSubmit, onCancel, loading 
     resolver: zodResolver(projectSchema),
     defaultValues: initialData || (project ? {
       name: project.name,
-      company_id: project.company_id,
+      client_company_id: project.client_company_id,
       address: project.address,
-      intervention_type: project.intervention_type,
-      description: project.description || project.custom_fields_config?.description || '',
+      city: project.city,
+      intervention_types: project.intervention_types,
+      description: project.description || '',
       budget: project.budget,
       start_date: project.start_date,
-      end_date: project.estimated_end_date
+      end_date: project.end_date
     } : {
-      intervention_type: []
+      intervention_types: []
     })
   })
 
-  const watchedInterventionTypes = watch('intervention_type')
+  const watchedInterventionTypes = watch('intervention_types')
   const hasInterventoriaAdministrativa = watchedInterventionTypes?.includes('interventoria_administrativa')
+  const [showFiduciarySection, setShowFiduciarySection] = useState(showFiduciaryForm)
 
   useEffect(() => {
     loadCompanies()
   }, [])
+
+  // Mostrar sección fiduciaria cuando se selecciona interventoría administrativa
+  useEffect(() => {
+    if (hasInterventoriaAdministrativa && !showFiduciarySection) {
+      setShowFiduciarySection(true)
+    }
+  }, [hasInterventoriaAdministrativa, showFiduciarySection])
 
   const loadCompanies = async () => {
     try {
@@ -111,13 +132,13 @@ export function ProjectForm({ project, initialData, onSubmit, onCancel, loading 
   }
 
   const handleInterventionTypeChange = (type: InterventionType, checked: boolean) => {
-    const currentTypes = watch('intervention_type') || []
+    const currentTypes = watch('intervention_types') || []
     if (checked) {
       const newTypes = [...currentTypes, type]
-      setValue('intervention_type', newTypes)
+      setValue('intervention_types', newTypes)
     } else {
       const newTypes = currentTypes.filter(t => t !== type)
-      setValue('intervention_type', newTypes)
+      setValue('intervention_types', newTypes)
       
       // Si se deselecciona interventoría administrativa, limpiar presupuesto
       if (type === 'interventoria_administrativa') {
@@ -165,12 +186,12 @@ export function ProjectForm({ project, initialData, onSubmit, onCancel, loading 
 
           {/* Empresa cliente */}
           <div className="space-y-2">
-            <Label htmlFor="company_id">Empresa Cliente *</Label>
+            <Label htmlFor="client_company_id">Empresa Cliente *</Label>
             <Select 
-              onValueChange={(value) => setValue('company_id', value)}
+              onValueChange={(value) => setValue('client_company_id', value)}
               disabled={loading || loadingCompanies}
             >
-              <SelectTrigger className={errors.company_id ? 'border-red-500' : ''}>
+              <SelectTrigger className={errors.client_company_id ? 'border-red-500' : ''}>
                 <SelectValue placeholder="Seleccionar empresa" />
               </SelectTrigger>
               <SelectContent>
@@ -181,8 +202,8 @@ export function ProjectForm({ project, initialData, onSubmit, onCancel, loading 
                 ))}
               </SelectContent>
             </Select>
-            {errors.company_id && (
-              <p className="text-sm text-red-500">{errors.company_id.message}</p>
+            {errors.client_company_id && (
+              <p className="text-sm text-red-500">{errors.client_company_id.message}</p>
             )}
           </div>
 
@@ -276,9 +297,9 @@ export function ProjectForm({ project, initialData, onSubmit, onCancel, loading 
             </p>
           </div>
 
-          {errors.intervention_type && (
+          {errors.intervention_types && (
             <Alert variant="destructive">
-              <AlertDescription>{errors.intervention_type.message}</AlertDescription>
+              <AlertDescription>{errors.intervention_types.message}</AlertDescription>
             </Alert>
           )}
         </CardContent>
@@ -346,6 +367,28 @@ export function ProjectForm({ project, initialData, onSubmit, onCancel, loading 
           )}
         </CardContent>
       </Card>
+
+      {/* Sección Fiduciaria - Solo para interventoría administrativa */}
+      {hasInterventoriaAdministrativa && showFiduciarySection && onFiduciarySubmit && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <DollarSign className="h-5 w-5 mr-2" />
+              Configuración Fiduciaria
+            </CardTitle>
+            <CardDescription>
+              Configure la información fiduciaria requerida para proyectos con interventoría administrativa
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FiduciaryInfoForm
+              onSubmit={onFiduciarySubmit}
+              onCancel={() => setShowFiduciarySection(false)}
+              loading={loading}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Botones */}
       <div className="flex justify-end space-x-4">

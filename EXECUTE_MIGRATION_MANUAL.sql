@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS project_activities (
 
 -- 7. Crear índices para optimización
 CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
-CREATE INDEX IF NOT EXISTS idx_projects_client ON projects(company_id);
+CREATE INDEX IF NOT EXISTS idx_projects_client ON projects(client_company_id);
 CREATE INDEX IF NOT EXISTS idx_projects_archived ON projects(is_archived);
 CREATE INDEX IF NOT EXISTS idx_projects_activity ON projects(last_activity_at);
 CREATE INDEX IF NOT EXISTS idx_project_members_active ON project_members(project_id, user_id) WHERE is_active = true;
@@ -199,7 +199,7 @@ SELECT
   COUNT(DISTINCT pd.id) as documents_count,
   COUNT(DISTINCT pa.id) as activities_count
 FROM projects p
-LEFT JOIN companies c ON p.company_id = c.id
+LEFT JOIN companies c ON p.client_company_id = c.id
 LEFT JOIN project_members pm ON p.id = pm.project_id AND pm.is_active = true
 LEFT JOIN project_documents pd ON p.id = pd.project_id
 LEFT JOIN project_activities pa ON p.id = pa.project_id

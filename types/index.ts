@@ -241,5 +241,91 @@ export interface Company {
   updated_at: string
 }
 
+// Interfaces para sistema fiduciario
+export interface FiduciaryAccount {
+  id: string
+  project_id: string
+  sifi_code: '1' | '2'
+  account_name: string
+  bank_name: string
+  account_number: string
+  initial_balance: number
+  current_balance: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  created_by: string
+}
+
+export interface ProjectFinancialConfig {
+  id: string
+  project_id: string
+  requires_construction_acts: boolean
+  requires_legalizations: boolean
+  approval_flow: string[]
+  budget_alerts: number[]
+  max_approval_amount?: number
+  requires_client_approval: boolean
+  auto_approve_under: number
+  created_at: string
+  updated_at: string
+  created_by: string
+}
+
+export interface PaymentOrder {
+  id: string
+  project_id: string
+  fiduciary_account_id?: string
+  order_number: string
+  description: string
+  amount: number
+  beneficiary_name: string
+  beneficiary_document?: string
+  beneficiary_account_number?: string
+  beneficiary_bank?: string
+  status: 'pending' | 'approved' | 'rejected' | 'paid' | 'cancelled'
+  priority: 'low' | 'normal' | 'high' | 'urgent'
+  approved_by?: string
+  approved_at?: string
+  rejection_reason?: string
+  requested_at: string
+  due_date?: string
+  paid_at?: string
+  supporting_documents?: string[]
+  invoice_number?: string
+  created_at: string
+  updated_at: string
+  created_by: string
+  
+  // Relaciones
+  fiduciary_account?: FiduciaryAccount
+  approver?: {
+    id: string
+    full_name: string
+    email: string
+  }
+}
+
+export interface FiduciaryMovement {
+  id: string
+  fiduciary_account_id: string
+  payment_order_id?: string
+  movement_type: 'credit' | 'debit'
+  amount: number
+  description: string
+  reference_number?: string
+  balance_before: number
+  balance_after: number
+  created_at: string
+  created_by: string
+}
+
+// Actualizar interface Project para incluir información fiduciaria
+export interface ProjectWithFiduciary extends Project {
+  fiduciary_accounts?: FiduciaryAccount[]
+  financial_config?: ProjectFinancialConfig
+  payment_orders?: PaymentOrder[]
+}
+
 // Re-exportar tipos de la base de datos
 export * from './database'

@@ -13,12 +13,12 @@ import Link from 'next/link'
 
 type ProjectFormData = {
   name: string
-  company_id: string
+  client_company_id: string
   address: string
   city: string
   start_date?: string
   end_date?: string
-  intervention_type: ('supervision_tecnica' | 'interventoria_administrativa')[]
+  intervention_types: ('supervision_tecnica' | 'interventoria_administrativa')[]
   budget?: number
   description?: string
 }
@@ -46,7 +46,7 @@ export default function EditProjectPage() {
         .from('projects')
         .select(`
           *,
-          company:companies(*)
+          company:companies!client_company_id(*)
         `)
         .eq('id', params.id)
         .single()
@@ -75,15 +75,14 @@ export default function EditProjectPage() {
         .from('projects')
         .update({
           name: data.name,
-          company_id: data.company_id,
+          client_company_id: data.client_company_id,
           address: data.address,
           city: data.city,
           start_date: data.start_date || null,
-          estimated_end_date: data.end_date || null,
-          intervention_type: data.intervention_type,
+          end_date: data.end_date || null,
+          intervention_types: data.intervention_types,
           budget: data.budget || null,
-          description: data.description || null,
-          custom_fields_config: data.description ? { description: data.description } : null
+          description: data.description || null
         })
         .eq('id', params.id)
 

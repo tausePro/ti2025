@@ -51,13 +51,7 @@ export function useProjects(options: UseProjectsOptions = {}) {
           *,
           company:companies!client_company_id(
             id, name, logo_url, company_type
-          ),
-          project_members(
-            id, user_id, role_in_project, is_active,
-            user:profiles(id, full_name, email, avatar_url)
-          ),
-          project_documents(count),
-          project_activities(count)
+          )
         `)
         .eq('is_archived', includeArchived)
 
@@ -75,7 +69,7 @@ export function useProjects(options: UseProjectsOptions = {}) {
       }
 
       if (filters.clientId && filters.clientId !== 'all') {
-        query = query.eq('company_id', filters.clientId)
+        query = query.eq('client_company_id', filters.clientId)
       }
 
       if (filters.dateRange) {
@@ -98,15 +92,15 @@ export function useProjects(options: UseProjectsOptions = {}) {
       const to = from + pageSize - 1
 
       query = query
-        .order('last_activity_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .range(from, to)
 
-      const { data, error: queryError, count } = await query
+      const { data, error: queryError } = await query
 
       if (queryError) throw queryError
 
       setProjects(data || [])
-      setTotalCount(count || 0)
+      setTotalCount(data?.length || 0)
       setHasMore((data?.length || 0) === pageSize)
     } catch (err) {
       console.error('Error loading projects:', err)
