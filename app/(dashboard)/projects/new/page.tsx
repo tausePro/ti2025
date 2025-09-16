@@ -12,12 +12,12 @@ import Link from 'next/link'
 
 type ProjectFormData = {
   name: string
-  company_id: string
+  client_company_id: string
   address: string
   city: string
   start_date?: string
   end_date?: string
-  intervention_type: ('supervision_tecnica' | 'interventoria_administrativa')[]
+  intervention_types: ('supervision_tecnica' | 'interventoria_administrativa')[]
   budget?: number
   description?: string
 }
@@ -42,9 +42,9 @@ export default function NewProjectPage() {
       // Crear el proyecto
       const projectData = {
         name: data.name,
-        company_id: data.company_id,
+        client_company_id: data.client_company_id,
         address: data.address,
-        intervention_type: data.intervention_type,
+        intervention_types: data.intervention_types,
         status: 'planificacion' as const,
         custom_fields_config: {
           city: data.city,

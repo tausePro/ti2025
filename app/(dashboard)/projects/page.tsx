@@ -18,10 +18,8 @@ export default function ProjectsPage() {
   const [filters, setFilters] = useState<ProjectFilters>({
     search: '',
     status: 'all',
-    interventionType: 'all',
-    clientId: 'all',
-    dateRange: null,
-    progressRange: null
+    intervention_type: 'all',
+    client_id: 'all'
   })
   const [companies, setCompanies] = useState<Array<{ id: string; name: string; logo_url?: string }>>([])
   

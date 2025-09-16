@@ -24,6 +24,22 @@ export interface UserWithPermissions {
 export type PermissionModule = 'projects' | 'reports' | 'financial' | 'users' | 'companies' | 'bitacora'
 export type PermissionAction = 'create' | 'read' | 'update' | 'delete' | 'approve' | 'sign' | 'assign'
 
+// Interfaces para filtros
+export interface ProjectFilters {
+  search: string
+  status: string
+  interventionType: string
+  clientId: string
+  dateRange: {
+    start: string
+    end: string
+  } | null
+  progressRange: {
+    min: number
+    max: number
+  } | null
+}
+
 // Interfaces para proyectos
 export interface Project {
   id: string

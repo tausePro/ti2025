@@ -124,7 +124,7 @@ export default function ProjectDetailPage() {
     }).join(', ')
   }
 
-  const hasInterventoriaAdministrativa = project?.intervention_type.includes('interventoria_administrativa')
+  const hasInterventoriaAdministrativa = project?.intervention_types.includes('interventoria_administrativa')
 
   if (loading) {
     return (
@@ -205,7 +205,7 @@ export default function ProjectDetailPage() {
                 </div>
               )}
               <div className="text-sm text-gray-600">
-                {getInterventionTypeText(project.intervention_type)}
+                {getInterventionTypeText(project.intervention_types)}
               </div>
             </div>
           </CardContent>

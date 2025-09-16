@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Search, Filter, X, Calendar, DollarSign, Users } from 'lucide-react'
-import { ProjectFilters as FilterType } from '@/hooks/useProjects'
+import { ProjectFilters as FilterType } from '@/types'
 
 interface ProjectFiltersProps {
   filters: FilterType
