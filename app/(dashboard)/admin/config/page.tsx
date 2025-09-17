@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import React from 'react'
 import { useStyleConfiguration } from '@/hooks/useStyleConfiguration'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -40,6 +41,7 @@ export default function StyleConfigPage() {
   const [selectedConfig, setSelectedConfig] = useState<string | null>(activeConfiguration?.id || null)
   const [isCreating, setIsCreating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [currentConfig, setCurrentConfig] = useState<StyleConfiguration | null>(null)
 
   const handleCreateNew = async () => {
     setIsCreating(true)
@@ -89,17 +91,23 @@ export default function StyleConfigPage() {
   }
 
   const handleSave = async () => {
-    if (!selectedConfig) return
+    if (!selectedConfig || !currentConfig) return
     
     setIsSaving(true)
     try {
-      // Aquí se implementaría la lógica de guardado
-      // Por ahora solo mostramos un mensaje
-      console.log('Saving configuration:', selectedConfig)
+      await updateConfiguration(selectedConfig, currentConfig)
+      console.log('Configuration saved successfully')
     } catch (error) {
       console.error('Error saving configuration:', error)
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleConfigUpdate = (updates: Partial<StyleConfiguration>) => {
+    if (currentConfig) {
+      const updatedConfig = { ...currentConfig, ...updates }
+      setCurrentConfig(updatedConfig)
     }
   }
 
@@ -125,7 +133,11 @@ export default function StyleConfigPage() {
     }
   }
 
-  const currentConfig = configurations.find(config => config.id === selectedConfig)
+  // Actualizar currentConfig cuando cambie selectedConfig
+  React.useEffect(() => {
+    const config = configurations.find(config => config.id === selectedConfig)
+    setCurrentConfig(config || null)
+  }, [selectedConfig, configurations])
 
   if (loading) {
     return (
@@ -256,10 +268,7 @@ export default function StyleConfigPage() {
               <TabsContent value="colors">
                 <ColorConfiguration
                   configuration={currentConfig}
-                  onUpdate={(updates) => {
-                    // Aquí se implementaría la actualización en tiempo real
-                    console.log('Color updates:', updates)
-                  }}
+                  onUpdate={handleConfigUpdate}
                 />
               </TabsContent>
 
@@ -268,18 +277,14 @@ export default function StyleConfigPage() {
                   configuration={currentConfig}
                   assets={brandingAssets}
                   onUpload={uploadBrandingAsset}
-                  onUpdate={(updates) => {
-                    console.log('Branding updates:', updates)
-                  }}
+                  onUpdate={handleConfigUpdate}
                 />
               </TabsContent>
 
               <TabsContent value="typography">
                 <TypographyConfiguration
                   configuration={currentConfig}
-                  onUpdate={(updates) => {
-                    console.log('Typography updates:', updates)
-                  }}
+                  onUpdate={handleConfigUpdate}
                 />
               </TabsContent>
 

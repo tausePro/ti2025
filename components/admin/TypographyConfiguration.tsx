@@ -6,106 +6,63 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { Type, RefreshCw } from 'lucide-react'
 
 interface TypographyConfigurationProps {
-  configuration: StyleConfiguration
+  configuration: StyleConfiguration | null
   onUpdate: (updates: Partial<StyleConfiguration>) => void
 }
 
-const fontFamilies = [
-  { value: 'Inter', label: 'Inter (Recomendado)' },
-  { value: 'system-ui', label: 'System UI' },
-  { value: 'Arial', label: 'Arial' },
-  { value: 'Helvetica', label: 'Helvetica' },
-  { value: 'Georgia', label: 'Georgia' },
-  { value: 'Times New Roman', label: 'Times New Roman' },
-  { value: 'Courier New', label: 'Courier New' },
-  { value: 'Verdana', label: 'Verdana' },
-  { value: 'Tahoma', label: 'Tahoma' },
-  { value: 'Trebuchet MS', label: 'Trebuchet MS' }
-]
-
-const fontWeights = [
-  { value: '300', label: 'Light (300)' },
-  { value: '400', label: 'Normal (400)' },
-  { value: '500', label: 'Medium (500)' },
-  { value: '600', label: 'Semi Bold (600)' },
-  { value: '700', label: 'Bold (700)' },
-  { value: '800', label: 'Extra Bold (800)' },
-  { value: '900', label: 'Black (900)' }
-]
-
-const fontSizes = [
-  { value: '12px', label: '12px (Muy pequeño)' },
-  { value: '14px', label: '14px (Pequeño)' },
-  { value: '16px', label: '16px (Normal)' },
-  { value: '18px', label: '18px (Mediano)' },
-  { value: '20px', label: '20px (Grande)' },
-  { value: '24px', label: '24px (Muy grande)' }
-]
-
 export function TypographyConfiguration({ configuration, onUpdate }: TypographyConfigurationProps) {
-  const [typography, setTypography] = useState({
-    fontFamily: configuration.font_family,
-    fontSizeBase: configuration.font_size_base,
-    fontWeightNormal: configuration.font_weight_normal,
-    fontWeightMedium: configuration.font_weight_medium,
-    fontWeightSemibold: configuration.font_weight_semibold,
-    fontWeightBold: configuration.font_weight_bold
-  })
+  if (!configuration) return null
 
-  const handleTypographyChange = (key: string, value: string) => {
-    const newTypography = { ...typography, [key]: value }
-    setTypography(newTypography)
-    
-    // Actualizar configuración
-    const updates: Partial<StyleConfiguration> = {}
-    switch (key) {
-      case 'fontFamily':
-        updates.font_family = value
-        break
-      case 'fontSizeBase':
-        updates.font_size_base = value
-        break
-      case 'fontWeightNormal':
-        updates.font_weight_normal = value
-        break
-      case 'fontWeightMedium':
-        updates.font_weight_medium = value
-        break
-      case 'fontWeightSemibold':
-        updates.font_weight_semibold = value
-        break
-      case 'fontWeightBold':
-        updates.font_weight_bold = value
-        break
-    }
-    
-    onUpdate(updates)
+  const handleInputChange = (field: keyof StyleConfiguration, value: string) => {
+    onUpdate({ [field]: value })
   }
 
   const resetToDefault = () => {
-    const defaultTypography = {
-      fontFamily: 'Inter',
-      fontSizeBase: '16px',
-      fontWeightNormal: '400',
-      fontWeightMedium: '500',
-      fontWeightSemibold: '600',
-      fontWeightBold: '700'
-    }
-    setTypography(defaultTypography)
     onUpdate({
-      font_family: defaultTypography.fontFamily,
-      font_size_base: defaultTypography.fontSizeBase,
-      font_weight_normal: defaultTypography.fontWeightNormal,
-      font_weight_medium: defaultTypography.fontWeightMedium,
-      font_weight_semibold: defaultTypography.fontWeightSemibold,
-      font_weight_bold: defaultTypography.fontWeightBold
+      font_family: 'Inter',
+      font_size_base: '16px',
+      font_weight_normal: '400',
+      font_weight_medium: '500',
+      font_weight_semibold: '600',
+      font_weight_bold: '700',
+      border_radius: '0.5rem',
+      spacing_unit: '0.25rem',
+      shadow_sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+      shadow_md: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+      shadow_lg: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
     })
   }
+
+  const fontFamilies = [
+    { value: 'Inter', label: 'Inter' },
+    { value: 'Roboto', label: 'Roboto' },
+    { value: 'Open Sans', label: 'Open Sans' },
+    { value: 'Lato', label: 'Lato' },
+    { value: 'Poppins', label: 'Poppins' },
+    { value: 'Montserrat', label: 'Montserrat' },
+    { value: 'Source Sans Pro', label: 'Source Sans Pro' },
+    { value: 'Nunito', label: 'Nunito' }
+  ]
+
+  const fontWeights = [
+    { value: '300', label: 'Light (300)' },
+    { value: '400', label: 'Normal (400)' },
+    { value: '500', label: 'Medium (500)' },
+    { value: '600', label: 'Semi Bold (600)' },
+    { value: '700', label: 'Bold (700)' },
+    { value: '800', label: 'Extra Bold (800)' },
+    { value: '900', label: 'Black (900)' }
+  ]
+
+  const fontSizes = [
+    { value: '14px', label: 'Pequeño (14px)' },
+    { value: '16px', label: 'Normal (16px)' },
+    { value: '18px', label: 'Grande (18px)' },
+    { value: '20px', label: 'Extra Grande (20px)' }
+  ]
 
   return (
     <div className="space-y-6">
@@ -119,27 +76,30 @@ export function TypographyConfiguration({ configuration, onUpdate }: TypographyC
             Personaliza las fuentes y estilos de texto de la aplicación
           </p>
         </div>
-        <Button variant="outline" onClick={resetToDefault}>
+        <button
+          onClick={resetToDefault}
+          className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+        >
           <RefreshCw className="h-4 w-4 mr-2" />
           Restaurar por Defecto
-        </Button>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Configuración básica */}
+        {/* Fuente principal */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Configuración Básica</CardTitle>
+            <CardTitle className="text-lg">Fuente Principal</CardTitle>
             <CardDescription>
-              Fuente principal y tamaño base del texto
+              Fuente base para toda la aplicación
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fontFamily">Familia de Fuente</Label>
+              <Label htmlFor="font_family">Familia de Fuente</Label>
               <Select
-                value={typography.fontFamily}
-                onValueChange={(value) => handleTypographyChange('fontFamily', value)}
+                value={configuration.font_family}
+                onValueChange={(value) => handleInputChange('font_family', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar fuente" />
@@ -147,18 +107,17 @@ export function TypographyConfiguration({ configuration, onUpdate }: TypographyC
                 <SelectContent>
                   {fontFamilies.map((font) => (
                     <SelectItem key={font.value} value={font.value}>
-                      {font.label}
+                      <span style={{ fontFamily: font.value }}>{font.label}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="fontSizeBase">Tamaño Base</Label>
+              <Label htmlFor="font_size_base">Tamaño Base</Label>
               <Select
-                value={typography.fontSizeBase}
-                onValueChange={(value) => handleTypographyChange('fontSizeBase', value)}
+                value={configuration.font_size_base}
+                onValueChange={(value) => handleInputChange('font_size_base', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar tamaño" />
@@ -180,15 +139,15 @@ export function TypographyConfiguration({ configuration, onUpdate }: TypographyC
           <CardHeader>
             <CardTitle className="text-lg">Pesos de Fuente</CardTitle>
             <CardDescription>
-              Configura los diferentes pesos de fuente utilizados
+              Configura los diferentes pesos de fuente
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="fontWeightNormal">Normal</Label>
+              <Label htmlFor="font_weight_normal">Peso Normal</Label>
               <Select
-                value={typography.fontWeightNormal}
-                onValueChange={(value) => handleTypographyChange('fontWeightNormal', value)}
+                value={configuration.font_weight_normal}
+                onValueChange={(value) => handleInputChange('font_weight_normal', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar peso" />
@@ -202,12 +161,11 @@ export function TypographyConfiguration({ configuration, onUpdate }: TypographyC
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="fontWeightMedium">Medium</Label>
+              <Label htmlFor="font_weight_medium">Peso Medium</Label>
               <Select
-                value={typography.fontWeightMedium}
-                onValueChange={(value) => handleTypographyChange('fontWeightMedium', value)}
+                value={configuration.font_weight_medium}
+                onValueChange={(value) => handleInputChange('font_weight_medium', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar peso" />
@@ -221,12 +179,11 @@ export function TypographyConfiguration({ configuration, onUpdate }: TypographyC
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="fontWeightSemibold">Semi Bold</Label>
+              <Label htmlFor="font_weight_semibold">Peso Semi Bold</Label>
               <Select
-                value={typography.fontWeightSemibold}
-                onValueChange={(value) => handleTypographyChange('fontWeightSemibold', value)}
+                value={configuration.font_weight_semibold}
+                onValueChange={(value) => handleInputChange('font_weight_semibold', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar peso" />
@@ -240,12 +197,11 @@ export function TypographyConfiguration({ configuration, onUpdate }: TypographyC
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="fontWeightBold">Bold</Label>
+              <Label htmlFor="font_weight_bold">Peso Bold</Label>
               <Select
-                value={typography.fontWeightBold}
-                onValueChange={(value) => handleTypographyChange('fontWeightBold', value)}
+                value={configuration.font_weight_bold}
+                onValueChange={(value) => handleInputChange('font_weight_bold', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar peso" />
@@ -261,93 +217,134 @@ export function TypographyConfiguration({ configuration, onUpdate }: TypographyC
             </div>
           </CardContent>
         </Card>
+
+        {/* Espaciado y bordes */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Espaciado y Bordes</CardTitle>
+            <CardDescription>
+              Configura el espaciado y radio de bordes
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="border_radius">Radio de Bordes</Label>
+              <Input
+                id="border_radius"
+                value={configuration.border_radius}
+                onChange={(e) => handleInputChange('border_radius', e.target.value)}
+                placeholder="0.5rem"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="spacing_unit">Unidad de Espaciado</Label>
+              <Input
+                id="spacing_unit"
+                value={configuration.spacing_unit}
+                onChange={(e) => handleInputChange('spacing_unit', e.target.value)}
+                placeholder="0.25rem"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sombras */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Sombras</CardTitle>
+            <CardDescription>
+              Configura las sombras de la aplicación
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="shadow_sm">Sombra Pequeña</Label>
+              <Input
+                id="shadow_sm"
+                value={configuration.shadow_sm}
+                onChange={(e) => handleInputChange('shadow_sm', e.target.value)}
+                placeholder="0 1px 2px 0 rgb(0 0 0 / 0.05)"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="shadow_md">Sombra Mediana</Label>
+              <Input
+                id="shadow_md"
+                value={configuration.shadow_md}
+                onChange={(e) => handleInputChange('shadow_md', e.target.value)}
+                placeholder="0 4px 6px -1px rgb(0 0 0 / 0.1)"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="shadow_lg">Sombra Grande</Label>
+              <Input
+                id="shadow_lg"
+                value={configuration.shadow_lg}
+                onChange={(e) => handleInputChange('shadow_lg', e.target.value)}
+                placeholder="0 10px 15px -3px rgb(0 0 0 / 0.1)"
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Vista previa de tipografía */}
+      {/* Preview de tipografía */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Vista Previa de Tipografía</CardTitle>
+          <CardTitle className="text-lg">Vista Previa</CardTitle>
           <CardDescription>
-            Cómo se ve el texto con la configuración actual
+            Cómo se ve la tipografía aplicada
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div 
-            className="space-y-4"
-            style={{ 
-              fontFamily: typography.fontFamily,
-              fontSize: typography.fontSizeBase
+            className="space-y-4 p-6 border rounded-lg"
+            style={{
+              fontFamily: configuration.font_family,
+              fontSize: configuration.font_size_base
             }}
           >
-            <div>
-              <h1 
-                className="text-4xl font-bold mb-2"
-                style={{ fontWeight: typography.fontWeightBold }}
+            <h1 
+              className="text-4xl font-bold"
+              style={{ fontWeight: configuration.font_weight_bold }}
+            >
+              Título Principal
+            </h1>
+            <h2 
+              className="text-2xl font-semibold"
+              style={{ fontWeight: configuration.font_weight_semibold }}
+            >
+              Título Secundario
+            </h2>
+            <h3 
+              className="text-xl font-medium"
+              style={{ fontWeight: configuration.font_weight_medium }}
+            >
+              Título Terciario
+            </h3>
+            <p className="text-base">
+              Este es un párrafo de ejemplo que muestra cómo se ve el texto normal con la fuente seleccionada. 
+              Incluye <strong>texto en negrita</strong> y <em>texto en cursiva</em> para demostrar los diferentes estilos.
+            </p>
+            <div className="flex space-x-4">
+              <button 
+                className="px-4 py-2 rounded text-white"
+                style={{ 
+                  backgroundColor: configuration.primary_color,
+                  borderRadius: configuration.border_radius
+                }}
               >
-                Título Principal
-              </h1>
-              <p className="text-gray-600">
-                Este es un ejemplo de texto con la configuración actual de tipografía.
-              </p>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h2 
-                className="text-2xl font-semibold mb-2"
-                style={{ fontWeight: typography.fontWeightSemibold }}
+                Botón Primario
+              </button>
+              <button 
+                className="px-4 py-2 border rounded"
+                style={{ 
+                  borderColor: configuration.border_color,
+                  borderRadius: configuration.border_radius
+                }}
               >
-                Título Secundario
-              </h2>
-              <p className="text-gray-600">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-              </p>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h3 
-                className="text-lg font-medium mb-2"
-                style={{ fontWeight: typography.fontWeightMedium }}
-              >
-                Título Terciario
-              </h3>
-              <p className="text-gray-600">
-                Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-              </p>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <p className="text-sm text-gray-500">
-                <strong style={{ fontWeight: typography.fontWeightBold }}>Texto en negrita:</strong> Este es un ejemplo de texto en negrita.
-              </p>
-              <p className="text-sm text-gray-500">
-                <em>Texto en cursiva:</em> Este es un ejemplo de texto en cursiva.
-              </p>
-              <p className="text-sm text-gray-500">
-                <u>Texto subrayado:</u> Este es un ejemplo de texto subrayado.
-              </p>
-            </div>
-
-            <Separator />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 border rounded-lg">
-                <h4 className="font-medium mb-2">Tarjeta de Ejemplo</h4>
-                <p className="text-sm text-gray-600">
-                  Este es un ejemplo de cómo se ve el texto dentro de una tarjeta.
-                </p>
-              </div>
-              <div className="p-4 bg-gray-100 rounded-lg">
-                <h4 className="font-medium mb-2">Tarjeta con Fondo</h4>
-                <p className="text-sm text-gray-600">
-                  Este es un ejemplo de texto en una tarjeta con fondo gris.
-                </p>
-              </div>
+                Botón Secundario
+              </button>
             </div>
           </div>
         </CardContent>
