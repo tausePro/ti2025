@@ -26,11 +26,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Obtener sesión inicial
     const getInitialSession = async () => {
+      console.log('🚀 Inicializando contexto de autenticación...')
+      
       const { data: { session } } = await supabase.auth.getSession()
+      console.log('📱 Sesión inicial:', session ? 'Encontrada' : 'No encontrada')
+      
       setUser(session?.user ?? null)
       
       if (session?.user) {
+        console.log('👤 Usuario encontrado:', session.user.email)
         await loadUserProfile(session.user.id)
+      } else {
+        console.log('❌ No hay usuario en la sesión')
       }
       
       setLoading(false)
@@ -41,11 +48,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔄 Cambio de autenticación:', event, session ? 'Con sesión' : 'Sin sesión')
+        
         setUser(session?.user ?? null)
         
         if (session?.user) {
+          console.log('👤 Usuario en cambio de estado:', session.user.email)
           await loadUserProfile(session.user.id)
         } else {
+          console.log('❌ Limpiando perfil (sin sesión)')
           setProfile(null)
         }
         
@@ -58,6 +69,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadUserProfile = async (userId: string) => {
     try {
+      console.log('🔄 Cargando perfil para usuario:', userId)
+      
       const { data: userProfile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -65,25 +78,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
       
       if (error) {
-        console.error('Error loading user profile:', error)
+        console.error('❌ Error loading user profile:', error)
         setProfile(null)
         return
       }
+      
+      console.log('✅ Perfil cargado:', {
+        id: userProfile.id,
+        email: userProfile.email,
+        role: userProfile.role,
+        full_name: userProfile.full_name
+      })
       
       setProfile(userProfile)
 
       // Cargar permisos del usuario
       if (userProfile?.role) {
+        console.log('🔐 Cargando permisos para rol:', userProfile.role)
+        
         const { data: rolePermissions } = await supabase
           .from('role_permissions')
           .select('*')
           .eq('role', userProfile.role)
           .eq('allowed', true)
         
+        console.log('📋 Permisos cargados:', rolePermissions?.length || 0)
         setPermissions(rolePermissions || [])
       }
     } catch (error) {
-      console.error('Error in loadUserProfile:', error)
+      console.error('❌ Error in loadUserProfile:', error)
       setProfile(null)
     }
   }
