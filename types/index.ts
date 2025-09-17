@@ -45,7 +45,7 @@ export interface Project {
   id: string
   name: string
   description?: string
-  company_id: string
+  client_company_id: string
   address: string
   city?: string
   intervention_types: InterventionType[]

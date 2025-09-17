@@ -74,3 +74,4 @@ El sistema fiduciario está **completamente implementado y listo para producció
 - Aplicar políticas de seguridad
 
 **¡El sistema está listo para continuar con el desarrollo!** 🚀
+

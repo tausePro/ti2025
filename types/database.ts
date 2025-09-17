@@ -82,28 +82,6 @@ export interface Database {
           granted_by?: string
         }
       }
-      project_members: {
-        Row: {
-          id: string
-          project_id: string
-          user_id: string
-          role_in_project: 'supervisor' | 'residente' | 'apoyo' | 'cliente'
-          assigned_by?: string
-          assigned_at: string
-          is_active: boolean
-        }
-        Insert: {
-          project_id: string
-          user_id: string
-          role_in_project: 'supervisor' | 'residente' | 'apoyo' | 'cliente'
-          assigned_by?: string
-          is_active?: boolean
-        }
-        Update: {
-          role_in_project?: 'supervisor' | 'residente' | 'apoyo' | 'cliente'
-          is_active?: boolean
-        }
-      }
       companies: {
         Row: {
           id: string

@@ -2,8 +2,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { UserPermission, PermissionModule, PermissionAction, PermissionCheck } from '@/types'
 
 export function usePermissions(): PermissionCheck {
-  const { permissions } = useAuth()
-
   // Dar permisos completos temporalmente para que funcione
   const allPermissions: UserPermission[] = [
     { module: 'projects' as const, action: 'create' as const, allowed: true, source: 'role' as const },

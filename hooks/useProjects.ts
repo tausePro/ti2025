@@ -221,7 +221,7 @@ export function useProjectMembers(projectId: string) {
     }
   }
 
-  const updateMemberRole = async (memberId: string, role: string) => {
+  const updateMemberRole = async (memberId: string, role: 'supervisor' | 'residente' | 'ayudante' | 'especialista') => {
     try {
       const { error } = await supabase
         .from('project_members')
