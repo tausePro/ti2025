@@ -40,6 +40,83 @@ export interface ProjectFilters {
   } | null
 }
 
+// Interfaces para administración de estilos
+export interface StyleConfiguration {
+  id: string
+  name: string
+  description?: string
+  is_active: boolean
+  is_default: boolean
+  
+  // Colores principales
+  primary_color: string
+  primary_foreground: string
+  secondary_color: string
+  secondary_foreground: string
+  
+  // Colores de acento
+  accent_color: string
+  accent_foreground: string
+  
+  // Colores de estado
+  success_color: string
+  warning_color: string
+  error_color: string
+  info_color: string
+  
+  // Colores de fondo
+  background_color: string
+  foreground_color: string
+  card_background: string
+  card_foreground: string
+  
+  // Colores de borde
+  border_color: string
+  input_color: string
+  ring_color: string
+  
+  // Configuración de branding
+  logo_url?: string
+  favicon_url?: string
+  company_name?: string
+  company_slogan?: string
+  
+  // Configuración de tipografía
+  font_family: string
+  font_size_base: string
+  font_weight_normal: string
+  font_weight_medium: string
+  font_weight_semibold: string
+  font_weight_bold: string
+  
+  // Configuración de espaciado
+  border_radius: string
+  spacing_unit: string
+  
+  // Configuración de sombras
+  shadow_sm: string
+  shadow_md: string
+  shadow_lg: string
+  
+  // Metadatos
+  created_at: string
+  updated_at: string
+  created_by: string
+}
+
+export interface BrandingAsset {
+  id: string
+  style_configuration_id: string
+  asset_type: 'logo' | 'favicon' | 'banner' | 'icon'
+  file_url: string
+  file_name: string
+  file_size?: number
+  mime_type?: string
+  alt_text?: string
+  created_at: string
+  created_by: string
+}
+
 // Interfaces para proyectos
 export interface Project {
   id: string
