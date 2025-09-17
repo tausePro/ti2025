@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import React from 'react'
 import { useStyleConfiguration } from '@/hooks/useStyleConfiguration'
+import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -25,6 +26,7 @@ import { TypographyConfiguration } from '@/components/admin/TypographyConfigurat
 import { StylePreview } from '@/components/admin/StylePreview'
 
 export default function StyleConfigPage() {
+  const { profile, signOut } = useAuth()
   const {
     configurations,
     activeConfiguration,
@@ -168,12 +170,29 @@ export default function StyleConfigPage() {
               {isSaving ? 'Guardando...' : 'Guardar'}
             </Button>
           )}
+          <Button 
+            variant="outline" 
+            onClick={signOut}
+            className="text-red-600 border-red-300 hover:bg-red-50"
+          >
+            🚪 Logout
+          </Button>
         </div>
       </div>
 
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Debug info */}
+      {profile && (
+        <Alert>
+          <AlertDescription>
+            <strong>Debug Info:</strong> Usuario: {profile.email} | Rol: {profile.role} | 
+            {profile.role === 'super_admin' ? ' ✅ Puede editar' : ' ❌ No puede editar'}
+          </AlertDescription>
         </Alert>
       )}
 

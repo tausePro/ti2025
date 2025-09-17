@@ -113,24 +113,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      console.log('🚪 Iniciando logout...')
+      
       // Limpiar estado local primero
       setUser(null)
       setProfile(null)
       setPermissions([])
       
-      // Luego hacer logout en Supabase
-      await supabase.auth.signOut()
+      // Hacer logout en Supabase
+      const { error: logoutError } = await supabase.auth.signOut()
+      
+      if (logoutError) {
+        console.error('❌ Error en logout de Supabase:', logoutError)
+      } else {
+        console.log('✅ Logout de Supabase exitoso')
+      }
       
       // Limpiar localStorage y sessionStorage
       if (typeof window !== 'undefined') {
         localStorage.clear()
         sessionStorage.clear()
+        console.log('🧹 Storage limpiado')
       }
       
       // Forzar recarga completa para limpiar cualquier estado residual
+      console.log('🔄 Redirigiendo a login...')
       window.location.href = '/login'
     } catch (error) {
-      console.error('Error during signOut:', error)
+      console.error('❌ Error during signOut:', error)
       // Forzar logout incluso si hay error
       setUser(null)
       setProfile(null)
