@@ -79,6 +79,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (error) {
         console.error('❌ Error loading user profile:', error)
+        console.error('❌ Detalles del error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
         setProfile(null)
         return
       }
@@ -87,8 +93,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: userProfile.id,
         email: userProfile.email,
         role: userProfile.role,
-        full_name: userProfile.full_name
+        full_name: userProfile.full_name,
+        created_at: userProfile.created_at,
+        updated_at: userProfile.updated_at
       })
+      
+      // Verificar que el rol sea super_admin
+      if (userProfile.role !== 'super_admin') {
+        console.warn('⚠️ ADVERTENCIA: El rol no es super_admin:', userProfile.role)
+      } else {
+        console.log('✅ Rol confirmado como super_admin')
+      }
       
       setProfile(userProfile)
 
@@ -96,14 +111,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (userProfile?.role) {
         console.log('🔐 Cargando permisos para rol:', userProfile.role)
         
-        const { data: rolePermissions } = await supabase
+        const { data: rolePermissions, error: permError } = await supabase
           .from('role_permissions')
           .select('*')
           .eq('role', userProfile.role)
           .eq('allowed', true)
         
-        console.log('📋 Permisos cargados:', rolePermissions?.length || 0)
-        setPermissions(rolePermissions || [])
+        if (permError) {
+          console.error('❌ Error cargando permisos:', permError)
+        } else {
+          console.log('📋 Permisos cargados:', rolePermissions?.length || 0)
+          setPermissions(rolePermissions || [])
+        }
       }
     } catch (error) {
       console.error('❌ Error in loadUserProfile:', error)

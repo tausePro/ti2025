@@ -177,6 +177,13 @@ export default function StyleConfigPage() {
           >
             🚪 Logout
           </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => window.location.reload()}
+            className="text-blue-600 border-blue-300 hover:bg-blue-50"
+          >
+            🔄 Recargar
+          </Button>
         </div>
       </div>
 
