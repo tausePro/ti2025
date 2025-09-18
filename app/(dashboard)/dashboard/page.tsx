@@ -6,7 +6,7 @@ import { usePermissions } from '@/hooks/usePermissions'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Building2, FileText, Calculator, Users, Plus } from 'lucide-react'
+import { Building2, FileText, Calculator, Users, Plus, Settings, Palette } from 'lucide-react'
 import Link from 'next/link'
 
 interface DashboardStats {
@@ -233,6 +233,28 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Configuración de Estilos - Solo para super_admin */}
+          {profile?.role === 'super_admin' && (
+            <Card className="border-dashed border-2 border-purple-300 hover:border-purple-400 transition-colors">
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+                <Palette className="h-12 w-12 text-purple-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Administrar Estilos
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Personaliza colores, logos y branding de la aplicación
+                </p>
+                <Button asChild className="bg-purple-600 hover:bg-purple-700">
+                  <Link href="/admin/config">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Configurar Estilos
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {quickActions.map((action) => (
             <Card key={action.title} className="hover:shadow-md transition-shadow cursor-pointer">
               <CardHeader>
