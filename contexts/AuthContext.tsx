@@ -101,6 +101,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Verificar que el rol sea super_admin
       if (userProfile.role !== 'super_admin') {
         console.warn('⚠️ ADVERTENCIA: El rol no es super_admin:', userProfile.role)
+        console.log('🔄 Intentando recargar perfil en 2 segundos...')
+        
+        // Intentar recargar el perfil después de un breve delay
+        setTimeout(async () => {
+          console.log('🔄 Recargando perfil...')
+          await loadUserProfile(userId)
+        }, 2000)
       } else {
         console.log('✅ Rol confirmado como super_admin')
       }

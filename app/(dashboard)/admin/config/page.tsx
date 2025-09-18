@@ -27,6 +27,11 @@ import { StylePreview } from '@/components/admin/StylePreview'
 
 export default function StyleConfigPage() {
   const { profile, signOut } = useAuth()
+  
+  const forceReloadProfile = async () => {
+    console.log('🔄 Forzando recarga de perfil...')
+    window.location.reload()
+  }
   const {
     configurations,
     activeConfiguration,
@@ -179,10 +184,10 @@ export default function StyleConfigPage() {
           </Button>
           <Button 
             variant="outline" 
-            onClick={() => window.location.reload()}
+            onClick={forceReloadProfile}
             className="text-blue-600 border-blue-300 hover:bg-blue-50"
           >
-            🔄 Recargar
+            🔄 Recargar Perfil
           </Button>
         </div>
       </div>
