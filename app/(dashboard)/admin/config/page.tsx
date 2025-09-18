@@ -32,6 +32,19 @@ export default function StyleConfigPage() {
     console.log('🔄 Forzando recarga de perfil...')
     window.location.reload()
   }
+
+  const forceLogout = () => {
+    console.log('🚪 Forzando logout...')
+    // Limpiar todo
+    localStorage.clear()
+    sessionStorage.clear()
+    // Limpiar cookies
+    document.cookie.split(";").forEach(function(c) { 
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    })
+    // Redirigir
+    window.location.replace('/login')
+  }
   const {
     configurations,
     activeConfiguration,
@@ -181,6 +194,13 @@ export default function StyleConfigPage() {
             className="text-red-600 border-red-300 hover:bg-red-50"
           >
             🚪 Logout
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={forceLogout}
+            className="text-orange-600 border-orange-300 hover:bg-orange-50"
+          >
+            🚪 Logout Forzado
           </Button>
           <Button 
             variant="outline" 

@@ -146,25 +146,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null)
       setPermissions([])
       
-      // Hacer logout en Supabase
-      const { error: logoutError } = await supabase.auth.signOut()
+      // Hacer logout en Supabase con todas las opciones
+      const { error: logoutError } = await supabase.auth.signOut({
+        scope: 'global'
+      })
       
       if (logoutError) {
         console.error('❌ Error en logout de Supabase:', logoutError)
+        console.error('❌ Detalles del error:', {
+          message: logoutError.message,
+          status: logoutError.status,
+          statusText: logoutError.statusText
+        })
       } else {
         console.log('✅ Logout de Supabase exitoso')
       }
       
-      // Limpiar localStorage y sessionStorage
+      // Limpiar todas las cookies relacionadas con Supabase
       if (typeof window !== 'undefined') {
+        // Limpiar localStorage y sessionStorage
         localStorage.clear()
         sessionStorage.clear()
-        console.log('🧹 Storage limpiado')
+        
+        // Limpiar cookies específicas de Supabase
+        document.cookie.split(";").forEach(function(c) { 
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        })
+        
+        console.log('🧹 Storage y cookies limpiados')
       }
       
-      // Forzar recarga completa para limpiar cualquier estado residual
-      console.log('🔄 Redirigiendo a login...')
-      window.location.href = '/login'
+      // Esperar un momento antes de redirigir
+      setTimeout(() => {
+        console.log('🔄 Redirigiendo a login...')
+        // Forzar recarga completa
+        window.location.replace('/login')
+      }, 500)
+      
     } catch (error) {
       console.error('❌ Error during signOut:', error)
       // Forzar logout incluso si hay error
@@ -175,9 +193,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== 'undefined') {
         localStorage.clear()
         sessionStorage.clear()
+        // Limpiar cookies
+        document.cookie.split(";").forEach(function(c) { 
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        })
       }
       
-      window.location.href = '/login'
+      // Forzar redirección
+      window.location.replace('/login')
     }
   }
 
