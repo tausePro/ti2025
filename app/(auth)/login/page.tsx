@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { GlobalLogo } from '@/components/shared/GlobalLogo'
 import { Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -72,15 +73,27 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            Iniciar Sesión
-          </CardTitle>
-          <CardDescription className="text-center">
-            Ingresa tus credenciales para acceder al sistema
-          </CardDescription>
-        </CardHeader>
+      <div className="w-full max-w-md space-y-6">
+        {/* Logo y branding */}
+        <div className="text-center">
+          <GlobalLogo 
+            showText 
+            text="Talento Inmobiliario" 
+            context="login"
+            className="justify-center"
+          />
+          <p className="text-sm text-gray-600 mt-2">Supervisión Técnica</p>
+        </div>
+
+        <Card>
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-bold text-center">
+              Iniciar Sesión
+            </CardTitle>
+            <CardDescription className="text-center">
+              Ingresa tus credenciales para acceder al sistema
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
@@ -144,7 +157,8 @@ export default function LoginPage() {
             </p>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   )
 }

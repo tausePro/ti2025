@@ -167,17 +167,20 @@ export function CompanyForm({
   // Upload de logo
   const handleLogoUpload = async (file: File) => {
     try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Date.now()}-${watch('nit') || 'logo'}.${fileExt}`
-      
-      // Intentar subir a Supabase Storage
-      const { data: uploadData, error } = await supabase.storage
-        .from('company-logos')
-        .upload(fileName, file, { upsert: true })
-      
-      if (error) {
+      // Subir archivo usando la API route
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('configId', 'company-logo')
+      formData.append('assetType', 'logo')
+
+      const response = await fetch('/api/storage/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
         // Si falla el upload a Supabase, usar base64 como fallback
-        console.warn('Supabase Storage not available, using base64:', error)
+        console.warn('Supabase Storage not available, using base64')
         const reader = new FileReader()
         reader.onload = (e) => {
           const result = e.target?.result as string
@@ -188,11 +191,8 @@ export function CompanyForm({
         return
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('company-logos')
-        .getPublicUrl(fileName)
-      
-      setValue('logo_url', publicUrl)
+      const uploadResult = await response.json()
+      setValue('logo_url', uploadResult.publicUrl)
       toast.success('Logo subido correctamente')
     } catch (error) {
       console.error('Error uploading logo:', error)

@@ -591,6 +591,7 @@ export interface PermissionCheck {
   hasPermission: (module: PermissionModule, action: PermissionAction, projectId?: string) => boolean
   getUserPermissions: () => UserPermission[]
   isLoading: boolean
+  refreshPermissions?: () => void
 }
 
 // Tipos de usuario extendido

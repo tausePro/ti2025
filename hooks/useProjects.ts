@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Project, ProjectMember, ProjectDocument, ProjectActivity } from '@/types'
+import { logger } from '@/lib/logger'
 
 interface ProjectFilters {
   search: string
@@ -103,7 +104,7 @@ export function useProjects(options: UseProjectsOptions = {}) {
       setTotalCount(data?.length || 0)
       setHasMore((data?.length || 0) === pageSize)
     } catch (err) {
-      console.error('Error loading projects:', err)
+      logger.database('SELECT', 'projects', { filters, page, pageSize }, err as Error)
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setLoading(false)
@@ -171,7 +172,7 @@ export function useProjectMembers(projectId: string) {
 
       setMembers(data || [])
     } catch (err) {
-      console.error('Error loading project members:', err)
+      logger.database('SELECT', 'project_members', { projectId }, err as Error)
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setLoading(false)
@@ -200,7 +201,7 @@ export function useProjectMembers(projectId: string) {
       setMembers(prev => [data, ...prev])
       return data
     } catch (err) {
-      console.error('Error adding member:', err)
+      logger.database('INSERT', 'project_members', { projectId, memberData }, err as Error)
       throw err
     }
   }
@@ -216,7 +217,7 @@ export function useProjectMembers(projectId: string) {
 
       setMembers(prev => prev.filter(m => m.id !== memberId))
     } catch (err) {
-      console.error('Error removing member:', err)
+      logger.database('UPDATE', 'project_members', { memberId }, err as Error)
       throw err
     }
   }
@@ -234,7 +235,7 @@ export function useProjectMembers(projectId: string) {
         prev.map(m => m.id === memberId ? { ...m, role_in_project: role } : m)
       )
     } catch (err) {
-      console.error('Error updating member role:', err)
+      logger.database('UPDATE', 'project_members', { memberId, role }, err as Error)
       throw err
     }
   }

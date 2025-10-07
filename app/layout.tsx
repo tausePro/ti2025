@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
+import { WebVitalsProvider } from '@/components/providers/WebVitalsProvider'
 import Script from 'next/script'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -41,6 +42,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ErrorBoundary>
           <AuthProvider>
+            <WebVitalsProvider />
             {children}
           </AuthProvider>
         </ErrorBoundary>

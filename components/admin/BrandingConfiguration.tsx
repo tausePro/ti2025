@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { StyleConfiguration, BrandingAsset } from '@/types'
+import { useGlobalLogo } from '@/hooks/useGlobalLogo'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Image, Upload, Trash2, Building2 } from 'lucide-react'
 
 interface BrandingConfigurationProps {
@@ -17,6 +19,7 @@ interface BrandingConfigurationProps {
 
 export function BrandingConfiguration({ configuration, assets, onUpload, onUpdate }: BrandingConfigurationProps) {
   const [uploading, setUploading] = useState(false)
+  const { logoSizeDashboard, logoSizeLogin, updateLogoSize } = useGlobalLogo()
 
   if (!configuration) return null
 
@@ -149,6 +152,65 @@ export function BrandingConfiguration({ configuration, assets, onUpload, onUpdat
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Configuración de tamaño del logo */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Tamaño del Logo</CardTitle>
+            <CardDescription>
+              Configura el tamaño del logo en diferentes partes de la aplicación
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="logo_size_dashboard">Dashboard</Label>
+                <Select
+                  value={logoSizeDashboard}
+                  onValueChange={(value) => {
+                    updateLogoSize('dashboard', value)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar tamaño" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="xs">Extra Pequeño (16px)</SelectItem>
+                    <SelectItem value="sm">Pequeño (24px)</SelectItem>
+                    <SelectItem value="md">Mediano (32px)</SelectItem>
+                    <SelectItem value="lg">Grande (48px)</SelectItem>
+                    <SelectItem value="xl">Extra Grande (64px)</SelectItem>
+                    <SelectItem value="2xl">Muy Grande (80px)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="logo_size_login">Login</Label>
+                <Select
+                  value={logoSizeLogin}
+                  onValueChange={(value) => {
+                    updateLogoSize('login', value)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar tamaño" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="xs">Extra Pequeño (16px)</SelectItem>
+                    <SelectItem value="sm">Pequeño (24px)</SelectItem>
+                    <SelectItem value="md">Mediano (32px)</SelectItem>
+                    <SelectItem value="lg">Grande (48px)</SelectItem>
+                    <SelectItem value="xl">Extra Grande (64px)</SelectItem>
+                    <SelectItem value="2xl">Muy Grande (80px)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="text-xs text-gray-500">
+              💡 Los cambios se aplicarán inmediatamente en la aplicación
+            </div>
           </CardContent>
         </Card>
 

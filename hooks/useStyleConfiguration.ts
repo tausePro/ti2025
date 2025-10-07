@@ -132,21 +132,23 @@ export function useStyleConfiguration() {
     if (!user) throw new Error('User not authenticated')
 
     try {
-      // Subir archivo a Supabase Storage
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${configId}-${assetType}-${Date.now()}.${fileExt}`
-      const filePath = `branding-assets/${fileName}`
+      // Subir archivo usando la API route
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('configId', configId)
+      formData.append('assetType', assetType)
 
-      const { error: uploadError } = await supabase.storage
-        .from('company-logos')
-        .upload(filePath, file)
+      const response = await fetch('/api/storage/upload', {
+        method: 'POST',
+        body: formData
+      })
 
-      if (uploadError) throw uploadError
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error uploading file')
+      }
 
-      // Obtener URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('company-logos')
-        .getPublicUrl(filePath)
+      const uploadResult = await response.json()
 
       // Crear registro en la base de datos
       const { data, error } = await supabase
@@ -154,10 +156,10 @@ export function useStyleConfiguration() {
         .insert({
           style_configuration_id: configId,
           asset_type: assetType,
-          file_url: publicUrl,
-          file_name: file.name,
-          file_size: file.size,
-          mime_type: file.type,
+          file_url: uploadResult.publicUrl,
+          file_name: uploadResult.fileName,
+          file_size: uploadResult.fileSize,
+          mime_type: uploadResult.mimeType,
           created_by: user.id
         })
         .select()
@@ -165,6 +167,15 @@ export function useStyleConfiguration() {
 
       if (error) throw error
       setBrandingAssets(prev => [data, ...prev])
+      
+      // Si es un logo, actualizar el logo global
+      if (assetType === 'logo') {
+        // Disparar evento personalizado para actualizar el logo global
+        window.dispatchEvent(new CustomEvent('logoUpdated', { 
+          detail: { logoUrl: uploadResult.publicUrl } 
+        }))
+      }
+      
       return data
     } catch (err) {
       console.error('Error uploading branding asset:', err)

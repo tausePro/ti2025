@@ -2,6 +2,8 @@
 
 Sistema completo de supervisión técnica para obras de construcción con PWA, gestión de proyectos y despliegue continuo.
 
+> **📚 Documentación Completa**: Ver [SETUP.md](SETUP.md) para instrucciones detalladas de instalación y configuración.
+
 ## ✨ Características Principales
 
 - 🏗️ **Gestión de Proyectos**: CRUD completo de proyectos de construcción
@@ -20,6 +22,7 @@ Sistema completo de supervisión técnica para obras de construcción con PWA, g
 - **UI**: shadcn/ui, Radix UI, Lucide React
 - **PWA**: Workbox, Service Worker
 - **Validación**: Zod, React Hook Form
+- **Logging**: Sistema estructurado personalizado
 - **Despliegue**: Vercel, GitHub Actions
 - **Base de Datos**: PostgreSQL con Row Level Security
 
@@ -57,38 +60,31 @@ cp .env.example .env.local
 npm run dev
 ```
 
-## 🔧 Configuración de Producción
+## 🔧 Configuración Completa
 
-### Variables de Entorno Requeridas
+> **📖 Ver [SETUP.md](SETUP.md)** para instrucciones detalladas paso a paso, incluyendo:
+> - Instalación local
+> - Configuración de Supabase (12 migraciones)
+> - Configuración de Storage
+> - Creación de usuario super admin
+> - Despliegue a producción
+> - Troubleshooting completo
 
-```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=tu_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key
+### Inicio Rápido
 
-# Vercel (opcional)
-VERCEL_TOKEN=tu_vercel_token
-VERCEL_ORG_ID=tu_org_id
-VERCEL_PROJECT_ID=tu_project_id
+```bash
+# 1. Clonar e instalar
+git clone https://github.com/tausePro/ti2025.git
+cd ti2025
+npm install
+
+# 2. Configurar variables de entorno
+cp .env.example .env.local
+# Editar .env.local con tus credenciales de Supabase
+
+# 3. Ejecutar en desarrollo
+npm run dev
 ```
-
-### Configuración de Supabase
-
-1. **Ejecuta las migraciones** en orden:
-   - `001_users_and_permissions.sql`
-   - `002_create_super_admin.sql`
-   - `003_update_companies_schema.sql`
-   - `004_fix_companies_rls.sql`
-   - `005_production_rls_policies.sql`
-
-2. **Configura Storage** para logos de empresas:
-   - Crea bucket `company-logos`
-   - Configura políticas RLS
-
-3. **Crea usuario administrador**:
-   - Email: `admin@talentoinmobiliario.com`
-   - Password: `test123`
-   - Rol: `super_admin`
 
 ## 📁 Estructura del Proyecto
 
@@ -96,20 +92,30 @@ VERCEL_PROJECT_ID=tu_project_id
 ├── app/                    # Next.js App Router
 │   ├── (auth)/            # Páginas de autenticación
 │   ├── (dashboard)/       # Dashboard principal
-│   ├── api/               # API routes
-│   └── globals.css        # Estilos globales
+│   └── api/               # API routes
 ├── components/            # Componentes React
 │   ├── ui/               # Componentes base (shadcn/ui)
 │   ├── companies/        # Gestión de empresas
 │   ├── projects/         # Gestión de proyectos
 │   └── shared/           # Componentes compartidos
 ├── contexts/             # Contextos de React
-├── hooks/                # Custom hooks
+├── hooks/                # Custom hooks (8 hooks personalizados)
 ├── lib/                  # Utilidades y configuración
+│   ├── logger.ts         # Sistema de logging estructurado
+│   └── supabase/         # Clientes Supabase
 ├── types/                # Tipos TypeScript
 ├── supabase/             # Migraciones de BD
-├── .github/workflows/    # GitHub Actions
-└── vercel.json          # Configuración Vercel
+│   ├── migrations/       # 12 migraciones SQL
+│   └── fixes-history/    # Scripts históricos
+├── scripts/              # Scripts de utilidad
+│   └── verification/     # Scripts de verificación
+├── docs/                 # Documentación adicional
+│   ├── LOGGING_GUIDE.md  # Guía de logging
+│   └── archive/          # Documentación histórica
+├── .github/workflows/    # GitHub Actions (CI/CD)
+├── SETUP.md             # Guía completa de configuración
+├── TODO.md              # Lista de tareas pendientes
+└── CLEANUP_REPORT.md    # Reporte de limpieza del proyecto
 ```
 
 ## 🔄 CI/CD Pipeline
@@ -149,26 +155,30 @@ npm run lint         # Linter de código
 npm run type-check   # Verificación de tipos
 ```
 
+## 📚 Documentación
+
+- **[SETUP.md](SETUP.md)** - Guía completa de instalación y configuración
+- **[TODO.md](TODO.md)** - Lista de tareas pendientes y roadmap
+- **[CLEANUP_REPORT.md](CLEANUP_REPORT.md)** - Reporte de organización del proyecto
+- **[docs/LOGGING_GUIDE.md](docs/LOGGING_GUIDE.md)** - Guía del sistema de logging
+- **[supabase/migrations/README_FIDUCIARY.md](supabase/migrations/README_FIDUCIARY.md)** - Sistema fiduciario
+
 ## 🐛 Troubleshooting
 
-### Error de RLS
-Si hay problemas con Row Level Security:
-```sql
--- Temporalmente deshabilitar RLS para debugging
-ALTER TABLE companies DISABLE ROW LEVEL SECURITY;
-```
+Ver la sección completa de troubleshooting en [SETUP.md](SETUP.md#-troubleshooting).
 
-### Error de Autenticación
-Verificar que el usuario existe en `profiles`:
-```sql
-SELECT * FROM profiles WHERE email = 'admin@talentoinmobiliario.com';
-```
+### Problemas Comunes
+
+- **Error de RLS**: Verificar políticas en Supabase
+- **Error de autenticación**: Confirmar que el usuario tiene perfil en `profiles`
+- **Error de build**: Ejecutar `npm run type-check` para ver errores de TypeScript
 
 ## 📞 Soporte
 
 Para soporte técnico o consultas:
 - **Email**: felipe@tause.co
 - **GitHub Issues**: [Crear issue](https://github.com/tausePro/ti2025/issues)
+- **Documentación**: Ver archivos en `/docs`
 
 ## 📄 Licencia
 

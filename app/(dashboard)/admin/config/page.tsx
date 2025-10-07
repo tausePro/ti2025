@@ -24,6 +24,7 @@ import { ColorConfiguration } from '@/components/admin/ColorConfiguration'
 import { BrandingConfiguration } from '@/components/admin/BrandingConfiguration'
 import { TypographyConfiguration } from '@/components/admin/TypographyConfiguration'
 import { StylePreview } from '@/components/admin/StylePreview'
+import { StyleConfiguration } from '@/types'
 
 export default function StyleConfigPage() {
   const { profile, signOut } = useAuth()
