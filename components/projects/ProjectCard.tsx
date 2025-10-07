@@ -16,7 +16,8 @@ import {
   Edit,
   Users,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Settings
 } from 'lucide-react'
 import { Project, ProjectMember } from '@/types'
 import { ProjectStatusBadge } from './ProjectStatusBadge'
@@ -177,6 +178,12 @@ export function ProjectCard({
                     Editar
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem asChild>
+                  <Link href={`/projects/${project.id}/config`}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Configuración
+                  </Link>
+                </DropdownMenuItem>
                 {onAssignTeam && (
                   <DropdownMenuItem onClick={() => onAssignTeam(project)}>
                     <Users className="h-4 w-4 mr-2" />
