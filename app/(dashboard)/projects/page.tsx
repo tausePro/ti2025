@@ -67,8 +67,7 @@ export default function ProjectsPage() {
   }
 
   const handleAssignTeam = (project: Project) => {
-    // TODO: Implementar modal de asignación de equipo
-    console.log('Assign team to project:', project.id)
+    router.push(`/projects/${project.id}/team`)
   }
 
   const handleGenerateReport = (project: Project) => {
