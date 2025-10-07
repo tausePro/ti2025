@@ -76,17 +76,19 @@ export async function POST(request: NextRequest) {
     console.log('✅ Usuario creado en auth:', authData.user.id)
 
     // Crear perfil en la tabla profiles usando adminClient
+    const profileData = {
+      id: authData.user.id,
+      email,
+      full_name,
+      phone: phone || null,
+      role,
+      professional_license: professional_license || null,
+      is_active: is_active !== false
+    }
+    
     const { error: profileError } = await adminClient
       .from('profiles')
-      .insert({
-        id: authData.user.id,
-        email,
-        full_name,
-        phone: phone || null,
-        role,
-        professional_license: professional_license || null,
-        is_active: is_active !== false
-      })
+      .insert(profileData as any)
 
     if (profileError) {
       console.error('Error creating profile:', profileError)

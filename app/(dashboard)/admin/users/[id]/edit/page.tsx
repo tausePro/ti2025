@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
-  UserEdit, 
+  UserCog, 
   ArrowLeft, 
   Save, 
   AlertCircle,
@@ -255,7 +255,7 @@ export default function EditUserPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-              <UserEdit className="h-8 w-8 mr-3" />
+              <UserCog className="h-8 w-8 mr-3" />
               Editar Usuario
             </h1>
             <p className="text-gray-600 mt-2">

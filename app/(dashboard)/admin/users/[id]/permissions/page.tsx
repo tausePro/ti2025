@@ -29,6 +29,7 @@ interface User {
   full_name: string
   role: string
   phone?: string
+  avatar_url?: string
   is_active: boolean
   created_at: string
   updated_at: string
@@ -350,7 +351,7 @@ export default function UserPermissionsPage() {
         <CardContent>
           <div className="flex items-center space-x-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={user.signature_url} />
+              <AvatarImage src={user.avatar_url} />
               <AvatarFallback>
                 {user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
               </AvatarFallback>

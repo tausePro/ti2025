@@ -180,24 +180,24 @@
 
 ## 6️⃣ ASIGNACIÓN DE EQUIPOS DE TRABAJO
 
-### **Ubicación**: `/projects/[id]/team` (A CREAR)
+### **Ubicación**: `/projects/[id]/team`
 
-### **Estado**: ❌ PENDIENTE
+### **Estado**: ✅ COMPLETO
 
-**Funcionalidad Requerida**:
+**Funcionalidades Implementadas**:
 
-### **A. Asignar Usuarios a Proyecto**
+### **A. Asignar Usuarios a Proyecto** ✅
 ```
 Proyecto → Agregar Miembro → Seleccionar Usuario → Asignar Rol en Proyecto
 ```
 
 **Roles en Proyecto**:
-- Supervisor
-- Residente
-- Ayudante
-- Especialista
+- Supervisor ✅
+- Residente ✅
+- Ayudante ✅
+- Especialista ✅
 
-**Tabla**: `project_members`
+**Tabla**: `project_members` ✅
 - project_id
 - user_id
 - role_in_project
@@ -205,36 +205,49 @@ Proyecto → Agregar Miembro → Seleccionar Usuario → Asignar Rol en Proyecto
 - assigned_by
 - is_active
 
-### **B. Gestionar Equipo**
-- Ver miembros actuales
-- Cambiar rol en proyecto
-- Remover del proyecto
-- Historial de asignaciones
+### **B. Gestionar Equipo** ✅
+- ✅ Ver miembros actuales
+- ✅ Buscar y filtrar usuarios disponibles
+- ✅ Asignar rol en proyecto
+- ✅ Remover del proyecto
+- ✅ Resumen por tipo de rol (supervisores, residentes, etc.)
+
+**Componentes Creados**:
+- `app/(dashboard)/projects/[id]/team/page.tsx`
+- `components/projects/AddTeamMemberDialog.tsx`
 
 ---
 
 ## 7️⃣ CONFIGURACIONES ESPECÍFICAS
 
-### **A. Configuración Fiduciaria** (projects/[id]/fiduciary)
+### **A. Configuración Fiduciaria** ✅
 
-**Estado**: ✅ Componente existe, ❌ Falta integración
+**Ubicación**: `/projects/[id]/fiduciary` y `/projects/[id]/config`
 
-**Componente**: `components/projects/FiduciaryInfoForm.tsx`
+**Estado**: ✅ COMPLETO
 
-**Configurar**:
-- Cuenta SIFI 1 (datos, saldo)
-- Cuenta SIFI 2 (datos, saldo)
-- Configuración financiera
-- Tipo de pago (actas vs legalizaciones)
+**Páginas Creadas**:
+- `app/(dashboard)/projects/[id]/fiduciary/page.tsx` ✅
+- `app/(dashboard)/projects/[id]/config/page.tsx` ✅
 
-### **B. Configuración de Estilos** (admin/config)
+**Funcionalidades**:
+- ✅ Cuenta SIFI 1 (datos, saldo)
+- ✅ Cuenta SIFI 2 (datos, saldo)
+- ✅ Configuración financiera
+- ✅ Tipo de pago (actas vs legalizaciones)
+- ✅ Validación de tipo de intervención
+- ✅ Sistema de tabs (General, Fiduciaria, Documentos, Cronograma)
+
+### **B. Configuración de Estilos** ✅
+
+**Ubicación**: `/admin/config`
 
 **Estado**: ✅ COMPLETO
 
 **Configurar**:
-- Logo global
-- Colores primarios/secundarios
-- Branding personalizado
+- ✅ Logo global
+- ✅ Colores primarios/secundarios
+- ✅ Branding personalizado
 
 ---
 

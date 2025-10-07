@@ -249,7 +249,12 @@ export default function RolesManagementPage() {
       }
 
       // Insertar nuevos permisos
-      const permissionsToInsert = []
+      const permissionsToInsert: Array<{
+        role: string
+        module: string
+        action: string
+        allowed: boolean
+      }> = []
       
       MODULES.forEach(module => {
         ACTIONS.forEach(action => {
