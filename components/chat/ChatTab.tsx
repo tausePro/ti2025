@@ -90,7 +90,7 @@ export function ChatTab({ projectId }: ChatTabProps) {
           table: 'chat_messages',
           filter: `project_id=eq.${projectId}`
         },
-        async (payload) => {
+        async (payload: any) => {
           // Fetch the complete message with user data
           const { data } = await supabase
             .from('chat_messages')
@@ -106,22 +106,21 @@ export function ChatTab({ projectId }: ChatTabProps) {
             .single()
 
           if (data) {
-            setMessages(prev => [...prev, data])
           }
         }
       )
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState()
-        const users = Object.keys(state)
+        const users = Object.keys(state).map((key: any) => (state[key][0] as any).user_id)
         setOnlineUsers(users)
       })
-      .on('presence', { event: 'join' }, ({ key }) => {
-        setOnlineUsers(prev => [...prev, key])
+      .on('presence', { event: 'join' }, ({ key, newPresences }: any) => {
+        setOnlineUsers(prev => [...prev, (newPresences[0] as any).user_id])
       })
-      .on('presence', { event: 'leave' }, ({ key }) => {
-        setOnlineUsers(prev => prev.filter(user => user !== key))
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }: any) => {
+        setOnlineUsers(prev => prev.filter(user => user !== (leftPresences[0] as any).user_id))
       })
-      .subscribe(async (status) => {
+      .subscribe(async (status: any) => {
         if (status === 'SUBSCRIBED' && profile?.id) {
           await channel.track({
             user_id: profile.id,

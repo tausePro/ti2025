@@ -111,19 +111,19 @@ export function usePerformanceMetrics() {
       const totalUsers = usersData?.length || 0
 
       // Métricas de rendimiento
-      const pageLoadMetrics = metricsData?.filter(m => m.metric_type === 'page_load_time') || []
+      const pageLoadMetrics = metricsData?.filter((m: any) => m.metric_type === 'page_load_time') || []
       const averageLoadTime = pageLoadMetrics.length > 0
-        ? pageLoadMetrics.reduce((sum, m) => sum + m.value, 0) / pageLoadMetrics.length
+        ? pageLoadMetrics.reduce((sum: number, m: any) => sum + m.value, 0) / pageLoadMetrics.length
         : 0
 
-      const errorMetrics = metricsData?.filter(m => m.metric_type === 'error_rate') || []
+      const errorMetrics = metricsData?.filter((m: any) => m.metric_type === 'error_rate') || []
       const errorRate = errorMetrics.length > 0
-        ? errorMetrics.reduce((sum, m) => sum + m.value, 0) / errorMetrics.length
+        ? errorMetrics.reduce((sum: number, m: any) => sum + m.value, 0) / errorMetrics.length
         : 0
 
       // Empresas más activas
       const companyUsage = new Map<string, number>()
-      metricsData?.forEach(metric => {
+      metricsData?.forEach((metric: any) => {
         if (metric.company_id) {
           companyUsage.set(metric.company_id, (companyUsage.get(metric.company_id) || 0) + 1)
         }
@@ -134,14 +134,14 @@ export function usePerformanceMetrics() {
         .slice(0, 5)
         .map(([company_id, usage_count]) => ({
           company_id,
-          company_name: companiesData?.find(c => c.id === company_id)?.name || 'Desconocido',
+          company_name: companiesData?.find((c: any) => c.id === company_id)?.name || 'Desconocido',
           usage_count
         }))
 
       // Features más usadas
       const featureUsage = new Map<string, number>()
-      metricsData?.filter(m => m.metric_type === 'feature_usage')
-        .forEach(metric => {
+      metricsData?.filter((m: any) => m.metric_type === 'feature_usage')
+        .forEach((metric: any) => {
           const featureName = metric.metric_name
           featureUsage.set(featureName, (featureUsage.get(featureName) || 0) + metric.value)
         })
@@ -155,9 +155,9 @@ export function usePerformanceMetrics() {
         }))
 
       // Métricas por empresa
-      const companyMetrics = companiesData?.map(company => {
-        const companyProjects = projectsData?.filter(p => p.client_company_id === company.id) || []
-        const companyMetrics = metricsData?.filter(m => m.company_id === company.id) || []
+      const companyMetrics = companiesData?.map((company: any) => {
+        const companyProjects = projectsData?.filter((p: any) => p.client_company_id === company.id) || []
+        const companyMetrics = metricsData?.filter((m: any) => m.company_id === company.id) || []
         const lastActivity = companyMetrics.length > 0
           ? companyMetrics[0].created_at
           : company.created_at
@@ -169,7 +169,7 @@ export function usePerformanceMetrics() {
           company_id: company.id,
           company_name: company.name,
           projects_count: companyProjects.length,
-          users_count: usersData?.filter(u => u.role === 'cliente' && company.company_type === 'cliente').length || 0,
+          users_count: usersData?.filter((u: any) => u.role === 'cliente' && company.company_type === 'cliente').length || 0,
           last_activity: lastActivity,
           performance_score: performanceScore
         }
@@ -250,9 +250,9 @@ export function usePerformanceMetrics() {
       const newAlerts: PerformanceAlert[] = []
 
       // Alerta de error rate alto
-      const errorRateMetrics = recentMetrics?.filter(m => m.metric_type === 'error_rate') || []
+      const errorRateMetrics = recentMetrics?.filter((m: any) => m.metric_type === 'error_rate') || []
       if (errorRateMetrics.length > 0) {
-        const avgErrorRate = errorRateMetrics.reduce((sum, m) => sum + m.value, 0) / errorRateMetrics.length
+        const avgErrorRate = errorRateMetrics.reduce((sum: number, m: any) => sum + m.value, 0) / errorRateMetrics.length
         if (avgErrorRate > 5) { // Más del 5% de errores
           newAlerts.push({
             id: `error_rate_${Date.now()}`,
@@ -268,9 +268,9 @@ export function usePerformanceMetrics() {
       }
 
       // Alerta de respuesta lenta
-      const responseTimeMetrics = recentMetrics?.filter(m => m.metric_type === 'api_response_time') || []
+      const responseTimeMetrics = recentMetrics?.filter((m: any) => m.metric_type === 'api_response_time') || []
       if (responseTimeMetrics.length > 0) {
-        const avgResponseTime = responseTimeMetrics.reduce((sum, m) => sum + m.value, 0) / responseTimeMetrics.length
+        const avgResponseTime = responseTimeMetrics.reduce((sum: number, m: any) => sum + m.value, 0) / responseTimeMetrics.length
         if (avgResponseTime > 2000) { // Más de 2 segundos
           newAlerts.push({
             id: `slow_response_${Date.now()}`,

@@ -90,7 +90,7 @@ export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTe
         .eq('project_id', projectId)
         .eq('is_active', true)
 
-      const currentMemberIds = currentMembers?.map(m => m.user_id) || []
+      const currentMemberIds = currentMembers?.map((m: any) => m.user_id) || []
 
       // Obtener todos los usuarios activos
       const { data: allUsers, error } = await supabase
@@ -102,7 +102,7 @@ export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTe
       if (error) throw error
 
       // Filtrar usuarios que no están en el proyecto
-      const availableUsers = allUsers?.filter(user => 
+      const availableUsers = allUsers?.filter((user: any) => 
         !currentMemberIds.includes(user.id)
       ) || []
 

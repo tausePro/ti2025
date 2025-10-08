@@ -6,9 +6,17 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+// Helper type para cualquier tabla
+export type AnyTable = {
+  Row: Record<string, any>
+  Insert: Record<string, any>
+  Update: Record<string, any>
+}
+
 export interface Database {
   public: {
     Tables: {
+      [key: string]: AnyTable
       profiles: {
         Row: {
           id: string

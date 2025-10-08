@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: any, session: any) => {
         console.log('🔄 Cambio de autenticación:', event, session ? 'Con sesión' : 'Sin sesión')
         
         setUser(session?.user ?? null)
