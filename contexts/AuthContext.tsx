@@ -79,8 +79,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('🔍 DEBUG - Error auth.users:', authError.message)
       }
 
-      // INTENTAR cargar perfil sin RLS primero (para debugging)
-      console.log('🔍 DEBUG - Intentando cargar perfil sin RLS...')
+      // Cargar perfil (SIN modificarlo)
+      console.log('🔍 DEBUG - Cargando perfil desde BD...')
       const { data: userProfile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -95,58 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           hint: error.hint,
           code: error.code
         })
-
-        // Si es error de RLS, intentar con service role key
-        if (error.code === '42501' || error.message.includes('policy')) {
-          console.log('🔍 DEBUG - Posible error de RLS, intentando solución alternativa...')
-
-          // Crear perfil si no existe (como fallback para super_admin)
-          const userEmail = authUser?.user?.email || 'admin@talentoInmobiliario.com'
-          const userMetadata = authUser?.user?.user_metadata || {}
-          const isAdminUser = userMetadata?.role === 'super_admin' || userEmail.includes('admin')
-
-          if (isAdminUser) {
-            console.log('🔍 DEBUG - Usuario parece ser admin, intentando crear perfil...')
-
-            const { data: newProfile, error: createError } = await supabase
-              .from('profiles')
-              .upsert({
-                id: userId,
-                email: userEmail,
-                full_name: userMetadata?.full_name || 'Super Admin',
-                role: 'super_admin',
-                is_active: true
-              })
-              .select()
-              .single()
-
-            if (!createError && newProfile) {
-              console.log('✅ Perfil creado exitosamente:', newProfile)
-              setProfile(newProfile)
-
-              // Aplicar permisos de super_admin por defecto
-              const defaultPermissions = [
-                { role: 'super_admin', module: 'projects', action: 'create', allowed: true },
-                { role: 'super_admin', module: 'projects', action: 'read', allowed: true },
-                { role: 'super_admin', module: 'projects', action: 'update', allowed: true },
-                { role: 'super_admin', module: 'projects', action: 'delete', allowed: true },
-                { role: 'super_admin', module: 'reports', action: 'create', allowed: true },
-                { role: 'super_admin', module: 'reports', action: 'read', allowed: true },
-                { role: 'super_admin', module: 'companies', action: 'create', allowed: true },
-                { role: 'super_admin', module: 'companies', action: 'read', allowed: true },
-                { role: 'super_admin', module: 'users', action: 'create', allowed: true },
-                { role: 'super_admin', module: 'users', action: 'read', allowed: true },
-                { role: 'super_admin', module: 'bitacora', action: 'create', allowed: true },
-                { role: 'super_admin', module: 'bitacora', action: 'read', allowed: true },
-                { role: 'super_admin', module: 'financial', action: 'create', allowed: true },
-                { role: 'super_admin', module: 'financial', action: 'read', allowed: true }
-              ]
-              setPermissions(defaultPermissions)
-              return
-            }
-          }
-        }
-
+        
         setProfile(null)
         return
       }
