@@ -90,7 +90,7 @@ export const serverAuth = {
     const { data: permissions, error: permError } = await supabase
       .from('role_permissions')
       .select('*')
-      .eq('role', userData.role)
+      .eq('role', (userData as any).role)
       .eq('allowed', true)
     
     if (permError) return []
@@ -100,6 +100,6 @@ export const serverAuth = {
 
   checkPermission: async (userId: string, module: string, action: string) => {
     const permissions = await serverAuth.getUserPermissions(userId)
-    return permissions.some(p => p.module === module && p.action === action)
+    return permissions.some((p: any) => p.module === module && p.action === action)
   }
 }

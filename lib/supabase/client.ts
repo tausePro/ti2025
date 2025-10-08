@@ -60,7 +60,7 @@ export const auth = {
           full_name: fullName,
           role,
           is_active: true
-        })
+        } as any)
       
       if (insertError) throw insertError
     }
@@ -112,7 +112,7 @@ export const auth = {
     const { data: permissions, error: permError } = await supabase
       .from('role_permissions')
       .select('*')
-      .eq('role', userData.role)
+      .eq('role', (userData as any).role)
       .eq('allowed', true)
     
     if (permError) throw permError
