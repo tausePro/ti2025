@@ -121,13 +121,14 @@ export default function UserPermissionsPage() {
         return
       }
 
-      setUser(userData)
+      const user = userData as any
+      setUser(user)
 
       // Cargar permisos del rol
       const { data: rolePerms, error: roleError } = await supabase
         .from('role_permissions')
         .select('*')
-        .eq('role', userData.role)
+        .eq('role', user.role)
 
       if (roleError) {
         console.error('Error loading role permissions:', roleError)
@@ -139,7 +140,7 @@ export default function UserPermissionsPage() {
       const { data: customPerms, error: customError } = await supabase
         .from('user_custom_permissions')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', userId) as any
 
       if (customError) {
         console.error('Error loading custom permissions:', customError)
@@ -212,12 +213,13 @@ export default function UserPermissionsPage() {
         // Crear o actualizar permiso personalizado
         if (currentPermission.customPermissionId) {
           // Actualizar permiso existente
-          const { error } = await supabase
-            .from('user_custom_permissions')
-            .update({ 
-              allowed,
-              granted_at: new Date().toISOString()
-            })
+          const updateData: any = { 
+            allowed,
+            granted_at: new Date().toISOString()
+          }
+          const { error } = await (supabase
+            .from('user_custom_permissions') as any)
+            .update(updateData)
             .eq('id', currentPermission.customPermissionId)
 
           if (error) {
@@ -227,15 +229,16 @@ export default function UserPermissionsPage() {
           }
         } else {
           // Crear nuevo permiso personalizado
-          const { error } = await supabase
-            .from('user_custom_permissions')
-            .insert({
-              user_id: userId,
-              module,
-              action,
-              allowed,
-              granted_by: (await supabase.auth.getUser()).data.user?.id
-            })
+          const insertData: any = {
+            user_id: userId,
+            module,
+            action,
+            allowed,
+            granted_by: (await supabase.auth.getUser()).data.user?.id
+          }
+          const { error } = await (supabase
+            .from('user_custom_permissions') as any)
+            .insert(insertData)
 
           if (error) {
             console.error('Error creating custom permission:', error)

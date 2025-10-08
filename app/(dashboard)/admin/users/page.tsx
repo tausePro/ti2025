@@ -89,12 +89,13 @@ export default function UsersManagementPage() {
 
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          is_active: !currentStatus,
-          updated_at: new Date().toISOString()
-        })
+      const updateData: any = { 
+        is_active: !currentStatus,
+        updated_at: new Date().toISOString()
+      }
+      const { error } = await (supabase
+        .from('profiles') as any)
+        .update(updateData)
         .eq('id', userId)
 
       if (error) {

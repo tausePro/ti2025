@@ -84,13 +84,15 @@ export default function EditUserPage() {
         return
       }
 
+      const user = userData as any
+
       const userFormData: UserFormData = {
-        email: userData.email,
-        full_name: userData.full_name,
-        phone: userData.phone || '',
-        role: userData.role,
-        professional_license: userData.professional_license || '',
-        is_active: userData.is_active
+        email: user.email,
+        full_name: user.full_name,
+        phone: user.phone || '',
+        role: user.role,
+        professional_license: user.professional_license || '',
+        is_active: user.is_active
       }
 
       setFormData(userFormData)

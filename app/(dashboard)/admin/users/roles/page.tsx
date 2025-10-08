@@ -183,7 +183,7 @@ export default function RolesManagementPage() {
         MODULES.forEach(module => {
           permissions[module.key] = {}
           ACTIONS.forEach(action => {
-            const permission = data?.find(rp => 
+            const permission = (data as any)?.find((rp: any) => 
               rp.role === role.name && 
               rp.module === module.key && 
               rp.action === action.key
@@ -267,8 +267,8 @@ export default function RolesManagementPage() {
         })
       })
 
-      const { error: insertError } = await supabase
-        .from('role_permissions')
+      const { error: insertError } = await (supabase
+        .from('role_permissions') as any)
         .insert(permissionsToInsert)
 
       if (insertError) {

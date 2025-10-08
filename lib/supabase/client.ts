@@ -1,6 +1,7 @@
 import { createBrowserClient } from '@supabase/ssr'
-import { Database } from '@/types/database'
-import { UserRole } from '@/types'
+import type { Database } from '@/types/database.types'
+
+type UserRole = 'super_admin' | 'admin' | 'gerente' | 'supervisor' | 'residente' | 'cliente'
 
 export function createClient() {
   return createBrowserClient<Database>(
