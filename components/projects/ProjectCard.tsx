@@ -190,6 +190,12 @@ export function ProjectCard({
                     Gestionar equipo
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem asChild>
+                  <Link href={`/projects/${project.id}/documents`}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Documentos
+                  </Link>
+                </DropdownMenuItem>
                 {onGenerateReport && (
                   <DropdownMenuItem onClick={() => onGenerateReport(project)}>
                     <FileText className="h-4 w-4 mr-2" />

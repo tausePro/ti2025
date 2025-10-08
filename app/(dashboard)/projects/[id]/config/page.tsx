@@ -218,12 +218,16 @@ export default function ProjectConfigPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p className="mb-4">Módulo de documentos en desarrollo</p>
-                <p className="text-sm">
-                  Próximamente podrás gestionar todos los documentos del proyecto desde aquí
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 mx-auto mb-4 text-blue-600" />
+                <h3 className="text-lg font-medium mb-2">Gestiona los documentos del proyecto</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Sube y organiza contratos, reportes, fotos, planos y más
                 </p>
+                <Button onClick={() => router.push(`/projects/${projectId}/documents`)}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Ir a Documentos
+                </Button>
               </div>
             </CardContent>
           </Card>

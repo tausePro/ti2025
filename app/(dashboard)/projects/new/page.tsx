@@ -66,12 +66,13 @@ export default function NewProjectPage() {
 
       // Asignar automáticamente al usuario creador como miembro del equipo
       const { error: teamError } = await supabase
-        .from('project_team_members')
+        .from('project_members')
         .insert({
           project_id: project.id,
           user_id: user.id,
-          role: 'supervisor', // Rol por defecto para el creador
-          assigned_by: user.id
+          role_in_project: 'supervisor', // Rol por defecto para el creador
+          assigned_by: user.id,
+          is_active: true
         })
 
       if (teamError) {
