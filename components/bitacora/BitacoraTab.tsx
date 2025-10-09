@@ -42,14 +42,7 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
     try {
       const { data, error } = await supabase
         .from('daily_logs')
-        .select(`
-          *,
-          created_by_user:profiles!created_by(
-            id,
-            email,
-            full_name
-          )
-        `)
+        .select('*')
         .eq('project_id', projectId)
         .order('date', { ascending: false })
 
@@ -111,7 +104,7 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
             Registro diario de actividades, personal y observaciones
           </p>
         </div>
-        {hasPermission('bitacora', 'create') && (
+        {(hasPermission('bitacora', 'create') || ['super_admin', 'admin', 'supervisor', 'residente'].includes(profile?.role || '')) && (
           <Button asChild className="mt-4 sm:mt-0">
             <Link href={`/projects/${projectId}/daily-logs/new`}>
               <Plus className="h-4 w-4 mr-2" />
@@ -242,7 +235,7 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
                 {/* Autor y fecha */}
                 <div className="flex items-center justify-between mt-4 pt-4 border-t text-xs text-gray-500">
                   <span>
-                    Por: {entry.created_by_user?.profile?.full_name || entry.created_by_user?.email || 'Usuario'}
+                    Creado por residente
                   </span>
                   <span>
                     {new Date(entry.created_at).toLocaleString('es-CO')}
@@ -263,7 +256,7 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
               Aún no se han registrado entradas en la bitácora de este proyecto.
               Comienza creando la primera entrada.
             </p>
-            {hasPermission('bitacora', 'create') && (
+            {(hasPermission('bitacora', 'create') || ['super_admin', 'admin', 'supervisor', 'residente'].includes(profile?.role || '')) && (
               <Button asChild>
                 <Link href={`/projects/${projectId}/daily-logs/new`}>
                   <Plus className="h-4 w-4 mr-2" />
