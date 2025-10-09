@@ -41,17 +41,17 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
   const loadBitacoraEntries = async () => {
     try {
       const { data, error } = await supabase
-        .from('bitacora_entries')
+        .from('daily_logs')
         .select(`
           *,
-          created_by_user:users!created_by(
+          created_by_user:profiles!created_by(
             id,
             email,
-            profile:user_profiles(full_name)
+            full_name
           )
         `)
         .eq('project_id', projectId)
-        .order('entry_date', { ascending: false })
+        .order('date', { ascending: false })
 
       if (error) throw error
       setEntries(data || [])
@@ -113,7 +113,7 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
         </div>
         {hasPermission('bitacora', 'create') && (
           <Button asChild className="mt-4 sm:mt-0">
-            <Link href={`/dashboard/projects/${projectId}/bitacora/new`}>
+            <Link href={`/projects/${projectId}/daily-logs/new`}>
               <Plus className="h-4 w-4 mr-2" />
               Nueva Entrada
             </Link>
@@ -138,7 +138,7 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
                   <div className="flex-1">
                     <CardTitle className="text-lg flex items-center">
                       <Calendar className="h-5 w-5 mr-2 text-blue-600" />
-                      {new Date(entry.entry_date).toLocaleDateString('es-CO', {
+                      {new Date((entry as any).date).toLocaleDateString('es-CO', {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
@@ -265,7 +265,7 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
             </p>
             {hasPermission('bitacora', 'create') && (
               <Button asChild>
-                <Link href={`/dashboard/projects/${projectId}/bitacora/new`}>
+                <Link href={`/projects/${projectId}/daily-logs/new`}>
                   <Plus className="h-4 w-4 mr-2" />
                   Crear Primera Entrada
                 </Link>

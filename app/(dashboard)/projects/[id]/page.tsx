@@ -62,7 +62,7 @@ export default function ProjectDetailPage() {
         .from('projects')
         .select(`
           *,
-          company:companies(*)
+          company:companies!client_company_id(*)
         `)
         .eq('id', projectId)
         .single()
