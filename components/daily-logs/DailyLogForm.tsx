@@ -77,23 +77,26 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
     setError(null)
 
     try {
+      // Obtener usuario actual
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No hay usuario autenticado')
+
       // Preparar datos para guardar
       const dailyLogData = {
         project_id: projectId,
         template_id: templateId,
+        created_by: user.id,
         date: formData.date,
-        data: {
-          weather: formData.weather,
-          temperature: formData.temperature,
-          personnel_count: formData.personnel_count,
-          activities: formData.activities,
-          materials: formData.materials,
-          equipment: formData.equipment,
-          observations: formData.observations,
-          issues: formData.issues,
-          recommendations: formData.recommendations,
-          checklists: formData.checklists
-        },
+        weather: formData.weather,
+        temperature: formData.temperature,
+        personnel_count: formData.personnel_count,
+        activities: formData.activities,
+        materials: formData.materials,
+        equipment: formData.equipment,
+        observations: formData.observations,
+        issues: formData.issues,
+        recommendations: formData.recommendations,
+        checklists: formData.checklists,
         sync_status: 'synced'
       }
 
