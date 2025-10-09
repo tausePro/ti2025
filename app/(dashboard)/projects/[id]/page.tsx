@@ -56,28 +56,28 @@ export default function ProjectDetailPage() {
 
   const loadProject = async () => {
     try {
+      console.log('🔄 Cargando proyecto:', projectId)
+      
       const { data, error } = await supabase
         .from('projects')
         .select(`
           *,
-          company:companies(*),
-          team_members:project_team_members(
-            role,
-            assigned_at,
-            user:users(*)
-          )
+          company:companies(*)
         `)
         .eq('id', projectId)
         .single()
 
+      console.log('✅ Proyecto cargado:', data ? 'OK' : 'NULL', error ? error.message : '')
+
       if (error) throw error
 
-      setProject(data)
+      setProject(data as any)
     } catch (error: any) {
-      console.error('Error loading project:', error)
+      console.error('❌ Error loading project:', error)
       setError(error.message || 'Error al cargar el proyecto')
     } finally {
       setLoading(false)
+      console.log('🏁 Carga de proyecto finalizada')
     }
   }
 
