@@ -29,6 +29,10 @@ export default function DashboardLayout({
   const router = useRouter()
   const { user, profile, hasPermission, signOut, loading } = useAuth()
 
+  // DEBUG: Ver qué rol tiene el profile
+  console.log('🔍 LAYOUT - Profile:', profile)
+  console.log('🔍 LAYOUT - Role:', profile?.role)
+
   const handleSignOut = async () => {
     await signOut()
     window.location.href = '/login'
