@@ -88,7 +88,7 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
         created_by: user.id,
         date: formData.date,
         weather: formData.weather,
-        temperature: formData.temperature,
+        temperature: formData.temperature?.toString(),
         personnel_count: formData.personnel_count,
         activities: formData.activities,
         materials: formData.materials,
@@ -96,7 +96,9 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
         observations: formData.observations,
         issues: formData.issues,
         recommendations: formData.recommendations,
-        checklists: formData.checklists,
+        custom_fields: {
+          checklists: formData.checklists
+        },
         sync_status: 'synced'
       }
 
