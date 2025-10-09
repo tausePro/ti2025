@@ -43,6 +43,7 @@ export function useProjects(options: UseProjectsOptions = {}) {
 
   const loadProjects = async () => {
     try {
+      console.log('🔄 useProjects - Cargando proyectos...')
       setLoading(true)
       setError(null)
 
@@ -55,6 +56,8 @@ export function useProjects(options: UseProjectsOptions = {}) {
           )
         `)
         .eq('is_archived', includeArchived)
+      
+      console.log('🔍 useProjects - Query configurada, ejecutando...')
 
       // Aplicar filtros
       if (filters.search) {
@@ -98,22 +101,35 @@ export function useProjects(options: UseProjectsOptions = {}) {
 
       const { data, error: queryError } = await query
 
-      if (queryError) throw queryError
+      console.log('✅ useProjects - Query ejecutada:', { 
+        success: !queryError, 
+        projectCount: data?.length,
+        error: queryError?.message 
+      })
+
+      if (queryError) {
+        console.error('❌ useProjects - Error en query:', queryError)
+        throw queryError
+      }
 
       setProjects(data || [])
       setTotalCount(data?.length || 0)
       setHasMore((data?.length || 0) === pageSize)
+      console.log('✅ useProjects - Proyectos cargados:', data?.length)
     } catch (err) {
+      console.error('❌ useProjects - Error catch:', err)
       logger.database('SELECT', 'projects', { filters, page, pageSize }, err as Error)
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setLoading(false)
+      console.log('🏁 useProjects - Carga finalizada')
     }
   }
 
   useEffect(() => {
     loadProjects()
-  }, [page, pageSize, filters, includeArchived])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, JSON.stringify(filters), includeArchived])
 
   const refreshProjects = () => {
     loadProjects()
