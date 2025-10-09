@@ -17,7 +17,8 @@ import {
   Users,
   FileText,
   AlertCircle,
-  Settings
+  Settings,
+  ClipboardList
 } from 'lucide-react'
 import { Project, ProjectMember } from '@/types'
 import { ProjectStatusBadge } from './ProjectStatusBadge'
@@ -190,6 +191,12 @@ export function ProjectCard({
                     Gestionar equipo
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem asChild>
+                  <Link href={`/projects/${project.id}/daily-logs`}>
+                    <ClipboardList className="h-4 w-4 mr-2" />
+                    Bitácoras
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href={`/projects/${project.id}/documents`}>
                     <FileText className="h-4 w-4 mr-2" />
