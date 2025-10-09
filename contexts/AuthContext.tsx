@@ -72,13 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('🔄 Cargando perfil para usuario:', userId)
       console.log('🔍 DEBUG - Timestamp de carga:', new Date().toISOString())
 
-      // Verificar si el usuario existe en auth.users primero
-      const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId)
-      console.log('🔍 DEBUG - Usuario en auth.users:', authUser ? 'Encontrado' : 'No encontrado')
-      if (authError) {
-        console.log('🔍 DEBUG - Error auth.users:', authError.message)
-      }
-
       // Cargar perfil (SIN modificarlo)
       console.log('🔍 DEBUG - Cargando perfil desde BD...')
       const { data: userProfile, error } = await supabase
