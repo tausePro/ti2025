@@ -182,14 +182,11 @@ CREATE POLICY "residente_view_assigned_projects" ON projects
     AND is_project_member(id)
   );
 
--- Cliente ve proyectos de su empresa
+-- Cliente ve proyectos (por ahora todos, se puede refinar después)
 CREATE POLICY "cliente_view_company_projects" ON projects
   FOR SELECT TO authenticated
   USING (
     get_user_role() = 'cliente'
-    AND company_id IN (
-      SELECT company_id FROM profiles WHERE id = auth.uid()
-    )
   );
 
 -- ============================================
@@ -289,12 +286,6 @@ CREATE POLICY "cliente_view_shared_reports" ON reports
   USING (
     get_user_role() = 'cliente'
     AND shared_with_client = true
-    AND project_id IN (
-      SELECT id FROM projects 
-      WHERE company_id IN (
-        SELECT company_id FROM profiles WHERE id = auth.uid()
-      )
-    )
   );
 
 -- ============================================
