@@ -94,8 +94,15 @@ export default function DashboardLayout({
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
         <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
-          <div className="flex h-16 items-center justify-between px-4 border-b">
-            <GlobalLogo showText text="Talento Inmobiliario" context="dashboard" />
+          <div className="flex h-20 items-center justify-between px-4 border-b bg-gradient-to-r from-white to-talento-green/5">
+            <div className="flex flex-col items-center flex-1">
+              <img 
+                src="/logo.png" 
+                alt="Talento Inmobiliario" 
+                className="h-10 w-10 mb-1"
+              />
+              <span className="text-xs font-bold text-gray-900">Talento Inmobiliario</span>
+            </div>
             <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)}>
               <X className="h-5 w-5" />
             </Button>
@@ -124,14 +131,25 @@ export default function DashboardLayout({
             </div>
           </div>
 
-          <div className="px-4 py-3 border-t">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{profile?.full_name || 'Usuario'}</p>
+          <div className="px-4 py-4 border-t bg-gray-50">
+            <div className="flex items-center space-x-3">
+              <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-talento-green/20 flex-shrink-0">
+                {(profile as any)?.avatar_url ? (
+                  <img
+                    src={(profile as any).avatar_url}
+                    alt="Avatar"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <User className="h-5 w-5 text-gray-400" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{profile?.full_name || 'Usuario'}</p>
                 <p className="text-xs text-gray-500">{profile?.role || 'admin'}</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4" />
+              <Button variant="ghost" size="sm" onClick={handleSignOut} className="flex-shrink-0">
+                <LogOut className="h-4 w-4 text-gray-500 hover:text-red-600" />
               </Button>
             </div>
           </div>
@@ -141,8 +159,16 @@ export default function DashboardLayout({
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
         <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
-          <div className="flex h-16 items-center px-4 border-b">
-            <GlobalLogo showText text="Talento Inmobiliario" context="dashboard" />
+          <div className="flex h-20 items-center justify-center px-4 border-b bg-gradient-to-r from-white to-talento-green/5">
+            <div className="flex flex-col items-center">
+              <img 
+                src="/logo.png" 
+                alt="Talento Inmobiliario" 
+                className="h-12 w-12 mb-1"
+              />
+              <span className="text-sm font-bold text-gray-900">Talento Inmobiliario</span>
+              <span className="text-xs text-talento-green">Supervisión Técnica</span>
+            </div>
           </div>
 
           <nav className="flex-1 px-4 py-4 space-y-2">
@@ -168,14 +194,25 @@ export default function DashboardLayout({
             </div>
           </div>
 
-          <div className="px-4 py-3 border-t">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{profile?.full_name || 'Usuario'}</p>
+          <div className="px-4 py-4 border-t bg-gray-50">
+            <div className="flex items-center space-x-3">
+              <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-talento-green/20 flex-shrink-0">
+                {(profile as any)?.avatar_url ? (
+                  <img
+                    src={(profile as any).avatar_url}
+                    alt="Avatar"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <User className="h-5 w-5 text-gray-400" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{profile?.full_name || 'Usuario'}</p>
                 <p className="text-xs text-gray-500">{profile?.role || 'admin'}</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4" />
+              <Button variant="ghost" size="sm" onClick={handleSignOut} className="flex-shrink-0">
+                <LogOut className="h-4 w-4 text-gray-500 hover:text-red-600" />
               </Button>
             </div>
           </div>
