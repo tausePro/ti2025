@@ -29,6 +29,28 @@ export async function PUT(request: NextRequest) {
 
     const supabase = createClient()
 
+    // Verificar que el usuario actual esté autenticado y tenga permisos
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+    
+    if (!currentUser) {
+      return NextResponse.json({ 
+        error: 'No autenticado' 
+      }, { status: 401 })
+    }
+
+    // Verificar que el usuario tenga rol permitido para editar usuarios
+    const { data: currentProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', currentUser.id)
+      .single()
+
+    if (!currentProfile || !['admin', 'super_admin', 'gerente', 'supervisor'].includes(currentProfile.role)) {
+      return NextResponse.json({ 
+        error: 'No tienes permisos para editar usuarios' 
+      }, { status: 403 })
+    }
+
     // Obtener datos originales del usuario
     const { data: originalUser, error: fetchError } = await supabase
       .from('profiles')
