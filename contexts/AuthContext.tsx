@@ -164,76 +164,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       console.log('🚪 Iniciando logout...')
-      console.log('🔍 DEBUG - Estado actual antes del logout:', {
-        user: user?.email,
-        profile: profile?.email,
-        profileRole: profile?.role,
-        permissionsCount: permissions.length
-      })
 
-      // Limpiar estado local primero
-      console.log('🧹 Limpiando estado local...')
-      setUser(null)
-      setProfile(null)
-      setPermissions([])
-
-      // Verificar estado después de limpiar
-      console.log('🔍 DEBUG - Estado después de limpiar local:', {
-        user: null,
-        profile: null,
-        permissions: []
-      })
-
-      // Hacer logout en Supabase con todas las opciones
-      console.log('🔐 Iniciando logout de Supabase...')
+      // Hacer logout en Supabase primero
       const { error: logoutError } = await supabase.auth.signOut({
         scope: 'global'
       })
 
       if (logoutError) {
         console.error('❌ Error en logout de Supabase:', logoutError)
-        console.error('❌ Detalles del error:', {
-          message: logoutError.message,
-          status: logoutError.status
-        })
       } else {
         console.log('✅ Logout de Supabase exitoso')
       }
 
-      // Limpiar todas las cookies relacionadas con Supabase
+      // Limpiar estado local
+      setUser(null)
+      setProfile(null)
+      setPermissions([])
+
+      // Limpiar storage
       if (typeof window !== 'undefined') {
-        console.log('🧹 Limpiando storage y cookies...')
-
-        // Limpiar localStorage y sessionStorage
-        const localStorageKeys = Object.keys(localStorage)
-        const sessionStorageKeys = Object.keys(sessionStorage)
-        console.log('🔍 DEBUG - Keys en localStorage:', localStorageKeys)
-        console.log('🔍 DEBUG - Keys en sessionStorage:', sessionStorageKeys)
-
         localStorage.clear()
         sessionStorage.clear()
-
-        // Limpiar cookies específicas de Supabase
-        const cookies = document.cookie.split(";")
-        console.log('🔍 DEBUG - Cookies antes de limpiar:', cookies)
+        
+        // Limpiar cookies
         document.cookie.split(";").forEach(function(c) {
           document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
         })
-
-        console.log('🧹 Storage y cookies limpiados')
       }
 
-      // Esperar un momento antes de redirigir
-      setTimeout(() => {
-        console.log('🔄 Redirigiendo a login...')
-        console.log('🔍 DEBUG - URL actual:', window.location.href)
-        // Forzar recarga completa
-        window.location.replace('/login')
-      }, 500)
+      // Redirigir inmediatamente
+      console.log('🔄 Redirigiendo a login...')
+      window.location.href = '/login'
 
     } catch (error) {
       console.error('❌ Error during signOut:', error)
-      console.log('🔍 DEBUG - Error en signOut, forzando logout manual...')
 
       // Forzar logout incluso si hay error
       setUser(null)
@@ -241,18 +205,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setPermissions([])
 
       if (typeof window !== 'undefined') {
-        console.log('🧹 Forzando limpieza de storage...')
         localStorage.clear()
         sessionStorage.clear()
-        // Limpiar cookies
         document.cookie.split(";").forEach(function(c) {
           document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
         })
       }
 
       // Forzar redirección
-      console.log('🔄 Forzando redirección a login...')
-      window.location.replace('/login')
+      window.location.href = '/login'
     }
   }
 

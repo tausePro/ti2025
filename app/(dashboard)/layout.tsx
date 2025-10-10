@@ -34,8 +34,15 @@ export default function DashboardLayout({
   console.log('🔍 LAYOUT - Role:', profile?.role)
 
   const handleSignOut = async () => {
-    await signOut()
-    window.location.href = '/login'
+    try {
+      console.log('🚪 Layout - Iniciando logout...')
+      await signOut()
+      // El signOut ya maneja la redirección, no necesitamos hacerlo aquí
+    } catch (error) {
+      console.error('❌ Layout - Error en logout:', error)
+      // Forzar redirección en caso de error
+      window.location.href = '/login'
+    }
   }
 
   const visibleMenuItems = [
