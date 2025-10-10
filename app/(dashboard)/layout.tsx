@@ -16,7 +16,8 @@ import {
   LogOut,
   Wifi,
   Calculator,
-  X
+  X,
+  User
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -197,9 +198,22 @@ export default function DashboardLayout({
             <div className="flex flex-1"></div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
               <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200" />
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-700">{profile?.full_name || 'Usuario'}</span>
-                <span className="text-xs text-gray-500">({profile?.role || 'admin'})</span>
+              <div className="flex items-center space-x-3">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">{profile?.full_name || 'Usuario'}</p>
+                  <p className="text-xs text-gray-500">{profile?.role || 'admin'}</p>
+                </div>
+                <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-talento-green/20">
+                  {(profile as any)?.avatar_url ? (
+                    <img
+                      src={(profile as any).avatar_url}
+                      alt="Avatar"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <User className="h-5 w-5 text-gray-400" />
+                  )}
+                </div>
               </div>
             </div>
           </div>
