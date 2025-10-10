@@ -20,7 +20,7 @@ import {
   PenTool,
   Loader2
 } from 'lucide-react'
-import Image from 'next/image'
+// import Image from 'next/image' // No usar por ahora
 
 interface ProfileFormData {
   full_name: string
@@ -299,12 +299,10 @@ export default function ProfilePage() {
                   <div className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
                     <p className="text-sm text-gray-600 mb-2">Firma actual:</p>
                     <div className="relative w-full h-32 bg-white rounded border flex items-center justify-center">
-                      <Image
+                      <img
                         src={formData.signature_url}
                         alt="Firma"
-                        width={200}
-                        height={100}
-                        className="object-contain"
+                        className="max-h-28 object-contain"
                       />
                     </div>
                   </div>
