@@ -77,8 +77,13 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
     setError(null)
 
     try {
+      console.log('🔄 Iniciando guardado de bitácora...')
+      
       // Obtener usuario actual
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      console.log('👤 Usuario:', user?.id, authError ? `Error: ${authError.message}` : 'OK')
+      
+      if (authError) throw authError
       if (!user) throw new Error('No hay usuario autenticado')
 
       // Preparar datos para guardar
@@ -102,12 +107,16 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
         sync_status: 'synced'
       }
 
+      console.log('📝 Datos a guardar:', dailyLogData)
+
       // Guardar en Supabase
-      const { data, error: saveError } = await (supabase
-        .from('daily_logs') as any)
+      const { data, error: saveError } = await supabase
+        .from('daily_logs')
         .insert(dailyLogData)
         .select()
         .single()
+
+      console.log('💾 Resultado:', data ? 'OK' : 'NULL', saveError ? `Error: ${saveError.message}` : 'OK')
 
       if (saveError) throw saveError
 
