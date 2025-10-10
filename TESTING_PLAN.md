@@ -64,14 +64,14 @@ Testear roles, permisos y funcionalidades antes de enviar credenciales a los due
 
 1. Ir a `/register`
 2. Registrar con email: `yuliana@talentoinmobiliario.com`
-3. Después del registro, ejecutar en Supabase:
-```sql
-UPDATE profiles 
-SET role = 'admin',
-    full_name = 'Yuliana Rodríguez',
-    phone = '3001234567'
-WHERE email = 'yuliana@talentoinmobiliario.com';
-```
+3. **Login como super_admin** (tu usuario actual)
+4. Ir a **Usuarios** → Buscar a Yuliana → **Editar**
+5. Cambiar rol a `admin`
+6. Cambiar nombre completo a `Yuliana Rodríguez`
+7. Agregar teléfono: `3001234567`
+8. **Guardar cambios**
+
+✅ **Ya NO es necesario ejecutar SQL manualmente**
 
 ### **PASO 2: Yuliana crea empresas cliente**
 
