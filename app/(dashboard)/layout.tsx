@@ -93,29 +93,26 @@ export default function DashboardLayout({
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
-          <div className="flex h-20 items-center justify-between px-4 border-b bg-gradient-to-r from-white to-talento-green/5">
-            <div className="flex flex-col items-center flex-1">
-              <img 
-                src="/logo.png" 
-                alt="Talento Inmobiliario" 
-                className="h-10 w-10 mb-1"
-              />
-              <span className="text-xs font-bold text-gray-900">Talento Inmobiliario</span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)}>
+        <div className="fixed inset-y-0 left-0 flex w-72 flex-col bg-white">
+          <div className="relative flex h-24 items-center justify-center px-8 py-4 border-b">
+            <img 
+              src="/logo-ti.png" 
+              alt="Talento Inmobiliario" 
+              className="w-full h-auto object-contain"
+            />
+            <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)} className="absolute right-2 top-2">
               <X className="h-5 w-5" />
             </Button>
           </div>
 
-          <nav className="flex-1 px-4 py-4 space-y-2">
+          <nav className="flex-1 px-6 py-6 space-y-1">
             {visibleMenuItems.map((item) => {
               const Icon = item.icon
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100"
+                  className="flex items-center px-4 py-3 text-base font-medium text-gray-700 rounded-lg hover:bg-talento-green/10 hover:text-talento-green transition-colors"
                 >
                   <Icon className="mr-3 h-5 w-5" />
                   {item.name}
@@ -124,14 +121,14 @@ export default function DashboardLayout({
             })}
           </nav>
 
-          <div className="px-4 py-3 border-t">
+          <div className="px-6 py-3 border-t">
             <div className="flex items-center space-x-2 text-sm text-green-600">
               <Wifi className="h-4 w-4" />
               <span>Conectado</span>
             </div>
           </div>
 
-          <div className="px-4 py-4 border-t bg-gray-50">
+          <div className="px-6 py-4 border-t bg-gray-50">
             <div className="flex items-center space-x-3">
               <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-talento-green/20 flex-shrink-0">
                 {(profile as any)?.avatar_url ? (
@@ -157,28 +154,24 @@ export default function DashboardLayout({
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
         <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
-          <div className="flex h-20 items-center justify-center px-4 border-b bg-gradient-to-r from-white to-talento-green/5">
-            <div className="flex flex-col items-center">
-              <img 
-                src="/logo.png" 
-                alt="Talento Inmobiliario" 
-                className="h-12 w-12 mb-1"
-              />
-              <span className="text-sm font-bold text-gray-900">Talento Inmobiliario</span>
-              <span className="text-xs text-talento-green">Supervisión Técnica</span>
-            </div>
+          <div className="flex h-24 items-center justify-center px-8 py-4 border-b">
+            <img 
+              src="/logo-ti.png" 
+              alt="Talento Inmobiliario" 
+              className="w-full h-auto object-contain"
+            />
           </div>
 
-          <nav className="flex-1 px-4 py-4 space-y-2">
+          <nav className="flex-1 px-6 py-6 space-y-1">
             {visibleMenuItems.map((item) => {
               const Icon = item.icon
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-100"
+                  className="flex items-center px-4 py-3 text-base font-medium text-gray-700 rounded-lg hover:bg-talento-green/10 hover:text-talento-green transition-colors"
                 >
                   <Icon className="mr-3 h-5 w-5" />
                   {item.name}
@@ -187,14 +180,14 @@ export default function DashboardLayout({
             })}
           </nav>
 
-          <div className="px-4 py-3 border-t">
+          <div className="px-6 py-3 border-t">
             <div className="flex items-center space-x-2 text-sm text-green-600">
               <Wifi className="h-4 w-4" />
               <span>Conectado</span>
             </div>
           </div>
 
-          <div className="px-4 py-4 border-t bg-gray-50">
+          <div className="px-6 py-4 border-t bg-gray-50">
             <div className="flex items-center space-x-3">
               <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-talento-green/20 flex-shrink-0">
                 {(profile as any)?.avatar_url ? (
@@ -220,7 +213,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-72">
         <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
           <Button
             variant="ghost"
