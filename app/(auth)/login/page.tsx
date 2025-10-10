@@ -76,13 +76,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Logo y branding */}
         <div className="text-center">
-          <GlobalLogo 
-            showText 
-            text="Talento Inmobiliario" 
-            context="login"
-            className="justify-center"
+          <img 
+            src="/logo.png" 
+            alt="Talento Inmobiliario" 
+            className="h-32 w-32 mx-auto mb-4"
           />
-          <p className="text-sm text-gray-600 mt-2">Supervisión Técnica</p>
+          <h2 className="text-2xl font-bold text-gray-900">Talento Inmobiliario</h2>
+          <p className="text-sm text-gray-600 mt-1">Supervisión Técnica</p>
         </div>
 
         <Card>
@@ -134,7 +134,7 @@ export default function LoginPage() {
 
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full bg-talento-green hover:bg-talento-green/90 text-white" 
               disabled={loading}
             >
               {loading ? (
@@ -151,7 +151,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               ¿No tienes cuenta?{' '}
-              <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+              <Link href="/register" className="font-medium text-talento-green hover:text-talento-green/80">
                 Regístrate aquí
               </Link>
             </p>
