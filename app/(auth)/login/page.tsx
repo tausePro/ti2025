@@ -73,20 +73,20 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-6">
-        {/* Logo y branding */}
-        <div className="text-center">
-          <img 
-            src="/logo.png" 
-            alt="Talento Inmobiliario" 
-            className="h-32 w-32 mx-auto mb-4"
-          />
-          <h2 className="text-2xl font-bold text-gray-900">Talento Inmobiliario</h2>
-          <p className="text-sm text-gray-600 mt-1">Supervisión Técnica</p>
-        </div>
-
+      <div className="w-full max-w-md">
         <Card>
-          <CardHeader className="space-y-1">
+          {/* Logo dentro del card */}
+          <div className="text-center pt-8 pb-2">
+            <img 
+              src="/logo.png" 
+              alt="Talento Inmobiliario" 
+              className="h-40 w-40 mx-auto mb-3"
+            />
+            <h2 className="text-2xl font-bold text-gray-900">Talento Inmobiliario</h2>
+            <p className="text-sm text-gray-600 mt-1">Supervisión Técnica</p>
+          </div>
+
+          <CardHeader className="space-y-1 pt-6 pb-4">
             <CardTitle className="text-2xl font-bold text-center">
               Iniciar Sesión
             </CardTitle>
@@ -94,7 +94,7 @@ export default function LoginPage() {
               Ingresa tus credenciales para acceder al sistema
             </CardDescription>
           </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 pb-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
