@@ -71,15 +71,32 @@ export default function RegisterPage() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Crear Cuenta</CardTitle>
-        <CardDescription>
-          Regístrate en Talento Inmobiliario
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleRegister} className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-white py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md">
+        <Card className="shadow-xl border border-gray-200">
+          {/* Logo y branding dentro del card */}
+          <div className="text-center pt-8 pb-6">
+            <img 
+              src="/logo.png" 
+              alt="Talento Inmobiliario" 
+              className="h-32 w-32 mx-auto mb-4"
+            />
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">
+              Talento Inmobiliario
+            </h1>
+            <p className="text-gray-600 text-sm">Supervisión Técnica</p>
+          </div>
+
+          <CardHeader className="space-y-1 pb-4 pt-0">
+            <CardTitle className="text-2xl font-bold text-center text-gray-900">
+              Crear Cuenta
+            </CardTitle>
+            <CardDescription className="text-center text-gray-600">
+              Regístrate para acceder al sistema
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-6 pb-6">
+            <form onSubmit={handleRegister} className="space-y-4">
           <div>
             <Label htmlFor="fullName">Nombre Completo</Label>
             <Input
@@ -164,7 +181,7 @@ export default function RegisterPage() {
 
           <Button 
             type="submit" 
-            className="w-full" 
+            className="w-full bg-talento-green hover:bg-talento-green/90 text-white font-semibold h-12 text-base shadow-md" 
             disabled={loading}
           >
             {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
@@ -174,12 +191,19 @@ export default function RegisterPage() {
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
             ¿Ya tienes cuenta?{' '}
-            <Link href="/login" className="text-blue-600 hover:underline">
+            <Link href="/login" className="font-medium text-talento-green hover:text-talento-green/80 transition-colors">
               Inicia sesión aquí
             </Link>
           </p>
         </div>
+        
+        {/* Footer */}
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-500">© 2025 Talento Inmobiliario S.A.S.</p>
+        </div>
       </CardContent>
-    </Card>
+        </Card>
+      </div>
+    </div>
   )
 }
