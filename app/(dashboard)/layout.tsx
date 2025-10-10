@@ -80,13 +80,11 @@ export default function DashboardLayout({
         icon: Users
       }
     ] : []),
-    ...(profile?.role && ['admin', 'super_admin'].includes(profile.role) ? [
-      {
-        name: 'Configuración',
-        href: '/admin/config',
-        icon: Settings
-      }
-    ] : [])
+    {
+      name: 'Mi Perfil',
+      href: '/profile',
+      icon: Settings
+    }
   ]
 
   return (

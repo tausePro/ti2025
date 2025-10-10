@@ -1,33 +1,28 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import React from 'react'
-import { useStyleConfiguration } from '@/hooks/useStyleConfiguration'
 import { useAuth } from '@/contexts/AuthContext'
+import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
-  Palette, 
-  Upload, 
+  User, 
+  Mail, 
+  Phone, 
   Save, 
-  Eye, 
-  Trash2, 
-  Plus,
-  Settings,
-  Image,
-  Type,
-  Layout
+  Upload,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  PenTool
 } from 'lucide-react'
-import { ColorConfiguration } from '@/components/admin/ColorConfiguration'
-import { BrandingConfiguration } from '@/components/admin/BrandingConfiguration'
-import { TypographyConfiguration } from '@/components/admin/TypographyConfiguration'
-import { StylePreview } from '@/components/admin/StylePreview'
-import { StyleConfiguration } from '@/types'
 
-export default function StyleConfigPage() {
-  const { profile, signOut } = useAuth()
+export default function ProfilePage() {
+  const { profile } = useAuth()
+  const supabase = createClient()
   
   const forceReloadProfile = async () => {
     console.log('🔄 Forzando recarga de perfil...')
