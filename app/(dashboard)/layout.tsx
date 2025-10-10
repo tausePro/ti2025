@@ -64,12 +64,16 @@ export default function DashboardLayout({
         name: 'Empresas',
         href: '/admin/companies',
         icon: Building
-      },
+      }
+    ] : []),
+    ...(profile?.role && ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role) ? [
       {
         name: 'Usuarios',
         href: '/admin/users',
         icon: Users
-      },
+      }
+    ] : []),
+    ...(profile?.role && ['admin', 'super_admin'].includes(profile.role) ? [
       {
         name: 'Configuración',
         href: '/admin/config',

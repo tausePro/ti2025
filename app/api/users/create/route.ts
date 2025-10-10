@@ -31,14 +31,14 @@ export async function POST(request: NextRequest) {
       }, { status: 401 })
     }
 
-    // Verificar que el usuario tenga rol de admin o super_admin
+    // Verificar que el usuario tenga rol permitido para crear usuarios
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', currentUser.id)
       .single()
 
-    if (!profile || !['admin', 'super_admin'].includes(profile.role)) {
+    if (!profile || !['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role)) {
       return NextResponse.json({ 
         error: 'No tienes permisos para crear usuarios' 
       }, { status: 403 })
