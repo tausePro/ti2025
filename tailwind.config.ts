@@ -18,18 +18,25 @@ const config: Config = {
   	},
   	extend: {
   		colors: {
+  			// Colores de marca Talento Inmobiliario
+  			talento: {
+  				green: '#9DC110',
+  				'green-light': '#C8D6A0',
+  				gray: '#58595B',
+  				black: '#000000'
+  			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			primary: {
-  				DEFAULT: 'hsl(var(--primary))',
-  				foreground: 'hsl(var(--primary-foreground))'
+  				DEFAULT: '#9DC110',
+  				foreground: '#ffffff'
   			},
   			secondary: {
-  				DEFAULT: 'hsl(var(--secondary))',
-  				foreground: 'hsl(var(--secondary-foreground))'
+  				DEFAULT: '#C8D6A0',
+  				foreground: '#000000'
   			},
   			destructive: {
   				DEFAULT: 'hsl(var(--destructive))',

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: 'Talento Inmobiliario - Supervisión Técnica',
   description: 'Sistema de supervisión técnica para obras de construcción',
   manifest: '/manifest.json',
-  themeColor: '#2563eb',
+  themeColor: '#9DC110',
   viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   appleWebApp: {
     capable: true,
