@@ -62,11 +62,13 @@ export default function DashboardLayout({
       href: '/reports',
       icon: FileText
     },
-    {
-      name: 'Financiero',
-      href: '/financial',
-      icon: Calculator
-    },
+    ...(profile?.role && ['admin', 'gerente'].includes(profile.role) ? [
+      {
+        name: 'Financiero',
+        href: '/financial',
+        icon: Calculator
+      }
+    ] : []),
     ...(profile?.role && ['admin', 'super_admin'].includes(profile.role) ? [
       {
         name: 'Empresas',
