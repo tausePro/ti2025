@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
-import { ProjectForm } from '@/components/projects/ProjectForm'
+import { ProjectFormWithFinancial } from '@/components/projects/ProjectFormWithFinancial'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,24 @@ type ProjectFormData = {
   intervention_types: ('supervision_tecnica' | 'interventoria_administrativa')[]
   budget?: number
   description?: string
+  enable_financial_intervention?: boolean
+  fiduciary_data?: {
+    accounts: Array<{
+      sifi_code: '1' | '2'
+      account_name: string
+      bank_name: string
+      account_number: string
+      initial_balance: number
+    }>
+    financial_config: {
+      control_type: 'construction_acts' | 'legalizations'
+      approval_flow: string[]
+      budget_alerts: number[]
+      max_approval_amount?: number
+      requires_client_approval: boolean
+      auto_approve_under: number
+    }
+  }
 }
 
 export default function NewProjectPage() {
@@ -80,8 +98,58 @@ export default function NewProjectPage() {
         // No fallar por esto, solo advertir
       }
 
+      // Si se habilitó interventoría financiera y hay datos fiduciarios, crearlos
+      if (data.enable_financial_intervention && data.fiduciary_data) {
+        try {
+          // Crear cuentas fiduciarias
+          if (data.fiduciary_data.accounts && data.fiduciary_data.accounts.length > 0) {
+            const accountsToInsert = data.fiduciary_data.accounts.map(acc => ({
+              project_id: project.id,
+              sifi_code: acc.sifi_code,
+              account_name: acc.account_name,
+              bank_name: acc.bank_name,
+              account_number: acc.account_number,
+              initial_balance: acc.initial_balance,
+              current_balance: acc.initial_balance,
+              is_active: true,
+              created_by: user.id
+            }))
+
+            const { error: accountsError } = await supabase
+              .from('fiduciary_accounts')
+              .insert(accountsToInsert)
+
+            if (accountsError) throw accountsError
+          }
+
+          // Crear configuración financiera
+          if (data.fiduciary_data.financial_config) {
+            const config = data.fiduciary_data.financial_config
+            const { error: configError } = await supabase
+              .from('project_financial_config')
+              .insert({
+                project_id: project.id,
+                requires_construction_acts: config.control_type === 'construction_acts',
+                requires_legalizations: config.control_type === 'legalizations',
+                approval_flow: config.approval_flow,
+                budget_alerts: config.budget_alerts,
+                max_approval_amount: config.max_approval_amount,
+                requires_client_approval: config.requires_client_approval,
+                auto_approve_under: config.auto_approve_under,
+                created_by: user.id
+              })
+
+            if (configError) throw configError
+          }
+        } catch (fiduciaryError: any) {
+          console.error('Error creando configuración fiduciaria:', fiduciaryError)
+          // No fallar el proyecto por esto, solo advertir
+          setError('Proyecto creado pero hubo un error en la configuración fiduciaria: ' + fiduciaryError.message)
+        }
+      }
+
       // Redirigir a la lista de proyectos
-      router.push('/dashboard/projects')
+      router.push('/projects')
     } catch (error: any) {
       console.error('Error creating project:', error)
       setError(error.message || 'Error al crear el proyecto')
@@ -117,11 +185,10 @@ export default function NewProjectPage() {
 
       {/* Form */}
       <div className="max-w-4xl">
-        <ProjectForm
+        <ProjectFormWithFinancial
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           loading={loading}
-          submitButtonText={loading ? 'Creando...' : 'Crear Proyecto'}
         />
         
         {/* Error Alert */}
