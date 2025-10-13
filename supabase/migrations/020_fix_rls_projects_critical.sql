@@ -5,6 +5,8 @@
 -- SOLUCIÓN: Limpiar todas las políticas y crear un set simple y funcional
 
 -- 1. ELIMINAR TODAS LAS POLÍTICAS EXISTENTES DE PROJECTS
+DROP POLICY IF EXISTS "projects_allow_all" ON projects;
+DROP POLICY IF EXISTS "Users can read projects they're assigned to" ON projects;
 DROP POLICY IF EXISTS "super_admin_projects_all" ON projects;
 DROP POLICY IF EXISTS "admin_projects_all" ON projects;
 DROP POLICY IF EXISTS "gerente_projects_view" ON projects;
@@ -127,7 +129,7 @@ CREATE POLICY "residente_view_assigned" ON projects
     )
   );
 
--- Cliente: ver proyectos de su empresa
+-- Cliente: ver proyectos de su empresa (vía user_company_permissions)
 CREATE POLICY "cliente_view_company" ON projects
   FOR SELECT TO authenticated
   USING (
@@ -135,7 +137,12 @@ CREATE POLICY "cliente_view_company" ON projects
       SELECT 1 FROM profiles
       WHERE profiles.id = auth.uid()
       AND profiles.role = 'cliente'
-      AND profiles.company_id = projects.client_company_id
+    )
+    AND EXISTS (
+      SELECT 1 FROM user_company_permissions
+      WHERE user_company_permissions.user_id = auth.uid()
+      AND user_company_permissions.company_id = projects.client_company_id
+      AND user_company_permissions.is_active = true
     )
   );
 
@@ -143,6 +150,9 @@ CREATE POLICY "cliente_view_company" ON projects
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 
 -- 4. LIMPIAR POLÍTICAS DE COMPANIES (pueden estar causando problemas en el JOIN)
+DROP POLICY IF EXISTS "companies_allow_all" ON companies;
+DROP POLICY IF EXISTS "authenticated_view_companies" ON companies;
+DROP POLICY IF EXISTS "admin_manage_companies" ON companies;
 DROP POLICY IF EXISTS "admin_full_access_companies" ON companies;
 DROP POLICY IF EXISTS "Users can view active companies" ON companies;
 DROP POLICY IF EXISTS "Admins can manage companies" ON companies;
@@ -152,7 +162,7 @@ DROP POLICY IF EXISTS "Authenticated users can update companies" ON companies;
 DROP POLICY IF EXISTS "Authenticated users can delete companies" ON companies;
 
 -- 5. CREAR POLÍTICAS PARA COMPANIES
--- Admin, gerente y supervisor pueden ver empresas activas
+-- Admin, gerente y supervisor pueden ver todas las empresas activas
 CREATE POLICY "management_view_companies" ON companies
   FOR SELECT TO authenticated
   USING (
@@ -164,7 +174,7 @@ CREATE POLICY "management_view_companies" ON companies
     )
   );
 
--- Cliente puede ver solo su empresa
+-- Cliente solo ve su propia empresa (a través de user_company_permissions)
 CREATE POLICY "cliente_view_own_company" ON companies
   FOR SELECT TO authenticated
   USING (
@@ -173,7 +183,12 @@ CREATE POLICY "cliente_view_own_company" ON companies
       SELECT 1 FROM profiles
       WHERE profiles.id = auth.uid()
       AND profiles.role = 'cliente'
-      AND profiles.company_id = companies.id
+    )
+    AND EXISTS (
+      SELECT 1 FROM user_company_permissions
+      WHERE user_company_permissions.user_id = auth.uid()
+      AND user_company_permissions.company_id = companies.id
+      AND user_company_permissions.is_active = true
     )
   );
 
@@ -205,6 +220,6 @@ COMMENT ON POLICY "supervisor_manage_own_projects" ON projects IS 'Supervisor pu
 COMMENT ON POLICY "supervisor_update_assigned_projects" ON projects IS 'Supervisor puede editar proyectos asignados';
 COMMENT ON POLICY "residente_view_assigned" ON projects IS 'Residente solo ve proyectos asignados';
 COMMENT ON POLICY "cliente_view_company" ON projects IS 'Cliente ve proyectos de su empresa';
-COMMENT ON POLICY "management_view_companies" ON companies IS 'Admin, gerente y supervisor pueden ver empresas activas';
-COMMENT ON POLICY "cliente_view_own_company" ON companies IS 'Cliente solo ve su propia empresa';
+COMMENT ON POLICY "management_view_companies" ON companies IS 'Admin, gerente y supervisor pueden ver todas las empresas activas';
+COMMENT ON POLICY "cliente_view_own_company" ON companies IS 'Cliente solo ve su propia empresa (vía user_company_permissions)';
 COMMENT ON POLICY "admin_manage_companies" ON companies IS 'Admin gestiona empresas';
