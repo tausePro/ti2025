@@ -308,9 +308,25 @@ export default function ProjectDetailPage() {
 
           {hasInterventoriaAdministrativa && (
             <TabsContent value="financial" className="space-y-4">
-              <div className="text-center py-8 text-gray-500">
-                Información financiera y presupuestal
-              </div>
+              <Card>
+                <CardContent className="py-12">
+                  <div className="text-center">
+                    <DollarSign className="h-16 w-16 mx-auto text-talento-green mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Gestión Financiera</h3>
+                    <p className="text-gray-600 mb-6">
+                      Accede a la gestión completa de interventoría financiera (SIFI),
+                      <br />
+                      órdenes de pago y control presupuestal del proyecto.
+                    </p>
+                    <Link href={`/projects/${project.id}/financial`}>
+                      <Button>
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Ir a Gestión Financiera
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           )}
 
