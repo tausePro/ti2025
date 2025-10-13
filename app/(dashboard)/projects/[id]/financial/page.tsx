@@ -101,14 +101,16 @@ export default function ProjectFinancialPage() {
       // Cargar proyecto
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
-        .select('id, name, code, custom_fields_config')
+        .select('id, name, project_code, custom_fields_config')
         .eq('id', params.id)
         .single()
 
       if (projectError) throw projectError
       
       setProject({
-        ...projectData,
+        id: projectData.id,
+        name: projectData.name,
+        code: projectData.project_code || 'N/A',
         budget: projectData.custom_fields_config?.budget
       })
 

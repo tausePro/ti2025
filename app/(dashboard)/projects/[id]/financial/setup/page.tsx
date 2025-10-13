@@ -43,12 +43,16 @@ export default function FinancialSetupPage() {
     try {
       const { data, error } = await supabase
         .from('projects')
-        .select('id, name, code')
+        .select('id, name, project_code')
         .eq('id', params.id)
         .single()
 
       if (error) throw error
-      setProject(data)
+      setProject({
+        id: data.id,
+        name: data.name,
+        code: data.project_code || 'N/A'
+      })
     } catch (error) {
       console.error('Error loading project:', error)
       setError('Error al cargar el proyecto')
