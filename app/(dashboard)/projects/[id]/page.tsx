@@ -199,9 +199,9 @@ export default function ProjectDetailPage() {
                 <MapPin className="h-4 w-4 mr-2 text-gray-400" />
                 <span className="text-gray-600">{project.address}</span>
               </div>
-              {project.custom_fields_config?.city && (
+              {project.city && (
                 <div className="text-sm text-gray-600">
-                  {project.custom_fields_config.city}
+                  {project.city}
                 </div>
               )}
               <div className="text-sm text-gray-600">
@@ -233,19 +233,19 @@ export default function ProjectDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
-              {project.custom_fields_config?.start_date && (
+              {project.start_date && (
                 <div className="text-sm">
                   <span className="text-gray-500">Inicio: </span>
-                  {new Date(project.custom_fields_config.start_date).toLocaleDateString('es-CO')}
+                  {new Date(project.start_date).toLocaleDateString('es-CO')}
                 </div>
               )}
-              {project.custom_fields_config?.end_date && (
+              {project.end_date && (
                 <div className="text-sm">
                   <span className="text-gray-500">Fin: </span>
-                  {new Date(project.custom_fields_config.end_date).toLocaleDateString('es-CO')}
+                  {new Date(project.end_date).toLocaleDateString('es-CO')}
                 </div>
               )}
-              {!project.custom_fields_config?.start_date && !project.custom_fields_config?.end_date && (
+              {!project.start_date && !project.end_date && (
                 <p className="text-xs text-muted-foreground">Sin fechas definidas</p>
               )}
             </div>
@@ -260,9 +260,9 @@ export default function ProjectDetailPage() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {project.custom_fields_config?.budget ? (
+              {project.budget ? (
                 <div className="text-2xl font-bold">
-                  ${new Intl.NumberFormat('es-CO').format(project.custom_fields_config.budget)}
+                  ${new Intl.NumberFormat('es-CO').format(project.budget)}
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground">Sin presupuesto definido</p>

@@ -101,7 +101,7 @@ export default function ProjectFinancialPage() {
       // Cargar proyecto
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
-        .select('id, name, project_code, custom_fields_config')
+        .select('id, name, project_code, budget')
         .eq('id', params.id)
         .single()
 
@@ -111,7 +111,7 @@ export default function ProjectFinancialPage() {
         id: projectData.id,
         name: projectData.name,
         code: projectData.project_code || 'N/A',
-        budget: projectData.custom_fields_config?.budget
+        budget: projectData.budget
       })
 
       // Cargar cuentas fiduciarias
