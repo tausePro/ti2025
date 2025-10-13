@@ -58,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           console.log('❌ Limpiando perfil (sin sesión)')
           setProfile(null)
+          setPermissions([])
         }
         
         setLoading(false)
@@ -65,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [])
 
   const loadUserProfile = async (userId: string) => {
     try {
