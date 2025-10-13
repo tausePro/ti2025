@@ -151,11 +151,31 @@ DROP POLICY IF EXISTS "Authenticated users can insert companies" ON companies;
 DROP POLICY IF EXISTS "Authenticated users can update companies" ON companies;
 DROP POLICY IF EXISTS "Authenticated users can delete companies" ON companies;
 
--- 5. CREAR POLÍTICA SIMPLE PARA COMPANIES
--- Todos los usuarios autenticados pueden ver empresas activas
-CREATE POLICY "authenticated_view_companies" ON companies
+-- 5. CREAR POLÍTICAS PARA COMPANIES
+-- Admin, gerente y supervisor pueden ver empresas activas
+CREATE POLICY "management_view_companies" ON companies
   FOR SELECT TO authenticated
-  USING (is_active = true);
+  USING (
+    is_active = true
+    AND EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role IN ('admin', 'super_admin', 'gerente', 'supervisor')
+    )
+  );
+
+-- Cliente puede ver solo su empresa
+CREATE POLICY "cliente_view_own_company" ON companies
+  FOR SELECT TO authenticated
+  USING (
+    is_active = true
+    AND EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.role = 'cliente'
+      AND profiles.company_id = companies.id
+    )
+  );
 
 -- Admin puede gestionar empresas
 CREATE POLICY "admin_manage_companies" ON companies
@@ -185,5 +205,6 @@ COMMENT ON POLICY "supervisor_manage_own_projects" ON projects IS 'Supervisor pu
 COMMENT ON POLICY "supervisor_update_assigned_projects" ON projects IS 'Supervisor puede editar proyectos asignados';
 COMMENT ON POLICY "residente_view_assigned" ON projects IS 'Residente solo ve proyectos asignados';
 COMMENT ON POLICY "cliente_view_company" ON projects IS 'Cliente ve proyectos de su empresa';
-COMMENT ON POLICY "authenticated_view_companies" ON companies IS 'Todos pueden ver empresas activas';
+COMMENT ON POLICY "management_view_companies" ON companies IS 'Admin, gerente y supervisor pueden ver empresas activas';
+COMMENT ON POLICY "cliente_view_own_company" ON companies IS 'Cliente solo ve su propia empresa';
 COMMENT ON POLICY "admin_manage_companies" ON companies IS 'Admin gestiona empresas';

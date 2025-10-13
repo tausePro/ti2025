@@ -54,8 +54,10 @@ Después de ejecutar, verificar que:
 - **cliente_view_company**: Cliente ve proyectos de su empresa
 
 ### Para COMPANIES:
-- **authenticated_view_companies**: Todos ven empresas activas
+- **management_view_companies**: Admin, gerente y supervisor ven empresas activas
+- **cliente_view_own_company**: Cliente solo ve su propia empresa
 - **admin_manage_companies**: Admin gestiona empresas
+- **Residentes**: NO ven empresas (solo ven proyectos asignados)
 
 ## ⚠️ IMPORTANTE
 
