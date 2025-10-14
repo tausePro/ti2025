@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { useIdleTimeout } from '@/hooks/useIdleTimeout'
+import { SessionWarningModal } from '@/components/auth/SessionWarningModal'
 import { Button } from '@/components/ui/button'
 import { GlobalLogo } from '@/components/shared/GlobalLogo'
 import { 
@@ -29,6 +31,19 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const router = useRouter()
   const { user, profile, hasPermission, signOut, loading } = useAuth()
+
+  // Sistema de logout por inactividad
+  const { showWarning, timeRemaining, resetTimer } = useIdleTimeout({
+    onIdle: async () => {
+      console.log('⏰ Sesión expirada por inactividad')
+      await signOut()
+    },
+    idleTime: 30 * 60 * 1000, // 30 minutos
+    warningTime: 2 * 60 * 1000, // Advertencia 2 minutos antes
+    onWarning: () => {
+      console.log('⚠️ Advertencia: sesión por expirar')
+    }
+  })
 
   // DEBUG: Ver qué rol tiene el profile
   console.log('🔍 LAYOUT - Profile:', profile)
@@ -91,7 +106,15 @@ export default function DashboardLayout({
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
+      {/* Modal de advertencia de sesión */}
+      <SessionWarningModal
+        open={showWarning}
+        timeRemaining={timeRemaining}
+        onContinue={resetTimer}
+      />
+
+      <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
@@ -258,5 +281,6 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+    </>
   )
 }

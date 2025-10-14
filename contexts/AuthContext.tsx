@@ -24,23 +24,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
 
   useEffect(() => {
+    let mounted = true
+
     // Obtener sesión inicial
     const getInitialSession = async () => {
-      console.log('🚀 Inicializando contexto de autenticación...')
-      
-      const { data: { session } } = await supabase.auth.getSession()
-      console.log('📱 Sesión inicial:', session ? 'Encontrada' : 'No encontrada')
-      
-      setUser(session?.user ?? null)
-      
-      if (session?.user) {
-        console.log('👤 Usuario encontrado:', session.user.email)
-        await loadUserProfile(session.user.id)
-      } else {
-        console.log('❌ No hay usuario en la sesión')
+      try {
+        console.log('🚀 Inicializando contexto de autenticación...')
+        
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('❌ Error obteniendo sesión:', error)
+          if (mounted) {
+            setLoading(false)
+          }
+          return
+        }
+
+        console.log('📱 Sesión inicial:', session ? 'Encontrada' : 'No encontrada')
+        
+        if (!mounted) return
+
+        setUser(session?.user ?? null)
+        
+        if (session?.user) {
+          console.log('👤 Usuario encontrado:', session.user.email)
+          await loadUserProfile(session.user.id)
+        } else {
+          console.log('❌ No hay usuario en la sesión')
+          setProfile(null)
+          setPermissions([])
+        }
+        
+        if (mounted) {
+          setLoading(false)
+        }
+      } catch (error) {
+        console.error('❌ Error en getInitialSession:', error)
+        if (mounted) {
+          setLoading(false)
+        }
       }
-      
-      setLoading(false)
     }
 
     getInitialSession()
@@ -48,6 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: any, session: any) => {
+        if (!mounted) return
+
         console.log('🔄 Cambio de autenticación:', event, session ? 'Con sesión' : 'Sin sesión')
         
         setUser(session?.user ?? null)
@@ -61,11 +87,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setPermissions([])
         }
         
-        setLoading(false)
+        if (mounted) {
+          setLoading(false)
+        }
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const loadUserProfile = async (userId: string) => {
