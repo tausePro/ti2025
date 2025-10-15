@@ -48,6 +48,9 @@ interface PaymentOrder {
   approved_at?: string
   rejection_reason?: string
   paid_at?: string
+  payment_proof_url?: string
+  payment_proof_filename?: string
+  payment_notes?: string
   fiduciary_account: {
     sifi_code: '1' | '2'
     account_name: string
@@ -573,6 +576,61 @@ export default function PaymentOrderDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Payment Proof Card */}
+          {order.payment_proof_url && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Soporte de Pago
+                </CardTitle>
+                <CardDescription>
+                  Comprobante del pago realizado
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Archivo */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Archivo</Label>
+                  <a
+                    href={order.payment_proof_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 mt-1 p-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
+                  >
+                    <FileText className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm text-blue-600 hover:underline">
+                      {order.payment_proof_filename || 'Ver comprobante'}
+                    </span>
+                  </a>
+                </div>
+
+                {/* Notas del pago */}
+                {order.payment_notes && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Notas del Pago</Label>
+                    <p className="mt-1 text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
+                      {order.payment_notes}
+                    </p>
+                  </div>
+                )}
+
+                {/* Fecha de pago */}
+                {order.paid_at && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Fecha de Pago</Label>
+                    <p className="mt-1 text-sm text-gray-600">
+                      {new Date(order.paid_at).toLocaleString('es-CO', {
+                        dateStyle: 'long',
+                        timeStyle: 'short'
+                      })}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
