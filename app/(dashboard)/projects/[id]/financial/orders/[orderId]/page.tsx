@@ -24,6 +24,7 @@ import {
   MessageSquare
 } from 'lucide-react'
 import Link from 'next/link'
+import { PaymentProofDialog } from '@/components/financial/PaymentProofDialog'
 
 interface PaymentOrder {
   id: string
@@ -81,6 +82,7 @@ export default function PaymentOrderDetailPage() {
   const [project, setProject] = useState<Project | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
+  const [showPaymentProofDialog, setShowPaymentProofDialog] = useState(false)
 
   useEffect(() => {
     if (params.id && params.orderId) {
@@ -204,25 +206,15 @@ export default function PaymentOrderDetailPage() {
   }
 
   async function handleMarkAsPaid() {
-    if (!user || !order) return
+    // Abrir modal para subir comprobante
+    setShowPaymentProofDialog(true)
+  }
 
-    setActionLoading(true)
-    setError('')
+  async function handlePaymentProofSuccess() {
+    // Actualizar saldo de la cuenta SIFI
+    if (!order) return
 
     try {
-      // Actualizar orden
-      const { error: updateError } = await supabase
-        .from('payment_orders')
-        .update({
-          status: 'pagado',
-          paid_date: new Date().toISOString().split('T')[0],
-          paid_at: new Date().toISOString()
-        })
-        .eq('id', order.id)
-
-      if (updateError) throw updateError
-
-      // Actualizar saldo de la cuenta SIFI
       const { error: balanceError } = await supabase
         .from('fiduciary_accounts')
         .update({
@@ -234,12 +226,9 @@ export default function PaymentOrderDetailPage() {
 
       // Recargar datos
       await loadOrderData()
-      
     } catch (error: any) {
-      console.error('Error marking as paid:', error)
-      setError(error.message || 'Error al marcar como pagada')
-    } finally {
-      setActionLoading(false)
+      console.error('Error updating balance:', error)
+      setError(error.message || 'Error al actualizar el saldo')
     }
   }
 
@@ -586,6 +575,17 @@ export default function PaymentOrderDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Payment Proof Dialog */}
+      {order && (
+        <PaymentProofDialog
+          open={showPaymentProofDialog}
+          onOpenChange={setShowPaymentProofDialog}
+          orderId={order.id}
+          orderNumber={order.order_number}
+          onSuccess={handlePaymentProofSuccess}
+        />
+      )}
     </div>
   )
 }

@@ -43,7 +43,7 @@ interface PaymentOrder {
   description: string
   amount: number
   beneficiary_name: string
-  status: 'pending' | 'approved' | 'rejected' | 'paid' | 'cancelled'
+  status: 'pendiente' | 'aprobado' | 'rechazado' | 'pagado'
   priority: 'low' | 'normal' | 'high' | 'urgent'
   requested_at: string
   project: {
@@ -110,7 +110,7 @@ export default function FinancialPage() {
           *,
           project:projects(name, code)
         `)
-        .in('status', ['pending', 'approved'])
+        .in('status', ['pendiente', 'aprobado'])
         .order('requested_at', { ascending: false })
         .limit(10)
 
@@ -122,10 +122,10 @@ export default function FinancialPage() {
       // Calcular resumen
       const totalBalance = (accountsData || []).reduce((sum, acc) => sum + Number(acc.current_balance), 0)
       const activeAccounts = (accountsData || []).filter(acc => acc.is_active).length
-      const pendingOrders = (ordersData || []).filter(order => order.status === 'pending').length
-      const approvedOrders = (ordersData || []).filter(order => order.status === 'approved').length
+      const pendingOrders = (ordersData || []).filter(order => order.status === 'pendiente').length
+      const approvedOrders = (ordersData || []).filter(order => order.status === 'aprobado').length
       const totalPendingAmount = (ordersData || [])
-        .filter(order => order.status === 'pending')
+        .filter(order => order.status === 'pendiente')
         .reduce((sum, order) => sum + Number(order.amount), 0)
 
       setSummary({
@@ -154,11 +154,10 @@ export default function FinancialPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'Pendiente', variant: 'secondary' as const, icon: Clock },
-      approved: { label: 'Aprobada', variant: 'default' as const, icon: CheckCircle },
-      rejected: { label: 'Rechazada', variant: 'destructive' as const, icon: AlertCircle },
-      paid: { label: 'Pagada', variant: 'default' as const, icon: CheckCircle },
-      cancelled: { label: 'Cancelada', variant: 'secondary' as const, icon: AlertCircle }
+      pendiente: { label: 'Pendiente', variant: 'secondary' as const, icon: Clock },
+      aprobado: { label: 'Aprobada', variant: 'default' as const, icon: CheckCircle },
+      rechazado: { label: 'Rechazada', variant: 'destructive' as const, icon: AlertCircle },
+      pagado: { label: 'Pagada', variant: 'default' as const, icon: CheckCircle }
     }
 
     const config = statusConfig[status as keyof typeof statusConfig]
