@@ -214,7 +214,8 @@ export default function PaymentOrderDetailPage() {
       const { error: updateError } = await supabase
         .from('payment_orders')
         .update({
-          status: 'paid',
+          status: 'pagado',
+          paid_date: new Date().toISOString().split('T')[0],
           paid_at: new Date().toISOString()
         })
         .eq('id', order.id)
