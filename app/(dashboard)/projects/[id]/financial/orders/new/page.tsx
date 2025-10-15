@@ -27,10 +27,10 @@ import Link from 'next/link'
 // Schema de validación
 const paymentOrderSchema = z.object({
   fiduciary_account_id: z.string().min(1, 'Debe seleccionar una cuenta SIFI'),
-  beneficiary_name: z.string().min(1, 'Nombre del beneficiario es requerido'),
-  beneficiary_id: z.string().min(1, 'Identificación del beneficiario es requerida'),
+  beneficiary: z.string().min(1, 'Nombre del beneficiario es requerido'),
+  beneficiary_document: z.string().min(1, 'Identificación del beneficiario es requerida'),
   beneficiary_bank: z.string().optional(),
-  beneficiary_account: z.string().optional(),
+  beneficiary_account_number: z.string().optional(),
   amount: z.number().min(1, 'El monto debe ser mayor a 0'),
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
   concept: z.string().min(1, 'El concepto es requerido'),
@@ -171,10 +171,10 @@ export default function NewPaymentOrderPage() {
           project_id: params.id,
           fiduciary_account_id: data.fiduciary_account_id,
           order_number: orderNumber,
-          beneficiary_name: data.beneficiary_name,
-          beneficiary_id: data.beneficiary_id,
+          beneficiary: data.beneficiary,
+          beneficiary_document: data.beneficiary_document,
           beneficiary_bank: data.beneficiary_bank,
-          beneficiary_account: data.beneficiary_account,
+          beneficiary_account_number: data.beneficiary_account_number,
           amount: data.amount,
           description: data.description,
           concept: data.concept,
@@ -357,24 +357,24 @@ export default function NewPaymentOrderPage() {
               <div>
                 <Label htmlFor="beneficiary_name">Nombre Completo / Razón Social *</Label>
                 <Input
-                  id="beneficiary_name"
-                  {...register('beneficiary_name')}
+                  id="beneficiary"
+                  {...register('beneficiary')}
                   placeholder="Ej: Juan Pérez o Constructora ABC S.A.S"
                 />
-                {errors.beneficiary_name && (
-                  <p className="text-sm text-red-600 mt-1">{errors.beneficiary_name.message}</p>
+                {errors.beneficiary && (
+                  <p className="text-sm text-red-600 mt-1">{errors.beneficiary.message}</p>
                 )}
               </div>
 
               <div>
                 <Label htmlFor="beneficiary_id">Cédula / NIT *</Label>
                 <Input
-                  id="beneficiary_id"
-                  {...register('beneficiary_id')}
+                  id="beneficiary_document"
+                  {...register('beneficiary_document')}
                   placeholder="Ej: 1234567890 o 900123456-1"
                 />
-                {errors.beneficiary_id && (
-                  <p className="text-sm text-red-600 mt-1">{errors.beneficiary_id.message}</p>
+                {errors.beneficiary_document && (
+                  <p className="text-sm text-red-600 mt-1">{errors.beneficiary_document.message}</p>
                 )}
               </div>
 
@@ -390,8 +390,8 @@ export default function NewPaymentOrderPage() {
               <div>
                 <Label htmlFor="beneficiary_account">Número de Cuenta</Label>
                 <Input
-                  id="beneficiary_account"
-                  {...register('beneficiary_account')}
+                  id="beneficiary_account_number"
+                  {...register('beneficiary_account_number')}
                   placeholder="Ej: 12345678901"
                 />
               </div>

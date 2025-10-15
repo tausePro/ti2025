@@ -30,19 +30,19 @@ interface PaymentOrder {
   order_number: string
   project_id: string
   fiduciary_account_id: string
-  beneficiary_name: string
-  beneficiary_id: string
+  beneficiary: string
+  beneficiary_document: string
   beneficiary_bank?: string
-  beneficiary_account?: string
+  beneficiary_account_number?: string
   amount: number
-  description: string
+  description?: string
   concept: string
-  priority: 'low' | 'normal' | 'high' | 'urgent'
+  priority?: 'low' | 'normal' | 'high' | 'urgent'
   status: 'pending' | 'approved' | 'rejected' | 'paid' | 'cancelled'
   payment_date?: string
   notes?: string
-  requested_by: string
-  requested_at: string
+  requested_by?: string
+  requested_at?: string
   approved_by?: string
   approved_at?: string
   rejection_reason?: string
@@ -52,7 +52,7 @@ interface PaymentOrder {
     account_name: string
     current_balance: number
   }
-  requested_by_profile: {
+  requested_by_profile?: {
     full_name: string
     email: string
   }
@@ -443,11 +443,11 @@ export default function PaymentOrderDetailPage() {
             <CardContent className="space-y-2">
               <div>
                 <p className="text-sm text-gray-600">Nombre / Razón Social</p>
-                <p className="font-semibold">{order.beneficiary_name}</p>
+                <p className="font-semibold">{order.beneficiary}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Identificación</p>
-                <p className="font-semibold">{order.beneficiary_id}</p>
+                <p className="font-semibold">{order.beneficiary_document}</p>
               </div>
               {order.beneficiary_bank && (
                 <div>
@@ -455,10 +455,10 @@ export default function PaymentOrderDetailPage() {
                   <p className="font-semibold">{order.beneficiary_bank}</p>
                 </div>
               )}
-              {order.beneficiary_account && (
+              {order.beneficiary_account_number && (
                 <div>
                   <p className="text-sm text-gray-600">Cuenta</p>
-                  <p className="font-semibold font-mono">{order.beneficiary_account}</p>
+                  <p className="font-semibold font-mono">{order.beneficiary_account_number}</p>
                 </div>
               )}
             </CardContent>
@@ -532,12 +532,16 @@ export default function PaymentOrderDetailPage() {
                 </div>
                 <div className="flex-1 pb-4">
                   <p className="font-semibold text-sm">Solicitada</p>
-                  <p className="text-xs text-gray-600">
-                    {order.requested_by_profile.full_name}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {new Date(order.requested_at).toLocaleString('es-CO')}
-                  </p>
+                  {order.requested_by_profile && (
+                    <p className="text-xs text-gray-600">
+                      {order.requested_by_profile.full_name}
+                    </p>
+                  )}
+                  {order.requested_at && (
+                    <p className="text-xs text-gray-500">
+                      {new Date(order.requested_at).toLocaleString('es-CO')}
+                    </p>
+                  )}
                 </div>
               </div>
 

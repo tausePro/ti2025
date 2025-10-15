@@ -245,7 +245,7 @@ export default function ProjectFinancialPage() {
         <div className="flex gap-2">
           {hasFinancialSetup ? (
             <>
-              <Button variant="outline" onClick={() => router.push(`/projects/${params.id}/financial/config`)}>
+              <Button variant="outline" onClick={() => router.push(`/projects/${params.id}/financial/setup`)}>
                 <Settings className="h-4 w-4 mr-2" />
                 Configuración
               </Button>
