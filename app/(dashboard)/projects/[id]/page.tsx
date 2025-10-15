@@ -293,9 +293,25 @@ export default function ProjectDetailPage() {
           </TabsContent>
 
           <TabsContent value="team" className="space-y-4">
-            <div className="text-center py-8 text-gray-500">
-              Gestión del equipo de trabajo
-            </div>
+            <Card>
+              <CardContent className="py-12">
+                <div className="text-center">
+                  <Users className="h-16 w-16 mx-auto text-talento-green mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Gestión del Equipo</h3>
+                  <p className="text-gray-600 mb-6">
+                    Administra los miembros del equipo de trabajo,
+                    <br />
+                    asigna roles y gestiona permisos del proyecto.
+                  </p>
+                  <Link href={`/projects/${project.id}/team`}>
+                    <Button>
+                      <Users className="h-4 w-4 mr-2" />
+                      Gestionar Equipo
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="bitacora" className="space-y-4">
