@@ -95,6 +95,35 @@ const { data, error } = await supabase.storage
 
 ---
 
+### 6. `daily-logs-photos` ✨ NUEVO
+**Uso:** Fotos del registro fotográfico de bitácoras diarias
+- **Público:** ✅ Sí
+- **Tamaño máximo:** 10MB por archivo
+- **Tipos permitidos:** JPG, JPEG, PNG, WEBP, HEIC, HEIF
+- **Estructura:** `{userId}/{projectId}/{dailyLogId}/{timestamp}.{ext}`
+
+**Políticas RLS:**
+- ✅ Usuarios autenticados pueden subir fotos
+- ✅ Todos pueden ver fotos (bucket público)
+- ✅ Usuarios pueden actualizar sus propias fotos
+- ✅ Usuarios pueden eliminar sus propias fotos
+- ✅ Admins pueden eliminar cualquier foto
+
+**Ejemplo de uso:**
+```typescript
+const { data, error } = await supabase.storage
+  .from('daily-logs-photos')
+  .upload(`${userId}/${projectId}/${dailyLogId}/${Date.now()}.jpg`, file)
+```
+
+**Casos de uso:**
+- Fotos de avance de obra
+- Registro fotográfico diario
+- Evidencia de actividades
+- Documentación visual del proyecto
+
+---
+
 ## 📋 Convenciones de Nomenclatura
 
 ### Estructura de carpetas recomendada:
@@ -127,6 +156,12 @@ branding-assets/
 │       └── logo.{ext}
 └── icons/
     └── {iconName}.{ext}
+
+daily-logs-photos/
+└── {userId}/
+    └── {projectId}/
+        └── {dailyLogId}/
+            └── {timestamp}.{ext}
 ```
 
 ---
@@ -150,7 +185,7 @@ branding-assets/
 ## 🚀 Próximos Pasos
 
 ### Buckets a considerar crear:
-- `daily-logs-photos` - Fotos de bitácoras diarias (público, 10MB, imágenes)
+- ✅ ~~`daily-logs-photos`~~ - **CREADO** - Fotos de bitácoras diarias (público, 10MB, imágenes)
 - `reports-pdf` - PDFs de informes generados (privado, 20MB, PDF)
 - `temp-uploads` - Uploads temporales con auto-eliminación (privado, 10MB)
 
