@@ -182,8 +182,10 @@ export default function NewPaymentOrderPage() {
           payment_date: data.payment_date || null,
           notes: data.notes,
           status: 'pendiente',
+          requested_date: new Date().toISOString().split('T')[0], // Fecha actual en formato YYYY-MM-DD
           requested_by: user.id,
-          requested_at: new Date().toISOString()
+          requested_at: new Date().toISOString(),
+          created_by: user.id
         })
         .select()
         .single()
