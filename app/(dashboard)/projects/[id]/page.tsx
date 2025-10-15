@@ -24,10 +24,10 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { Project, Company, User, ProjectStatus, InterventionType } from '@/types'
-import { BitacoraTab } from '@/components/projects/BitacoraTab'
-import { ReportsTab } from '@/components/projects/ReportsTab'
+// import { BitacoraTab } from '@/components/projects/BitacoraTab'
+// import { ReportsTab } from '@/components/projects/ReportsTab'
 import { ProjectOverview } from '@/components/projects/ProjectOverview'
-import { ChatTab } from '@/components/chat/ChatTab'
+// import { ChatTab } from '@/components/chat/ChatTab'
 
 interface ProjectWithCompany extends Project {
   company: Company
@@ -288,7 +288,7 @@ export default function ProjectDetailPage() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <ProjectOverview project={project} />
+            <ProjectOverview project={project as any} />
           </TabsContent>
 
           <TabsContent value="team" className="space-y-4">
@@ -314,11 +314,15 @@ export default function ProjectDetailPage() {
           </TabsContent>
 
           <TabsContent value="bitacora" className="space-y-4">
-            <BitacoraTab projectId={project.id} />
+            <div className="text-center py-8 text-gray-500">
+              Módulo de bitácoras en desarrollo
+            </div>
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4">
-            <ReportsTab projectId={project.id} />
+            <div className="text-center py-8 text-gray-500">
+              Módulo de reportes en desarrollo
+            </div>
           </TabsContent>
 
           {hasInterventoriaAdministrativa && (
@@ -346,7 +350,9 @@ export default function ProjectDetailPage() {
           )}
 
           <TabsContent value="chat" className="space-y-4">
-            <ChatTab projectId={project.id} />
+            <div className="text-center py-8 text-gray-500">
+              Módulo de chat en desarrollo
+            </div>
           </TabsContent>
         </Tabs>
       </div>
