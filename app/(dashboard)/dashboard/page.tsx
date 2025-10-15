@@ -31,12 +31,59 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadDashboardStats() {
       try {
-        // Simplified stats for now
+        if (!profile) return
+
+        let projectIds: string[] = []
+
+        // Obtener proyectos según el rol
+        if (['super_admin', 'admin'].includes(profile.role)) {
+          // Admin ve todos los proyectos
+          const { data: allProjects } = await supabase
+            .from('projects')
+            .select('id')
+          projectIds = allProjects?.map(p => p.id) || []
+        } else if (profile.role === 'supervisor') {
+          // Supervisor ve sus proyectos asignados
+          const { data: memberProjects } = await supabase
+            .from('project_members')
+            .select('project_id')
+            .eq('user_id', profile.id)
+            .eq('is_active', true)
+          projectIds = memberProjects?.map(m => m.project_id) || []
+        }
+
+        // Contar proyectos totales
+        const { count: totalCount } = await supabase
+          .from('projects')
+          .select('*', { count: 'exact', head: true })
+          .in('id', projectIds.length > 0 ? projectIds : ['00000000-0000-0000-0000-000000000000'])
+
+        // Contar proyectos activos
+        const { count: activeCount } = await supabase
+          .from('projects')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'activo')
+          .in('id', projectIds.length > 0 ? projectIds : ['00000000-0000-0000-0000-000000000000'])
+
+        // Contar informes pendientes
+        const { count: reportsCount } = await supabase
+          .from('reports')
+          .select('*', { count: 'exact', head: true })
+          .in('status', ['pending_review', 'corrections'])
+          .in('project_id', projectIds.length > 0 ? projectIds : ['00000000-0000-0000-0000-000000000000'])
+
+        // Contar miembros del equipo
+        const { count: membersCount } = await supabase
+          .from('project_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_active', true)
+          .in('project_id', projectIds.length > 0 ? projectIds : ['00000000-0000-0000-0000-000000000000'])
+
         setStats({
-          totalProjects: 0,
-          activeProjects: 0,
-          pendingReports: 0,
-          totalTeamMembers: 1
+          totalProjects: totalCount || 0,
+          activeProjects: activeCount || 0,
+          pendingReports: reportsCount || 0,
+          totalTeamMembers: membersCount || 0
         })
       } catch (error) {
         console.error('Error loading dashboard stats:', error)
@@ -46,46 +93,34 @@ export default function DashboardPage() {
     }
 
     loadDashboardStats()
-  }, [supabase])
+  }, [supabase, profile])
 
-  // Quick actions based on permissions
-  const quickActions = [
-    {
-      title: 'Nueva Bitácora',
-      description: 'Registrar actividades del día',
-      icon: FileText,
-      href: '/bitacora/new',
-      show: hasPermission('bitacora', 'create')
-    },
-    {
-      title: 'Generar Informe',
-      description: 'Crear informe de supervisión',
-      icon: Calculator,
-      href: '/reports/generate',
-      show: hasPermission('reports', 'create')
-    },
-    {
-      title: 'Gestionar Equipos',
-      description: 'Administrar miembros del equipo',
-      icon: Users,
-      href: '/admin/teams',
-      show: hasPermission('users', 'create')
-    },
-    {
+  // Quick actions based on role
+  const getQuickActions = () => {
+    const actions = []
+
+    // Generar Informe (Supervisor)
+    if (profile?.role === 'supervisor') {
+      actions.push({
+        title: 'Generar Informe',
+        description: 'Crear informe de supervisión',
+        icon: FileText,
+        href: '/reports/new'
+      })
+    }
+
+    // Ver Proyectos (Todos)
+    actions.push({
       title: 'Ver Proyectos',
       description: 'Explorar todos los proyectos',
       icon: Building2,
-      href: '/projects',
-      show: hasPermission('projects', 'read')
-    },
-    {
-      title: 'Gestionar Empresas',
-      description: 'Administrar empresas cliente',
-      icon: Building2,
-      href: '/admin/companies',
-      show: hasPermission('companies', 'read') && profile?.role && ['admin', 'super_admin'].includes(profile.role)
-    }
-  ].filter(action => action.show)
+      href: '/projects'
+    })
+
+    return actions
+  }
+
+  const quickActions = getQuickActions()
 
   if (loading) {
     return (
