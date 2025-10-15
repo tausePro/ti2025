@@ -112,10 +112,14 @@ export default function ProjectConfigPage() {
 
       {/* Tabs de Configuración */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="general">
             <Building2 className="h-4 w-4 mr-2" />
             General
+          </TabsTrigger>
+          <TabsTrigger value="bitacora">
+            <FileText className="h-4 w-4 mr-2" />
+            Bitácoras
           </TabsTrigger>
           <TabsTrigger value="fiduciary" disabled={!isAdministrativeIntervention}>
             <DollarSign className="h-4 w-4 mr-2" />
@@ -162,6 +166,33 @@ export default function ProjectConfigPage() {
               <Button onClick={() => router.push(`/projects/${projectId}/edit`)}>
                 Editar Información General
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Configuración de Bitácoras */}
+        <TabsContent value="bitacora" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configuración de Bitácoras</CardTitle>
+              <CardDescription>
+                Personaliza los campos de las bitácoras diarias del proyecto
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 mx-auto mb-4 text-talento-green" />
+                <h3 className="text-lg font-medium mb-2">Plantillas de Bitácoras</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  Configura campos personalizados para las bitácoras diarias
+                  <br />
+                  Agrega campos específicos según las necesidades del proyecto
+                </p>
+                <Button onClick={() => router.push(`/projects/${projectId}/config/bitacora`)}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Configurar Bitácoras
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
