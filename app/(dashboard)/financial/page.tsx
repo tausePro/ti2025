@@ -79,13 +79,17 @@ export default function FinancialPage() {
   })
 
   useEffect(() => {
+    console.log('👤 Profile en /financial:', profile)
+    
     // Verificar permisos: solo admin y gerente
     if (profile && profile.role !== 'admin' && profile.role !== 'gerente') {
+      console.log('❌ Sin permisos, rol:', profile.role)
       router.push('/dashboard')
       return
     }
 
     if (profile) {
+      console.log('✅ Permisos OK, cargando datos...')
       loadFinancialData()
     }
   }, [profile, router])
