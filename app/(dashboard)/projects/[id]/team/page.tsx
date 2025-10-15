@@ -50,7 +50,7 @@ interface Project {
 export default function ProjectTeamPage() {
   const params = useParams()
   const router = useRouter()
-  const { hasPermission } = useAuth()
+  const { hasPermission, profile } = useAuth()
   const supabase = createClient()
   
   const projectId = params.id as string
@@ -194,7 +194,7 @@ export default function ProjectTeamPage() {
           </div>
         </div>
         
-        {hasPermission('projects', 'assign') && (
+        {(hasPermission('projects', 'assign') || ['super_admin', 'admin', 'supervisor'].includes(profile?.role || '')) && (
           <Button onClick={() => setShowAddDialog(true)}>
             <UserPlus className="h-4 w-4 mr-2" />
             Agregar Miembro

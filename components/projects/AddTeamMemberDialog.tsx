@@ -24,8 +24,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { AlertCircle, CheckCircle, Search, Users } from 'lucide-react'
+import { AlertCircle, CheckCircle, Search, Users, UserPlus } from 'lucide-react'
 import { logger } from '@/lib/logger'
+import Link from 'next/link'
 
 interface AddTeamMemberDialogProps {
   projectId: string
@@ -207,7 +208,19 @@ export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTe
 
           {/* Búsqueda de usuario */}
           <div className="space-y-2">
-            <Label>Buscar Usuario</Label>
+            <div className="flex items-center justify-between">
+              <Label>Buscar Usuario</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+              >
+                <Link href="/admin/users/new" target="_blank">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Crear Nuevo Usuario
+                </Link>
+              </Button>
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
