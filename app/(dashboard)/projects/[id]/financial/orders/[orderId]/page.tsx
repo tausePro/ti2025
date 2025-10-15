@@ -38,7 +38,7 @@ interface PaymentOrder {
   description?: string
   concept: string
   priority?: 'low' | 'normal' | 'high' | 'urgent'
-  status: 'pending' | 'approved' | 'rejected' | 'paid' | 'cancelled'
+  status: 'pendiente' | 'aprobado' | 'rechazado' | 'pagado'
   payment_date?: string
   notes?: string
   requested_by?: string
@@ -149,7 +149,7 @@ export default function PaymentOrderDetailPage() {
       const { error: updateError } = await supabase
         .from('payment_orders')
         .update({
-          status: 'approved',
+          status: 'aprobado',
           approved_by: user.id,
           approved_at: new Date().toISOString()
         })
@@ -181,7 +181,7 @@ export default function PaymentOrderDetailPage() {
       const { error: updateError } = await supabase
         .from('payment_orders')
         .update({
-          status: 'rejected',
+          status: 'rechazado',
           approved_by: user.id,
           approved_at: new Date().toISOString(),
           rejection_reason: rejectionReason
@@ -252,11 +252,10 @@ export default function PaymentOrderDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'Pendiente', variant: 'secondary' as const, icon: Clock, color: 'text-orange-600' },
-      approved: { label: 'Aprobada', variant: 'default' as const, icon: CheckCircle, color: 'text-green-600' },
-      rejected: { label: 'Rechazada', variant: 'destructive' as const, icon: XCircle, color: 'text-red-600' },
-      paid: { label: 'Pagada', variant: 'default' as const, icon: CheckCircle, color: 'text-blue-600' },
-      cancelled: { label: 'Cancelada', variant: 'secondary' as const, icon: AlertCircle, color: 'text-gray-600' }
+      pendiente: { label: 'Pendiente', variant: 'secondary' as const, icon: Clock, color: 'text-orange-600' },
+      aprobado: { label: 'Aprobada', variant: 'default' as const, icon: CheckCircle, color: 'text-green-600' },
+      rechazado: { label: 'Rechazada', variant: 'destructive' as const, icon: XCircle, color: 'text-red-600' },
+      pagado: { label: 'Pagada', variant: 'default' as const, icon: CheckCircle, color: 'text-blue-600' }
     }
 
     const config = statusConfig[status as keyof typeof statusConfig]
@@ -329,7 +328,7 @@ export default function PaymentOrderDetailPage() {
 
         {/* Actions */}
         <div className="flex gap-2">
-          {order.status === 'pending' && canApprove && (
+          {order.status === 'pendiente' && canApprove && (
             <>
               <Button
                 variant="outline"
@@ -348,7 +347,7 @@ export default function PaymentOrderDetailPage() {
               </Button>
             </>
           )}
-          {order.status === 'approved' && canMarkAsPaid && (
+          {order.status === 'aprobado' && canMarkAsPaid && (
             <Button
               onClick={handleMarkAsPaid}
               disabled={actionLoading}
@@ -369,7 +368,7 @@ export default function PaymentOrderDetailPage() {
       )}
 
       {/* Reject Form */}
-      {showRejectForm && order.status === 'pending' && (
+      {showRejectForm && order.status === 'pendiente' && (
         <Card className="border-red-200 bg-red-50">
           <CardHeader>
             <CardTitle className="text-red-900">Rechazar Orden de Pago</CardTitle>
@@ -499,7 +498,7 @@ export default function PaymentOrderDetailPage() {
           </Card>
 
           {/* Rechazo */}
-          {order.status === 'rejected' && order.rejection_reason && (
+          {order.status === 'rechazado' && order.rejection_reason && (
             <Card className="border-red-200 bg-red-50">
               <CardHeader>
                 <CardTitle className="text-red-900 flex items-center gap-2">
@@ -549,13 +548,13 @@ export default function PaymentOrderDetailPage() {
                 <div className="flex gap-3">
                   <div className="flex flex-col items-center">
                     <div className={`w-2 h-2 rounded-full ${
-                      order.status === 'rejected' ? 'bg-red-600' : 'bg-green-600'
+                      order.status === 'rechazado' ? 'bg-red-600' : 'bg-green-600'
                     }`}></div>
                     {order.paid_at && <div className="w-0.5 h-full bg-gray-200"></div>}
                   </div>
                   <div className="flex-1 pb-4">
                     <p className="font-semibold text-sm">
-                      {order.status === 'rejected' ? 'Rechazada' : 'Aprobada'}
+                      {order.status === 'rechazado' ? 'Rechazada' : 'Aprobada'}
                     </p>
                     {order.approved_by_profile && (
                       <p className="text-xs text-gray-600">

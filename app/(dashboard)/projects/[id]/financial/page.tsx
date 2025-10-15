@@ -43,7 +43,7 @@ interface PaymentOrder {
   amount: number
   beneficiary_name: string
   beneficiary_id: string
-  status: 'pending' | 'approved' | 'rejected' | 'paid' | 'cancelled'
+  status: 'pendiente' | 'aprobado' | 'rechazado' | 'pagado'
   priority: 'low' | 'normal' | 'high' | 'urgent'
   requested_at: string
   requested_by: {
@@ -167,11 +167,10 @@ export default function ProjectFinancialPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { label: 'Pendiente', variant: 'secondary' as const, icon: Clock },
-      approved: { label: 'Aprobada', variant: 'default' as const, icon: CheckCircle },
-      rejected: { label: 'Rechazada', variant: 'destructive' as const, icon: AlertCircle },
-      paid: { label: 'Pagada', variant: 'default' as const, icon: CheckCircle },
-      cancelled: { label: 'Cancelada', variant: 'secondary' as const, icon: AlertCircle }
+      pendiente: { label: 'Pendiente', variant: 'secondary' as const, icon: Clock },
+      aprobado: { label: 'Aprobada', variant: 'default' as const, icon: CheckCircle },
+      rechazado: { label: 'Rechazada', variant: 'destructive' as const, icon: AlertCircle },
+      pagado: { label: 'Pagada', variant: 'default' as const, icon: CheckCircle }
     }
 
     const config = statusConfig[status as keyof typeof statusConfig]
@@ -203,9 +202,9 @@ export default function ProjectFinancialPage() {
   }
 
   const totalBalance = accounts.reduce((sum, acc) => sum + Number(acc.current_balance), 0)
-  const pendingOrdersCount = paymentOrders.filter(o => o.status === 'pending').length
+  const pendingOrdersCount = paymentOrders.filter(o => o.status === 'pendiente').length
   const pendingAmount = paymentOrders
-    .filter(o => o.status === 'pending')
+    .filter(o => o.status === 'pendiente')
     .reduce((sum, o) => sum + Number(o.amount), 0)
 
   if (loading) {

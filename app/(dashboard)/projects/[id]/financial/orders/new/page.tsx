@@ -181,7 +181,7 @@ export default function NewPaymentOrderPage() {
           priority: data.priority,
           payment_date: data.payment_date || null,
           notes: data.notes,
-          status: 'pending',
+          status: 'pendiente',
           requested_by: user.id,
           requested_at: new Date().toISOString()
         })
