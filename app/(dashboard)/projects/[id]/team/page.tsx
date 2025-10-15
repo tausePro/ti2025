@@ -26,7 +26,7 @@ interface ProjectMember {
   id: string
   user_id: string
   project_id: string
-  role_in_project: 'supervisor' | 'residente' | 'ayudante' | 'especialista'
+  role_in_project: 'supervisor' | 'residente'
   assigned_at: string
   assigned_by: string
   is_active: boolean
@@ -203,7 +203,7 @@ export default function ProjectTeamPage() {
       </div>
 
       {/* Resumen */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-600">
@@ -237,19 +237,6 @@ export default function ProjectTeamPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {members.filter(m => m.role_in_project === 'residente').length}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Especialistas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {members.filter(m => m.role_in_project === 'especialista').length}
             </div>
           </CardContent>
         </Card>

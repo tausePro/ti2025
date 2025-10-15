@@ -44,10 +44,8 @@ interface User {
 }
 
 const ROLE_OPTIONS = [
-  { value: 'supervisor', label: 'Supervisor', description: 'Supervisa el proyecto' },
-  { value: 'residente', label: 'Residente', description: 'Residente de obra' },
-  { value: 'ayudante', label: 'Ayudante', description: 'Asistente técnico' },
-  { value: 'especialista', label: 'Especialista', description: 'Especialista técnico' },
+  { value: 'supervisor', label: 'Supervisor', description: 'Supervisa y coordina el proyecto' },
+  { value: 'residente', label: 'Residente', description: 'Residente de obra - Ejecuta y registra actividades diarias' },
 ]
 
 export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTeamMemberDialogProps) {
