@@ -75,7 +75,8 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Usuario creado en auth:', authData.user.id)
 
-    // Crear perfil en la tabla profiles usando adminClient
+    // Actualizar perfil en la tabla profiles usando adminClient
+    // Usamos upsert porque el trigger ya creó el perfil básico
     const profileData = {
       id: authData.user.id,
       email,
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     
     const { error: profileError } = await adminClient
       .from('profiles')
-      .insert(profileData as any)
+      .upsert(profileData as any, { onConflict: 'id' })
 
     if (profileError) {
       console.error('Error creating profile:', profileError)
