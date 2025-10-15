@@ -24,8 +24,9 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { Project, Company, User, ProjectStatus, InterventionType } from '@/types'
-import { BitacoraTab } from '@/components/bitacora/BitacoraTab'
-import { ReportsTab } from '@/components/reports/ReportsTab'
+import { BitacoraTab } from '@/components/projects/BitacoraTab'
+import { ReportsTab } from '@/components/projects/ReportsTab'
+import { ProjectOverview } from '@/components/projects/ProjectOverview'
 import { ChatTab } from '@/components/chat/ChatTab'
 
 interface ProjectWithCompany extends Project {
@@ -287,9 +288,7 @@ export default function ProjectDetailPage() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
-            <div className="text-center py-8 text-gray-500">
-              Contenido del resumen del proyecto
-            </div>
+            <ProjectOverview project={project} />
           </TabsContent>
 
           <TabsContent value="team" className="space-y-4">
