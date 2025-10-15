@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { Project, Company, User, ProjectStatus, InterventionType } from '@/types'
-// import { BitacoraTab } from '@/components/projects/BitacoraTab'
+import { BitacoraTab } from '@/components/projects/BitacoraTab'
 // import { ReportsTab } from '@/components/projects/ReportsTab'
 import { ProjectOverview } from '@/components/projects/ProjectOverview'
 // import { ChatTab } from '@/components/chat/ChatTab'
@@ -314,9 +314,7 @@ export default function ProjectDetailPage() {
           </TabsContent>
 
           <TabsContent value="bitacora" className="space-y-4">
-            <div className="text-center py-8 text-gray-500">
-              Módulo de bitácoras en desarrollo
-            </div>
+            <BitacoraTab projectId={project.id} />
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4">
