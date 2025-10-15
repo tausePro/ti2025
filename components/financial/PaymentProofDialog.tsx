@@ -75,14 +75,14 @@ export function PaymentProofDialog({
       const filePath = `payment-proofs/${fileName}`
 
       const { error: uploadError } = await supabase.storage
-        .from('documents')
+        .from('project-documents')
         .upload(filePath, file)
 
       if (uploadError) throw uploadError
 
       // 2. Obtener URL pública
       const { data: { publicUrl } } = supabase.storage
-        .from('documents')
+        .from('project-documents')
         .getPublicUrl(filePath)
 
       // 3. Actualizar orden de pago

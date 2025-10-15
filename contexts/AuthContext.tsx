@@ -76,11 +76,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         console.log('🔄 Cambio de autenticación:', event, session ? 'Con sesión' : 'Sin sesión')
         
+        // Solo recargar si es un cambio real de usuario
+        const currentUserId = user?.id
+        const newUserId = session?.user?.id
+        
         setUser(session?.user ?? null)
         
         if (session?.user) {
-          console.log('👤 Usuario en cambio de estado:', session.user.email)
-          await loadUserProfile(session.user.id)
+          // Solo recargar profile si cambió el usuario o si no hay profile
+          if (!profile || currentUserId !== newUserId) {
+            console.log('👤 Cargando perfil para:', session.user.email)
+            await loadUserProfile(session.user.id)
+          } else {
+            console.log('✅ Profile ya cargado, omitiendo recarga')
+          }
         } else {
           console.log('❌ Limpiando perfil (sin sesión)')
           setProfile(null)
