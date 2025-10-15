@@ -26,7 +26,7 @@ interface Project {
   project_code: string
   status: string
   progress_percentage: number
-  client_company: {
+  client_company?: {
     name: string
   }
 }
@@ -71,36 +71,46 @@ export default function SupervisorDashboardPage() {
       console.log('🔄 Cargando dashboard de supervisor...')
 
       // Cargar proyectos asignados al supervisor
-      const { data: projectsData, error: projectsError } = await supabase
+      const { data: membersData, error: membersError } = await supabase
         .from('project_members')
-        .select(`
-          project:projects (
-            id,
-            name,
-            project_code,
-            status,
-            progress_percentage,
-            client_company:companies!client_company_id (
-              name
-            )
-          )
-        `)
+        .select('project_id')
         .eq('user_id', profile!.id)
         .eq('is_active', true)
 
+      if (membersError) throw membersError
+
+      const projectIds = (membersData || []).map(m => m.project_id)
+
+      if (projectIds.length === 0) {
+        setProjects([])
+        setLoading(false)
+        return
+      }
+
+      // Cargar detalles de los proyectos
+      const { data: projectsData, error: projectsError } = await supabase
+        .from('projects')
+        .select(`
+          id,
+          name,
+          project_code,
+          status,
+          progress_percentage,
+          client_company:companies!client_company_id (
+            name
+          )
+        `)
+        .in('id', projectIds)
+
       if (projectsError) throw projectsError
 
-      const projectsList = (projectsData || [])
-        .map(pm => pm.project)
-        .filter(p => p !== null) as Project[]
-
-      setProjects(projectsList)
+      const projects = (projectsData || []) as any
+      setProjects(projects)
 
       // Calcular estadísticas
-      const activeProjects = projectsList.filter(p => p.status === 'activo').length
+      const activeProjects = projects.filter((p: any) => p.status === 'activo').length
 
       // Contar reportes pendientes de revisión
-      const projectIds = projectsList.map(p => p.id)
       const { count: pendingReportsCount } = await supabase
         .from('reports')
         .select('*', { count: 'exact', head: true })
@@ -115,7 +125,7 @@ export default function SupervisorDashboardPage() {
         .eq('is_active', true)
 
       setStats({
-        totalProjects: projectsList.length,
+        totalProjects: projects.length,
         activeProjects,
         pendingReports: pendingReportsCount || 0,
         teamMembers: teamMembersCount || 0,
@@ -296,7 +306,7 @@ export default function SupervisorDashboardPage() {
       {/* Acciones Rápidas */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-          <Link href="/reports?status=pending_review">
+          <Link href="/supervisor/reports">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <FileText className="h-5 w-5 text-talento-green" />
