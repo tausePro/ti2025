@@ -141,7 +141,10 @@ export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTe
           is_active: true
         })
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Error al insertar miembro:', error)
+        throw error
+      }
 
       logger.info('Member added to project', { 
         projectId, 
@@ -153,12 +156,13 @@ export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTe
       setTimeout(() => {
         onMemberAdded()
       }, 1000)
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Error completo:', error)
       logger.error('Error adding member', { 
         projectId, 
         userId: selectedUserId 
       }, error as Error)
-      setError('Error al agregar miembro al proyecto')
+      setError(`Error al agregar miembro: ${error.message || 'Error desconocido'}`)
     } finally {
       setSaving(false)
     }
