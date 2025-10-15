@@ -92,6 +92,8 @@ export default function FinancialPage() {
 
   async function loadFinancialData() {
     try {
+      console.log('🔄 Cargando datos financieros...')
+      
       // Cargar cuentas fiduciarias con información del proyecto
       const { data: accountsData, error: accountsError } = await supabase
         .from('fiduciary_accounts')
@@ -101,6 +103,7 @@ export default function FinancialPage() {
         `)
         .order('created_at', { ascending: false })
 
+      console.log('📊 Cuentas fiduciarias:', accountsData?.length || 0, accountsError)
       if (accountsError) throw accountsError
 
       // Cargar órdenes de pago pendientes y aprobadas
@@ -114,6 +117,7 @@ export default function FinancialPage() {
         .order('requested_at', { ascending: false })
         .limit(10)
 
+      console.log('📋 Órdenes de pago:', ordersData?.length || 0, ordersError)
       if (ordersError) throw ordersError
 
       setAccounts(accountsData || [])
