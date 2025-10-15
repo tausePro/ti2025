@@ -321,7 +321,7 @@ export default function PaymentOrderDetailPage() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900">{order.order_number}</h1>
               {getStatusBadge(order.status)}
-              {getPriorityBadge(order.priority)}
+              {order.priority && getPriorityBadge(order.priority)}
             </div>
             <p className="text-gray-600">{project.name}</p>
           </div>
