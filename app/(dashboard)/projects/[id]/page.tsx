@@ -112,9 +112,23 @@ export default function ProjectDetailPage() {
     }
   }
 
-  const getInterventionTypeText = (types: InterventionType[]) => {
-    return types.map(type => {
+  const getInterventionTypeLabel = () => {
+    if (!project?.intervention_types) return 'No especificado'
+    
+    return project.intervention_types.map(type => {
       switch (type) {
+        case 'sti_continua':
+          return 'STI Continua'
+        case 'sti_itinerante':
+          return 'STI Itinerante'
+        case 'interventoria_desembolsos':
+          return 'Interventoría de Desembolsos'
+        case 'interventoria':
+          return 'Interventoría'
+        case 'interventoria_itinerante':
+          return 'Interventoría Itinerante'
+        case 'otro':
+          return project.intervention_types_other || 'Otro'
         case 'supervision_tecnica':
           return 'Supervisión Técnica'
         case 'interventoria_administrativa':
@@ -125,7 +139,7 @@ export default function ProjectDetailPage() {
     }).join(', ')
   }
 
-  const hasInterventoriaAdministrativa = project?.intervention_types.includes('interventoria_administrativa')
+  const hasInterventoriaDesembolsos = project?.intervention_types.includes('interventoria_desembolsos')
 
   if (loading) {
     return (
@@ -253,8 +267,8 @@ export default function ProjectDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Budget - solo si tiene interventoría administrativa */}
-        {hasInterventoriaAdministrativa && (
+        {/* Budget - solo si tiene interventoría de desembolsos */}
+        {hasInterventoriaDesembolsos && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Presupuesto</CardTitle>
@@ -281,7 +295,7 @@ export default function ProjectDetailPage() {
             <TabsTrigger value="team">Equipo</TabsTrigger>
             <TabsTrigger value="bitacora">Bitácora</TabsTrigger>
             <TabsTrigger value="reports">Reportes</TabsTrigger>
-            {hasInterventoriaAdministrativa && (
+            {hasInterventoriaDesembolsos && (
               <TabsTrigger value="financial">Financiero</TabsTrigger>
             )}
             <TabsTrigger value="chat">Chat</TabsTrigger>
@@ -323,7 +337,7 @@ export default function ProjectDetailPage() {
             </div>
           </TabsContent>
 
-          {hasInterventoriaAdministrativa && (
+          {hasInterventoriaDesembolsos && (
             <TabsContent value="financial" className="space-y-4">
               <Card>
                 <CardContent className="py-12">

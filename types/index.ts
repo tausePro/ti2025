@@ -2,7 +2,15 @@
 export type UserRole = 'super_admin' | 'admin' | 'gerente' | 'supervisor' | 'residente' | 'cliente'
 export type ProjectStatus = 'planificacion' | 'activo' | 'pausado' | 'finalizado' | 'active' | 'paused' | 'completed'
 export type ReportStatus = 'borrador' | 'revision' | 'aprobado' | 'firmado' | 'enviado' | 'draft'
-export type InterventionType = 'supervision_tecnica' | 'interventoria_administrativa'
+export type InterventionType = 
+  | 'sti_continua' 
+  | 'sti_itinerante' 
+  | 'interventoria_desembolsos' 
+  | 'interventoria' 
+  | 'interventoria_itinerante' 
+  | 'otro'
+  | 'supervision_tecnica' // legacy
+  | 'interventoria_administrativa' // legacy
 
 // Interfaces de permisos
 export interface Permission {
