@@ -18,7 +18,17 @@ type ProjectFormData = {
   city: string
   start_date?: string
   end_date?: string
-  intervention_types: ('supervision_tecnica' | 'interventoria_administrativa')[]
+  intervention_types: (
+    'sti_continua' | 
+    'sti_itinerante' | 
+    'interventoria_desembolsos' | 
+    'interventoria' | 
+    'interventoria_itinerante' | 
+    'otro' |
+    'supervision_tecnica' | 
+    'interventoria_administrativa'
+  )[]
+  intervention_types_other?: string
   budget?: number
   description?: string
 }
