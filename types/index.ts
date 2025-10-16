@@ -134,6 +134,7 @@ export interface Project {
   address: string
   city?: string
   intervention_types: InterventionType[]
+  intervention_types_other?: string
   status: ProjectStatus
   budget?: number
   start_date?: string
