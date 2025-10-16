@@ -21,7 +21,7 @@ const paymentOrderSchema = z.object({
   concept: z.string().min(1, 'El concepto es requerido'),
   beneficiary: z.string().min(1, 'El beneficiario es requerido'),
   construction_act_reference: z.string().optional(),
-  status: z.enum(['authorized', 'legalized', 'pending', 'approved', 'rejected', 'paid', 'cancelled']).default('authorized')
+  status: z.enum(['pendiente', 'aprobado', 'rechazado', 'pagado']).default('pendiente')
 })
 
 type PaymentOrderFormData = z.infer<typeof paymentOrderSchema>
@@ -50,7 +50,7 @@ export function SimplePaymentOrderForm({
   } = useForm<PaymentOrderFormData>({
     resolver: zodResolver(paymentOrderSchema),
     defaultValues: {
-      status: 'authorized'
+      status: 'pendiente'
     }
   })
 
@@ -201,15 +201,17 @@ export function SimplePaymentOrderForm({
             <Label htmlFor="status">Estado *</Label>
             <Select
               value={watchedStatus}
-              onValueChange={(value) => setValue('status', value as 'authorized' | 'legalized')}
+              onValueChange={(value) => setValue('status', value as 'pendiente' | 'aprobado' | 'rechazado' | 'pagado')}
               disabled={loading}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="authorized">Autorizado</SelectItem>
-                <SelectItem value="legalized">Legalizado</SelectItem>
+                <SelectItem value="pendiente">Pendiente</SelectItem>
+                <SelectItem value="aprobado">Aprobado</SelectItem>
+                <SelectItem value="rechazado">Rechazado</SelectItem>
+                <SelectItem value="pagado">Pagado</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500">
