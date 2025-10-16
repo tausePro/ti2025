@@ -343,16 +343,16 @@ export default function ProjectDetailPage() {
                 <CardContent className="py-12">
                   <div className="text-center">
                     <DollarSign className="h-16 w-16 mx-auto text-talento-green mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Gestión Financiera</h3>
+                    <h3 className="text-lg font-semibold mb-2">Estado de Cuentas</h3>
                     <p className="text-gray-600 mb-6">
-                      Accede a la gestión completa de interventoría financiera (SIFI),
+                      Consulta el estado de cuentas del proyecto,
                       <br />
-                      órdenes de pago y control presupuestal del proyecto.
+                      órdenes de pago autorizadas y legalizadas.
                     </p>
-                    <Link href={`/projects/${project.id}/financial`}>
+                    <Link href={`/projects/${project.id}/financial/simple`}>
                       <Button>
                         <DollarSign className="h-4 w-4 mr-2" />
-                        Ir a Gestión Financiera
+                        Ver Estado de Cuentas
                       </Button>
                     </Link>
                   </div>
