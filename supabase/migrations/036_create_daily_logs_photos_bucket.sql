@@ -21,36 +21,31 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- Política: Usuarios autenticados pueden subir fotos
-CREATE POLICY "Authenticated users can upload daily log photos"
-ON storage.objects FOR INSERT TO authenticated
-WITH CHECK (
-  bucket_id = 'daily-logs-photos'
+-- Habilitar RLS en storage.objects si no está habilitado
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- Política para lectura pública de fotos de bitácoras
+CREATE POLICY "Public read access for daily logs photos" ON storage.objects
+FOR SELECT USING (bucket_id = 'daily-logs-photos');
+
+-- Política para permitir subida a usuarios autenticados
+CREATE POLICY "Authenticated users can upload daily logs photos" ON storage.objects
+FOR INSERT WITH CHECK (
+  bucket_id = 'daily-logs-photos' 
   AND auth.role() = 'authenticated'
 );
 
--- Política: Todos pueden ver las fotos (bucket público)
-CREATE POLICY "Anyone can view daily log photos"
-ON storage.objects FOR SELECT TO public
-USING (bucket_id = 'daily-logs-photos');
-
--- Política: Usuarios pueden actualizar sus propias fotos
-CREATE POLICY "Users can update their own daily log photos"
-ON storage.objects FOR UPDATE TO authenticated
-USING (
-  bucket_id = 'daily-logs-photos'
-  AND auth.uid()::text = (storage.foldername(name))[1]
-)
-WITH CHECK (
-  bucket_id = 'daily-logs-photos'
+-- Política para permitir actualización solo de archivos propios
+CREATE POLICY "Users can update their own daily logs photos" ON storage.objects
+FOR UPDATE USING (
+  bucket_id = 'daily-logs-photos' 
   AND auth.uid()::text = (storage.foldername(name))[1]
 );
 
--- Política: Usuarios pueden eliminar sus propias fotos o admins pueden eliminar cualquiera
-CREATE POLICY "Users can delete their own daily log photos or admins can delete any"
-ON storage.objects FOR DELETE TO authenticated
-USING (
-  bucket_id = 'daily-logs-photos'
+-- Política para permitir eliminación de archivos propios o por admins
+CREATE POLICY "Users can delete their own daily logs photos or admins can delete any" ON storage.objects
+FOR DELETE USING (
+  bucket_id = 'daily-logs-photos' 
   AND (
     auth.uid()::text = (storage.foldername(name))[1]
     OR EXISTS (
@@ -60,16 +55,3 @@ USING (
     )
   )
 );
-
--- Comentarios
-COMMENT ON POLICY "Authenticated users can upload daily log photos" ON storage.objects IS 
-'Usuarios autenticados pueden subir fotos de bitácoras';
-
-COMMENT ON POLICY "Anyone can view daily log photos" ON storage.objects IS 
-'Todos pueden ver fotos de bitácoras (bucket público)';
-
-COMMENT ON POLICY "Users can update their own daily log photos" ON storage.objects IS 
-'Usuarios pueden actualizar sus propias fotos de bitácoras';
-
-COMMENT ON POLICY "Users can delete their own daily log photos or admins can delete any" ON storage.objects IS 
-'Usuarios pueden eliminar sus propias fotos, admins pueden eliminar cualquiera';

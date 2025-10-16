@@ -26,20 +26,36 @@ const projectSchema = z.object({
   city: z.string().min(1, 'La ciudad es requerida'),
   start_date: z.string().optional(),
   end_date: z.string().optional(),
-  intervention_types: z.array(z.enum(['supervision_tecnica', 'interventoria_administrativa']))
-    .min(1, 'Debe seleccionar al menos un tipo de intervención'),
+  intervention_types: z.array(z.enum([
+    'sti_continua',
+    'sti_itinerante', 
+    'interventoria_desembolsos',
+    'interventoria',
+    'interventoria_itinerante',
+    'otro'
+  ])).min(1, 'Debe seleccionar al menos un tipo de intervención'),
+  intervention_types_other: z.string().optional(),
   budget: z.number().optional(),
   description: z.string().optional(),
   enable_financial_intervention: z.boolean().default(false)
 }).refine((data) => {
-  // Si tiene interventoría administrativa, el presupuesto es requerido
-  if (data.intervention_types.includes('interventoria_administrativa') && !data.budget) {
+  // Si tiene interventoría de desembolsos, el presupuesto es requerido
+  if (data.intervention_types.includes('interventoria_desembolsos') && !data.budget) {
     return false
   }
   return true
 }, {
-  message: 'El presupuesto es requerido para proyectos con interventoría administrativa',
+  message: 'El presupuesto es requerido para proyectos con interventoría de desembolsos',
   path: ['budget']
+}).refine((data) => {
+  // Si selecciona "otro", debe especificar cuál
+  if (data.intervention_types.includes('otro') && !data.intervention_types_other) {
+    return false
+  }
+  return true
+}, {
+  message: 'Debe especificar el tipo de intervención personalizado',
+  path: ['intervention_types_other']
 }).refine((data) => {
   // Fecha fin debe ser posterior a fecha inicio
   if (data.start_date && data.end_date) {
@@ -90,7 +106,8 @@ export function ProjectFormWithFinancial({
 
   const watchedInterventionTypes = watch('intervention_types')
   const watchedEnableFinancial = watch('enable_financial_intervention')
-  const hasInterventoriaAdministrativa = watchedInterventionTypes?.includes('interventoria_administrativa')
+  const hasInterventoriaDesembolsos = watchedInterventionTypes?.includes('interventoria_desembolsos')
+  const hasOtro = watchedInterventionTypes?.includes('otro')
 
   useEffect(() => {
     loadCompanies()
@@ -98,13 +115,13 @@ export function ProjectFormWithFinancial({
 
   // Mostrar formulario fiduciario cuando se habilita interventoría financiera
   useEffect(() => {
-    if (watchedEnableFinancial && hasInterventoriaAdministrativa) {
+    if (watchedEnableFinancial && hasInterventoriaDesembolsos) {
       setShowFiduciaryForm(true)
     } else {
       setShowFiduciaryForm(false)
       setFiduciaryData(null)
     }
-  }, [watchedEnableFinancial, hasInterventoriaAdministrativa])
+  }, [watchedEnableFinancial, hasInterventoriaDesembolsos])
 
   const loadCompanies = async () => {
     try {
@@ -123,19 +140,24 @@ export function ProjectFormWithFinancial({
     }
   }
 
-  const handleInterventionTypeChange = (type: 'supervision_tecnica' | 'interventoria_administrativa', checked: boolean) => {
+  const handleInterventionTypeChange = (type: string, checked: boolean) => {
     const currentTypes = watch('intervention_types') || []
     if (checked) {
-      const newTypes = [...currentTypes, type]
+      const newTypes = [...currentTypes, type as any]
       setValue('intervention_types', newTypes)
     } else {
       const newTypes = currentTypes.filter(t => t !== type)
       setValue('intervention_types', newTypes)
       
-      // Si se deselecciona interventoría administrativa, limpiar presupuesto y deshabilitar financiero
-      if (type === 'interventoria_administrativa') {
+      // Si se deselecciona interventoría de desembolsos, limpiar presupuesto y deshabilitar financiero
+      if (type === 'interventoria_desembolsos') {
         setValue('budget', undefined)
         setValue('enable_financial_intervention', false)
+      }
+      
+      // Si se deselecciona "otro", limpiar el campo personalizado
+      if (type === 'otro') {
+        setValue('intervention_types_other', undefined)
       }
     }
   }
@@ -263,39 +285,112 @@ export function ProjectFormWithFinancial({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-3">
+            {/* STI Continua */}
             <div className="flex items-center space-x-2">
               <Checkbox
-                id="supervision_tecnica"
-                checked={watchedInterventionTypes?.includes('supervision_tecnica') || false}
+                id="sti_continua"
+                checked={watchedInterventionTypes?.includes('sti_continua') || false}
                 onCheckedChange={(checked) => 
-                  handleInterventionTypeChange('supervision_tecnica', checked as boolean)
+                  handleInterventionTypeChange('sti_continua', checked as boolean)
                 }
                 disabled={loading}
               />
-              <Label htmlFor="supervision_tecnica" className="text-sm font-medium">
-                Supervisión Técnica
+              <Label htmlFor="sti_continua" className="text-sm font-medium">
+                Supervisión Técnica Independiente (STI) Continua
               </Label>
             </div>
-            <p className="text-xs text-gray-500 ml-6">
-              Supervisión de obra, control de calidad, bitácoras diarias
-            </p>
 
+            {/* STI Itinerante */}
             <div className="flex items-center space-x-2">
               <Checkbox
-                id="interventoria_administrativa"
-                checked={watchedInterventionTypes?.includes('interventoria_administrativa') || false}
+                id="sti_itinerante"
+                checked={watchedInterventionTypes?.includes('sti_itinerante') || false}
                 onCheckedChange={(checked) => 
-                  handleInterventionTypeChange('interventoria_administrativa', checked as boolean)
+                  handleInterventionTypeChange('sti_itinerante', checked as boolean)
                 }
                 disabled={loading}
               />
-              <Label htmlFor="interventoria_administrativa" className="text-sm font-medium">
-                Interventoría Administrativa
+              <Label htmlFor="sti_itinerante" className="text-sm font-medium">
+                Supervisión Técnica Independiente (STI) Itinerante
               </Label>
             </div>
-            <p className="text-xs text-gray-500 ml-6">
-              Control presupuestal, órdenes de pago, actas de construcción
-            </p>
+
+            {/* Interventoría de Desembolsos */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="interventoria_desembolsos"
+                checked={watchedInterventionTypes?.includes('interventoria_desembolsos') || false}
+                onCheckedChange={(checked) => 
+                  handleInterventionTypeChange('interventoria_desembolsos', checked as boolean)
+                }
+                disabled={loading}
+              />
+              <Label htmlFor="interventoria_desembolsos" className="text-sm font-medium">
+                Interventoría de Desembolsos
+              </Label>
+            </div>
+
+            {/* Interventoría */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="interventoria"
+                checked={watchedInterventionTypes?.includes('interventoria') || false}
+                onCheckedChange={(checked) => 
+                  handleInterventionTypeChange('interventoria', checked as boolean)
+                }
+                disabled={loading}
+              />
+              <Label htmlFor="interventoria" className="text-sm font-medium">
+                Interventoría
+              </Label>
+            </div>
+
+            {/* Interventoría Itinerante */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="interventoria_itinerante"
+                checked={watchedInterventionTypes?.includes('interventoria_itinerante') || false}
+                onCheckedChange={(checked) => 
+                  handleInterventionTypeChange('interventoria_itinerante', checked as boolean)
+                }
+                disabled={loading}
+              />
+              <Label htmlFor="interventoria_itinerante" className="text-sm font-medium">
+                Interventoría Itinerante
+              </Label>
+            </div>
+
+            {/* Otro */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="otro"
+                checked={watchedInterventionTypes?.includes('otro') || false}
+                onCheckedChange={(checked) => 
+                  handleInterventionTypeChange('otro', checked as boolean)
+                }
+                disabled={loading}
+              />
+              <Label htmlFor="otro" className="text-sm font-medium">
+                Otro
+              </Label>
+            </div>
+
+            {/* Campo personalizado para "Otro" */}
+            {hasOtro && (
+              <div className="ml-6 space-y-2">
+                <Label htmlFor="intervention_types_other">Especificar tipo de intervención *</Label>
+                <Input
+                  id="intervention_types_other"
+                  {...register('intervention_types_other')}
+                  placeholder="Ej: Consultoría especializada"
+                  disabled={loading}
+                  className={errors.intervention_types_other ? 'border-red-500' : ''}
+                />
+                {errors.intervention_types_other && (
+                  <p className="text-sm text-red-500">{errors.intervention_types_other.message}</p>
+                )}
+              </div>
+            )}
           </div>
 
           {errors.intervention_types && (
@@ -343,7 +438,7 @@ export function ProjectFormWithFinancial({
           </div>
 
           {/* Presupuesto */}
-          {hasInterventoriaAdministrativa && (
+          {hasInterventoriaDesembolsos && (
             <div className="space-y-2">
               <Label htmlFor="budget">
                 Presupuesto del Proyecto *
@@ -366,7 +461,7 @@ export function ProjectFormWithFinancial({
       </Card>
 
       {/* Interventoría Financiera - Solo visible para supervisor en adelante */}
-      {canSeeFinancialOption && hasInterventoriaAdministrativa && (
+      {canSeeFinancialOption && hasInterventoriaDesembolsos && (
         <Card className="border-talento-green">
           <CardHeader>
             <CardTitle className="flex items-center">

@@ -17,7 +17,15 @@ type ProjectFormData = {
   city: string
   start_date?: string
   end_date?: string
-  intervention_types: ('supervision_tecnica' | 'interventoria_administrativa')[]
+  intervention_types: (
+    'sti_continua' | 
+    'sti_itinerante' | 
+    'interventoria_desembolsos' | 
+    'interventoria' | 
+    'interventoria_itinerante' | 
+    'otro'
+  )[]
+  intervention_types_other?: string
   budget?: number
   description?: string
   enable_financial_intervention?: boolean
@@ -63,6 +71,7 @@ export default function NewProjectPage() {
         client_company_id: data.client_company_id,
         address: data.address,
         intervention_types: data.intervention_types,
+        intervention_types_other: data.intervention_types_other,
         status: 'planificacion' as const,
         custom_fields_config: {
           city: data.city,
