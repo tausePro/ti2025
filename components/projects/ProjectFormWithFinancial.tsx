@@ -33,7 +33,7 @@ const projectSchema = z.object({
     'interventoria',
     'interventoria_itinerante',
     'otro'
-  ])).min(1, 'Debe seleccionar al menos un tipo de intervención'),
+  ])).min(1, 'Debe seleccionar al menos un tipo de servicio'),
   intervention_types_other: z.string().optional(),
   budget: z.number().optional(),
   description: z.string().optional(),
@@ -54,7 +54,7 @@ const projectSchema = z.object({
   }
   return true
 }, {
-  message: 'Debe especificar el tipo de intervención personalizado',
+  message: 'Debe especificar el tipo de servicio personalizado',
   path: ['intervention_types_other']
 }).refine((data) => {
   // Fecha fin debe ser posterior a fecha inicio
@@ -275,10 +275,10 @@ export function ProjectFormWithFinancial({
         </CardContent>
       </Card>
 
-      {/* Tipo de intervención */}
+      {/* Tipo de servicios */}
       <Card>
         <CardHeader>
-          <CardTitle>Tipo de Intervención *</CardTitle>
+          <CardTitle>Tipo de Servicios *</CardTitle>
           <CardDescription>
             Selecciona los servicios que Talento Inmobiliario prestará en este proyecto
           </CardDescription>
@@ -378,7 +378,7 @@ export function ProjectFormWithFinancial({
             {/* Campo personalizado para "Otro" */}
             {hasOtro && (
               <div className="ml-6 space-y-2">
-                <Label htmlFor="intervention_types_other">Especificar tipo de intervención *</Label>
+                <Label htmlFor="intervention_types_other">Especificar tipo de servicio *</Label>
                 <Input
                   id="intervention_types_other"
                   {...register('intervention_types_other')}
