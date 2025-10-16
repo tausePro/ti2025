@@ -19,7 +19,7 @@ const paymentOrderSchema = z.object({
   order_date: z.string().min(1, 'La fecha es requerida'),
   amount: z.number().min(0.01, 'El monto debe ser mayor a 0'),
   concept: z.string().min(1, 'El concepto es requerido'),
-  beneficiary_name: z.string().min(1, 'El beneficiario es requerido'),
+  beneficiary: z.string().min(1, 'El beneficiario es requerido'),
   construction_act_reference: z.string().optional(),
   status: z.enum(['authorized', 'legalized', 'pending', 'approved', 'rejected', 'paid', 'cancelled']).default('authorized')
 })
@@ -159,16 +159,16 @@ export function SimplePaymentOrderForm({
 
           {/* Beneficiario */}
           <div className="space-y-2">
-            <Label htmlFor="beneficiary_name">Beneficiario *</Label>
+            <Label htmlFor="beneficiary">Beneficiario *</Label>
             <Input
-              id="beneficiary_name"
-              {...register('beneficiary_name')}
+              id="beneficiary"
+              {...register('beneficiary')}
               placeholder="Mensula SAS"
               disabled={loading}
-              className={errors.beneficiary_name ? 'border-red-500' : ''}
+              className={errors.beneficiary ? 'border-red-500' : ''}
             />
-            {errors.beneficiary_name && (
-              <p className="text-sm text-red-500">{errors.beneficiary_name.message}</p>
+            {errors.beneficiary && (
+              <p className="text-sm text-red-500">{errors.beneficiary.message}</p>
             )}
           </div>
 

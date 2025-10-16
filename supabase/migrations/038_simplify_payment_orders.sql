@@ -5,10 +5,12 @@
 -- Talento NO genera órdenes, solo registra y reporta
 
 -- Agregar nuevas columnas necesarias
+-- order_number ya existe, solo agregamos las que faltan
 ALTER TABLE payment_orders
-ADD COLUMN IF NOT EXISTS order_number TEXT,
 ADD COLUMN IF NOT EXISTS order_date DATE,
 ADD COLUMN IF NOT EXISTS construction_act_reference TEXT;
+
+-- NOTA: beneficiary ya existe (sin _name), lo usaremos tal cual
 
 -- Renombrar/ajustar columnas existentes si es necesario
 -- El campo 'status' ya existe, solo necesitamos ajustar los valores permitidos
@@ -38,9 +40,8 @@ COMMENT ON COLUMN payment_orders.status IS
 - pending_review: Pendiente de revisión
 - rejected: Rechazado';
 
--- El campo beneficiary_name ya existe desde la migración 007
--- Solo actualizamos el comentario si es necesario
-COMMENT ON COLUMN payment_orders.beneficiary_name IS 
+-- Actualizar comentario del campo beneficiary
+COMMENT ON COLUMN payment_orders.beneficiary IS 
 'Nombre del beneficiario que recibirá el pago (ej: Mensula SAS, Londoño Gomez SAS)';
 
 COMMENT ON TABLE payment_orders IS 
