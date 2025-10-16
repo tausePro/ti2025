@@ -33,7 +33,7 @@ interface Project {
   id: string
   name: string
   project_code: string
-  custom_fields_config: any
+  budget: number
 }
 
 export default function SimpleFinancialPage() {
@@ -62,7 +62,7 @@ export default function SimpleFinancialPage() {
       // Cargar proyecto
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
-        .select('id, name, project_code, custom_fields_config')
+        .select('id, name, project_code, budget')
         .eq('id', params.id)
         .single()
 
@@ -120,7 +120,7 @@ export default function SimpleFinancialPage() {
     count: orders.length
   }
 
-  const budget = project?.custom_fields_config?.budget || 0
+  const budget = project?.budget || 0
   const remaining = budget - stats.total
   const authorizedPercentage = budget > 0 ? (stats.authorized / budget) * 100 : 0
 

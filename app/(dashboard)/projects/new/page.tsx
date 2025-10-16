@@ -70,16 +70,14 @@ export default function NewProjectPage() {
         name: data.name,
         client_company_id: data.client_company_id,
         address: data.address,
+        city: data.city,
+        description: data.description,
+        budget: data.budget,
+        start_date: data.start_date,
+        end_date: data.end_date,
         intervention_types: data.intervention_types,
         intervention_types_other: data.intervention_types_other,
         status: 'planificacion' as const,
-        custom_fields_config: {
-          city: data.city,
-          description: data.description,
-          budget: data.budget,
-          start_date: data.start_date,
-          end_date: data.end_date
-        },
         created_by: user.id
       }
 
