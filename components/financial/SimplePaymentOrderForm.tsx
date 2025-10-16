@@ -15,7 +15,8 @@ import { FileText, DollarSign, Calendar, CheckCircle, AlertCircle } from 'lucide
 
 // Esquema de validación
 const paymentOrderSchema = z.object({
-  order_number: z.string().min(1, 'El número de orden es requerido'),
+  op_number: z.string().min(1, 'El número OP es requerido'),
+  id_number: z.string().min(1, 'El número ID es requerido'),
   order_date: z.string().min(1, 'La fecha es requerida'),
   amount: z.number().min(0.01, 'El monto debe ser mayor a 0'),
   concept: z.string().min(1, 'El concepto es requerido'),
@@ -90,19 +91,36 @@ export function SimplePaymentOrderForm({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Número de Orden */}
+            {/* Número OP */}
             <div className="space-y-2">
-              <Label htmlFor="order_number">Número de Orden de Giro *</Label>
+              <Label htmlFor="op_number">Número OP *</Label>
               <Input
-                id="order_number"
-                {...register('order_number')}
-                placeholder="OP438472-ID487601"
+                id="op_number"
+                {...register('op_number')}
+                placeholder="OP438472"
                 disabled={loading}
-                className={errors.order_number ? 'border-red-500' : ''}
+                className={errors.op_number ? 'border-red-500' : ''}
               />
-              {errors.order_number && (
-                <p className="text-sm text-red-500">{errors.order_number.message}</p>
+              {errors.op_number && (
+                <p className="text-sm text-red-500">{errors.op_number.message}</p>
               )}
+              <p className="text-xs text-gray-500">Ej: OP438472</p>
+            </div>
+
+            {/* Número ID */}
+            <div className="space-y-2">
+              <Label htmlFor="id_number">Número ID *</Label>
+              <Input
+                id="id_number"
+                {...register('id_number')}
+                placeholder="ID487601"
+                disabled={loading}
+                className={errors.id_number ? 'border-red-500' : ''}
+              />
+              {errors.id_number && (
+                <p className="text-sm text-red-500">{errors.id_number.message}</p>
+              )}
+              <p className="text-xs text-gray-500">Ej: ID487601</p>
             </div>
 
             {/* Fecha */}

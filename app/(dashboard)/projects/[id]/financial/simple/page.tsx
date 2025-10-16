@@ -20,6 +20,8 @@ import Link from 'next/link'
 
 interface PaymentOrder {
   id: string
+  op_number: string
+  id_number: string
   order_number: string
   order_date: string
   amount: number
@@ -239,7 +241,12 @@ export default function SimpleFinancialPage() {
                 <tbody>
                   {orders.map((order) => (
                     <tr key={order.id} className="border-b hover:bg-gray-50">
-                      <td className="p-3 font-mono text-sm">{order.order_number}</td>
+                      <td className="p-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-mono text-sm font-semibold">{order.op_number}</span>
+                          <span className="font-mono text-xs text-gray-500">{order.id_number}</span>
+                        </div>
+                      </td>
                       <td className="p-3">{formatDate(order.order_date)}</td>
                       <td className="p-3">{order.concept}</td>
                       <td className="p-3">{order.beneficiary}</td>

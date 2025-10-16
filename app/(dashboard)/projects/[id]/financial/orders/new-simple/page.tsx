@@ -74,7 +74,9 @@ export default function NewPaymentOrderSimplePage() {
         .from('payment_orders')
         .insert({
           project_id: params.id,
-          order_number: data.order_number,
+          op_number: data.op_number,
+          id_number: data.id_number,
+          order_number: `${data.op_number}-${data.id_number}`, // Mantener por compatibilidad
           order_date: data.order_date,
           amount: data.amount,
           concept: data.concept,
