@@ -61,6 +61,18 @@ export function ProjectCard({
   const getInterventionTypesText = (types: string[]) => {
     return types.map(type => {
       switch (type) {
+        case 'sti_continua':
+          return 'STI Continua'
+        case 'sti_itinerante':
+          return 'STI Itinerante'
+        case 'interventoria_desembolsos':
+          return 'Interventoría de Desembolsos'
+        case 'interventoria':
+          return 'Interventoría'
+        case 'interventoria_itinerante':
+          return 'Interventoría Itinerante'
+        case 'otro':
+          return project.intervention_types_other || 'Otro'
         case 'supervision_tecnica':
           return 'Supervisión Técnica'
         case 'interventoria_administrativa':
@@ -74,8 +86,13 @@ export function ProjectCard({
   const getInterventionTypesIcons = (types: string[]) => {
     return types.map(type => {
       switch (type) {
+        case 'sti_continua':
+        case 'sti_itinerante':
         case 'supervision_tecnica':
           return <Building2 key={type} className="h-4 w-4 text-blue-600" />
+        case 'interventoria_desembolsos':
+        case 'interventoria':
+        case 'interventoria_itinerante':
         case 'interventoria_administrativa':
           return <DollarSign key={type} className="h-4 w-4 text-green-600" />
         default:
@@ -209,7 +226,7 @@ export function ProjectCard({
                     Generar informe
                   </DropdownMenuItem>
                 )}
-                {onViewFinancial && project.intervention_types.includes('interventoria_administrativa') && (
+                {onViewFinancial && project.intervention_types.includes('interventoria_desembolsos') && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => onViewFinancial(project)}>

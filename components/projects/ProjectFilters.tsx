@@ -136,8 +136,12 @@ export function ProjectFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los tipos</SelectItem>
-              <SelectItem value="supervision_tecnica">Supervisión Técnica</SelectItem>
-              <SelectItem value="interventoria_administrativa">Interventoría Administrativa</SelectItem>
+              <SelectItem value="sti_continua">STI Continua</SelectItem>
+              <SelectItem value="sti_itinerante">STI Itinerante</SelectItem>
+              <SelectItem value="interventoria_desembolsos">Interventoría de Desembolsos</SelectItem>
+              <SelectItem value="interventoria">Interventoría</SelectItem>
+              <SelectItem value="interventoria_itinerante">Interventoría Itinerante</SelectItem>
+              <SelectItem value="otro">Otro</SelectItem>
             </SelectContent>
           </Select>
         </div>

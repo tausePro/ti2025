@@ -25,18 +25,26 @@ const projectSchema = z.object({
   city: z.string().min(1, 'La ciudad es requerida'),
   start_date: z.string().optional(),
   end_date: z.string().optional(),
-  intervention_types: z.array(z.enum(['supervision_tecnica', 'interventoria_administrativa']))
-    .min(1, 'Debe seleccionar al menos un tipo de intervención'),
+  intervention_types: z.array(z.enum([
+    'sti_continua',
+    'sti_itinerante', 
+    'interventoria_desembolsos',
+    'interventoria',
+    'interventoria_itinerante',
+    'otro',
+    'supervision_tecnica',
+    'interventoria_administrativa'
+  ])).min(1, 'Debe seleccionar al menos un tipo de servicio'),
   budget: z.number().optional(),
   description: z.string().optional()
 }).refine((data) => {
-  // Si tiene interventoría administrativa, el presupuesto es requerido
-  if (data.intervention_types.includes('interventoria_administrativa') && !data.budget) {
+  // Si tiene interventoría de desembolsos, el presupuesto es requerido
+  if (data.intervention_types.includes('interventoria_desembolsos') && !data.budget) {
     return false
   }
   return true
 }, {
-  message: 'El presupuesto es requerido para proyectos con interventoría administrativa',
+  message: 'El presupuesto es requerido para proyectos con interventoría de desembolsos',
   path: ['budget']
 }).refine((data) => {
   // Fecha fin debe ser posterior a fecha inicio
