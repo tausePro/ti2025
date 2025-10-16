@@ -21,7 +21,7 @@ const paymentOrderSchema = z.object({
   concept: z.string().min(1, 'El concepto es requerido'),
   beneficiary_name: z.string().min(1, 'El beneficiario es requerido'),
   construction_act_reference: z.string().optional(),
-  status: z.enum(['authorized', 'legalized']).default('authorized')
+  status: z.enum(['authorized', 'legalized', 'pending', 'approved', 'rejected', 'paid', 'cancelled']).default('authorized')
 })
 
 type PaymentOrderFormData = z.infer<typeof paymentOrderSchema>

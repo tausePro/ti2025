@@ -38,6 +38,8 @@ COMMENT ON COLUMN payment_orders.status IS
 - pending_review: Pendiente de revisión
 - rejected: Rechazado';
 
+-- El campo beneficiary_name ya existe desde la migración 007
+-- Solo actualizamos el comentario si es necesario
 COMMENT ON COLUMN payment_orders.beneficiary_name IS 
 'Nombre del beneficiario que recibirá el pago (ej: Mensula SAS, Londoño Gomez SAS)';
 
