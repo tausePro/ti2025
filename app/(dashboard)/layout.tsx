@@ -79,7 +79,7 @@ export default function DashboardLayout({
     },
     ...(profile?.role && ['admin', 'gerente'].includes(profile.role) ? [
       {
-        name: 'Financiero',
+        name: 'Gestión Financiera',
         href: '/financial',
         icon: Calculator
       }
