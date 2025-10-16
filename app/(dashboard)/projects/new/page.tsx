@@ -66,20 +66,22 @@ export default function NewProjectPage() {
 
     try {
       // Crear el proyecto
-      const projectData = {
+      const projectData: any = {
         name: data.name,
         client_company_id: data.client_company_id,
         address: data.address,
         city: data.city,
-        description: data.description,
-        budget: data.budget,
-        start_date: data.start_date,
-        end_date: data.end_date,
         intervention_types: data.intervention_types,
-        intervention_types_other: data.intervention_types_other,
         status: 'planificacion' as const,
         created_by: user.id
       }
+
+      // Agregar campos opcionales solo si tienen valor
+      if (data.description) projectData.description = data.description
+      if (data.budget) projectData.budget = data.budget
+      if (data.start_date) projectData.start_date = data.start_date
+      if (data.end_date) projectData.end_date = data.end_date
+      if (data.intervention_types_other) projectData.intervention_types_other = data.intervention_types_other
 
       const { data: project, error: projectError } = await supabase
         .from('projects')
