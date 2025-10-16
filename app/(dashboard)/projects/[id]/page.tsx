@@ -220,7 +220,7 @@ export default function ProjectDetailPage() {
                 </div>
               )}
               <div className="text-sm text-gray-600">
-                {getInterventionTypeText(project.intervention_types)}
+                {getInterventionTypeLabel()}
               </div>
             </div>
           </CardContent>
