@@ -145,7 +145,7 @@ export default function SimpleFinancialPage() {
             <Download className="h-4 w-4 mr-2" />
             Exportar PDF
           </Button>
-          <Link href={`/projects/${params.id}/financial/orders/new`}>
+          <Link href={`/projects/${params.id}/financial/orders/new-simple`}>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
               Registrar Orden
