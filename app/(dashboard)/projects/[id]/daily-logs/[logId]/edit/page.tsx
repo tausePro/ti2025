@@ -408,7 +408,7 @@ export default function EditDailyLogPage({
           </label>
           <PhotoUpload
             photos={formData.photos}
-            onChange={(photos) => setFormData({ ...formData, photos })}
+            onPhotosChange={(photos) => setFormData({ ...formData, photos })}
           />
         </div>
 
