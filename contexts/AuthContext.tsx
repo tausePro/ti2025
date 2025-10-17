@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [permissions, setPermissions] = useState<any[]>([])
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -72,9 +73,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: any, session: any) => {
-        if (!mounted) return
+        if (!mounted || isLoggingOut) return
 
         console.log('🔄 Cambio de autenticación:', event, session ? 'Con sesión' : 'Sin sesión')
+        
+        // Ignorar eventos durante logout
+        if (event === 'SIGNED_OUT') {
+          console.log('🚪 Evento SIGNED_OUT detectado, ignorando')
+          return
+        }
         
         // Solo recargar si es un cambio real de usuario
         const currentUserId = user?.id
@@ -106,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [isLoggingOut])
 
   const loadUserProfile = async (userId: string) => {
     try {
@@ -203,59 +210,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    try {
-      console.log('🚪 Iniciando logout...')
+    console.log('🚪 Iniciando logout...')
+    
+    // Marcar que estamos haciendo logout
+    setIsLoggingOut(true)
 
-      // Hacer logout en Supabase primero
-      const { error: logoutError } = await supabase.auth.signOut({
-        scope: 'global'
+    // PRIMERO: Limpiar estado local inmediatamente
+    setUser(null)
+    setProfile(null)
+    setPermissions([])
+
+    // SEGUNDO: Limpiar storage inmediatamente
+    if (typeof window !== 'undefined') {
+      localStorage.clear()
+      sessionStorage.clear()
+      
+      // Limpiar cookies
+      document.cookie.split(";").forEach(function(c) {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
       })
+    }
 
-      if (logoutError) {
-        console.error('❌ Error en logout de Supabase:', logoutError)
+    // TERCERO: Intentar logout en Supabase (sin esperar)
+    supabase.auth.signOut({ scope: 'global' }).then(({ error }) => {
+      if (error) {
+        console.error('❌ Error en logout de Supabase:', error)
       } else {
         console.log('✅ Logout de Supabase exitoso')
       }
+    }).catch((error) => {
+      console.error('❌ Error durante signOut de Supabase:', error)
+    })
 
-      // Limpiar estado local
-      setUser(null)
-      setProfile(null)
-      setPermissions([])
-
-      // Limpiar storage
-      if (typeof window !== 'undefined') {
-        localStorage.clear()
-        sessionStorage.clear()
-        
-        // Limpiar cookies
-        document.cookie.split(";").forEach(function(c) {
-          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-        })
-      }
-
-      // Redirigir inmediatamente
-      console.log('🔄 Redirigiendo a login...')
-      window.location.href = '/login'
-
-    } catch (error) {
-      console.error('❌ Error during signOut:', error)
-
-      // Forzar logout incluso si hay error
-      setUser(null)
-      setProfile(null)
-      setPermissions([])
-
-      if (typeof window !== 'undefined') {
-        localStorage.clear()
-        sessionStorage.clear()
-        document.cookie.split(";").forEach(function(c) {
-          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-        })
-      }
-
-      // Forzar redirección
-      window.location.href = '/login'
-    }
+    // CUARTO: Redirigir inmediatamente (sin esperar a Supabase)
+    console.log('🔄 Redirigiendo a login...')
+    window.location.href = '/login'
   }
 
   const hasPermission = (module: string, action: string): boolean => {
