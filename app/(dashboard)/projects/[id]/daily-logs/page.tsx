@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { PhotoGallery } from '@/components/daily-logs/PhotoGallery'
+import { Camera } from 'lucide-react'
 
 export default async function DailyLogsPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -117,6 +119,19 @@ export default async function DailyLogsPage({ params }: { params: { id: string }
                     <p className="text-sm text-gray-700 line-clamp-2">
                       <span className="font-medium">Actividades:</span> {log.data.activities}
                     </p>
+                  )}
+
+                  {/* Fotos */}
+                  {log.photos && log.photos.length > 0 && (
+                    <div className="mt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Camera className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-medium text-gray-700">
+                          {log.photos.length} {log.photos.length === 1 ? 'foto' : 'fotos'}
+                        </span>
+                      </div>
+                      <PhotoGallery photos={log.photos} />
+                    </div>
                   )}
                 </div>
 

@@ -9,6 +9,7 @@ import {
   ChecklistItemStatus,
   CHECKLIST_SECTIONS 
 } from '@/types/daily-log'
+import { PhotoUpload } from './PhotoUpload'
 
 interface DailyLogFormProps {
   projectId: string
@@ -120,7 +121,58 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
 
       if (saveError) throw saveError
 
-      // TODO: Upload de fotos si hay
+      // Upload de fotos si hay
+      if (formData.photos && formData.photos.length > 0 && data) {
+        console.log(`📸 Subiendo ${formData.photos.length} fotos...`)
+        
+        const photoUrls: string[] = []
+        
+        for (let i = 0; i < formData.photos.length; i++) {
+          const file = formData.photos[i]
+          const fileExt = file.name.split('.').pop()
+          const fileName = `${user.id}/${projectId}/${data.id}/${Date.now()}_${i}.${fileExt}`
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('daily-logs-photos')
+            .upload(fileName, file, {
+              cacheControl: '3600',
+              upsert: false
+            })
+          
+          if (uploadError) {
+            console.error(`Error subiendo foto ${i + 1}:`, uploadError)
+            continue
+          }
+          
+          // Obtener URL pública
+          const { data: { publicUrl } } = supabase.storage
+            .from('daily-logs-photos')
+            .getPublicUrl(uploadData.path)
+          
+          photoUrls.push(publicUrl)
+          console.log(`✅ Foto ${i + 1} subida:`, publicUrl)
+        }
+        
+        // Actualizar bitácora con URLs de fotos
+        if (photoUrls.length > 0) {
+          const { error: updateError } = await supabase
+            .from('daily_logs')
+            .update({ 
+              photos: photoUrls,
+              custom_fields: {
+                ...dailyLogData.custom_fields,
+                photo_count: photoUrls.length
+              }
+            })
+            .eq('id', data.id)
+          
+          if (updateError) {
+            console.error('Error actualizando URLs de fotos:', updateError)
+          } else {
+            console.log(`✅ ${photoUrls.length} fotos guardadas en BD`)
+          }
+        }
+      }
 
       // Éxito
       if (onSuccess) {
@@ -384,6 +436,18 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
             />
           </div>
         </div>
+      </div>
+
+      {/* Fotos */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-xl font-semibold mb-4">Fotos del Día</h2>
+        <PhotoUpload
+          photos={formData.photos}
+          onPhotosChange={(photos) => updateField('photos', photos)}
+          maxPhotos={10}
+          maxSizeMB={10}
+          disabled={loading}
+        />
       </div>
 
       {/* Error */}
