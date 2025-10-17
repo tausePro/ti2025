@@ -74,6 +74,17 @@ export default function DashboardLayout({
     }
   }
 
+  // Wrapper para logout que maneja errores correctamente
+  const handleLogoutClick = async () => {
+    try {
+      console.log('🚪 Iniciando logout desde onClick...')
+      await handleSignOut()
+    } catch (error) {
+      console.error('❌ Error en logout, usando emergencia:', error)
+      handleEmergencyLogout()
+    }
+  }
+
   const visibleMenuItems = [
     {
       name: 'Dashboard',
@@ -186,7 +197,7 @@ export default function DashboardLayout({
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => handleSignOut().catch(() => handleEmergencyLogout())} 
+                onClick={handleLogoutClick}
                 className="flex-shrink-0"
                 title="Cerrar sesión"
               >
@@ -251,7 +262,7 @@ export default function DashboardLayout({
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => handleSignOut().catch(() => handleEmergencyLogout())} 
+                onClick={handleLogoutClick}
                 className="flex-shrink-0"
                 title="Cerrar sesión"
               >
