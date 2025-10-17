@@ -74,26 +74,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event: any, session: any) => {
         if (!mounted) return
 
-        console.log('🔄 Cambio de autenticación:', event, session ? 'Con sesión' : 'Sin sesión')
+        console.log('🔄 Evento de auth:', event)
         
-        // Solo recargar si es un cambio real de usuario
-        const currentUserId = user?.id
-        const newUserId = session?.user?.id
+        // Ignorar evento SIGNED_OUT para evitar loops durante logout
+        if (event === 'SIGNED_OUT') {
+          console.log('🚪 Ignorando evento SIGNED_OUT')
+          return
+        }
         
-        setUser(session?.user ?? null)
-        
-        if (session?.user) {
-          // Solo recargar profile si cambió el usuario o si no hay profile
-          if (!profile || currentUserId !== newUserId) {
-            console.log('👤 Cargando perfil para:', session.user.email)
+        // Solo procesar SIGNED_IN e INITIAL_SESSION
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+          if (session?.user) {
+            console.log('👤 Usuario autenticado:', session.user.email)
+            setUser(session.user)
             await loadUserProfile(session.user.id)
-          } else {
-            console.log('✅ Profile ya cargado, omitiendo recarga')
           }
-        } else {
-          console.log('❌ Limpiando perfil (sin sesión)')
-          setProfile(null)
-          setPermissions([])
         }
         
         if (mounted) {
