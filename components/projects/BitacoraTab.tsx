@@ -31,12 +31,14 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const { hasPermission, profile } = useAuth()
+  const { hasPermission, profile, loading: authLoading } = useAuth()
   const supabase = createClient()
 
   useEffect(() => {
-    loadBitacoraEntries()
-  }, [projectId])
+    if (!authLoading) {
+      loadBitacoraEntries()
+    }
+  }, [projectId, authLoading])
 
   const loadBitacoraEntries = async () => {
     try {
@@ -104,7 +106,7 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
             Registro diario de actividades, personal y observaciones
           </p>
         </div>
-        {(hasPermission('bitacora', 'create') || ['super_admin', 'admin', 'supervisor', 'residente'].includes(profile?.role || '')) && (
+        {profile && (hasPermission('bitacora', 'create') || ['super_admin', 'admin', 'supervisor', 'residente'].includes(profile?.role || '')) && (
           <Button asChild className="mt-4 sm:mt-0">
             <Link href={`/projects/${projectId}/daily-logs/new`}>
               <Plus className="h-4 w-4 mr-2" />
@@ -256,7 +258,7 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
               Aún no se han registrado entradas en la bitácora de este proyecto.
               Comienza creando la primera entrada.
             </p>
-            {(hasPermission('bitacora', 'create') || ['super_admin', 'admin', 'supervisor', 'residente'].includes(profile?.role || '')) && (
+            {profile && (hasPermission('bitacora', 'create') || ['super_admin', 'admin', 'supervisor', 'residente'].includes(profile?.role || '')) && (
               <Button asChild>
                 <Link href={`/projects/${projectId}/daily-logs/new`}>
                   <Plus className="h-4 w-4 mr-2" />
