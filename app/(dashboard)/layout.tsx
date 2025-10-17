@@ -61,6 +61,19 @@ export default function DashboardLayout({
     }
   }
 
+  // Botón de logout de emergencia si el contexto falla
+  const handleEmergencyLogout = () => {
+    console.log('🚨 Logout de emergencia')
+    if (typeof window !== 'undefined') {
+      localStorage.clear()
+      sessionStorage.clear()
+      document.cookie.split(";").forEach(function(c) {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      })
+      window.location.href = '/login'
+    }
+  }
+
   const visibleMenuItems = [
     {
       name: 'Dashboard',
@@ -170,7 +183,13 @@ export default function DashboardLayout({
                 <p className="text-sm font-medium text-gray-900 truncate">{profile?.full_name || 'Usuario'}</p>
                 <p className="text-xs text-gray-500">{profile?.role || 'admin'}</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleSignOut} className="flex-shrink-0">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleSignOut().catch(() => handleEmergencyLogout())} 
+                className="flex-shrink-0"
+                title="Cerrar sesión"
+              >
                 <LogOut className="h-4 w-4 text-gray-500 hover:text-red-600" />
               </Button>
             </div>
@@ -229,7 +248,13 @@ export default function DashboardLayout({
                 <p className="text-sm font-medium text-gray-900 truncate">{profile?.full_name || 'Usuario'}</p>
                 <p className="text-xs text-gray-500">{profile?.role || 'admin'}</p>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleSignOut} className="flex-shrink-0">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleSignOut().catch(() => handleEmergencyLogout())} 
+                className="flex-shrink-0"
+                title="Cerrar sesión"
+              >
                 <LogOut className="h-4 w-4 text-gray-500 hover:text-red-600" />
               </Button>
             </div>
