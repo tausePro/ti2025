@@ -113,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [isLoggingOut])
+  }, [])
 
   const loadUserProfile = async (userId: string) => {
     try {
