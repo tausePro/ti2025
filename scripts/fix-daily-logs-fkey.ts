@@ -68,13 +68,17 @@ async function fixDailyLogsForeignKey() {
       END $$;
     `
 
-    const { error } = await supabase.rpc('exec', {
-      sql: sql
-    }).catch(() => {
+    let error = null
+    try {
+      const result = await supabase.rpc('exec', {
+        sql: sql
+      })
+      error = result.error
+    } catch (e: any) {
       // Si exec no existe, intentar con query directo
       console.log('⚠️ RPC exec no disponible, intentando con query directo...')
-      return { error: null }
-    })
+      error = null
+    }
 
     if (error) {
       console.error('❌ Error ejecutando migración:', error)
