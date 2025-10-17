@@ -44,7 +44,10 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
     try {
       const { data, error } = await supabase
         .from('daily_logs')
-        .select('*')
+        .select(`
+          *,
+          created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)
+        `)
         .eq('project_id', projectId)
         .order('date', { ascending: false })
 
@@ -154,13 +157,13 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
                     </Badge>
                     <div className="flex space-x-1">
                       <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/dashboard/projects/${projectId}/bitacora/${entry.id}`}>
+                        <Link href={`/projects/${projectId}/daily-logs/${entry.id}`}>
                           <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
                       {(hasPermission('bitacora', 'update') || entry.created_by === profile?.id) && (
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/projects/${projectId}/bitacora/${entry.id}/edit`}>
+                          <Link href={`/projects/${projectId}/daily-logs/${entry.id}/edit`}>
                             <Edit className="h-4 w-4" />
                           </Link>
                         </Button>
@@ -243,7 +246,7 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
                 {/* Autor y fecha */}
                 <div className="flex items-center justify-between mt-4 pt-4 border-t text-xs text-gray-500">
                   <span>
-                    Creado por residente
+                    Creado por {(entry as any).created_by_profile?.full_name || 'Usuario'}
                   </span>
                   <span>
                     {new Date(entry.created_at).toLocaleString('es-CO')}
