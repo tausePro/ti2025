@@ -86,6 +86,19 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
       
       if (authError) throw authError
       if (!user) throw new Error('No hay usuario autenticado')
+      if (!user.id) throw new Error('Usuario sin ID')
+
+      // Validar que el usuario existe en profiles
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .single()
+      
+      if (profileError || !profile) {
+        console.error('❌ Perfil no encontrado:', profileError)
+        throw new Error('Perfil de usuario no encontrado')
+      }
 
       // Preparar datos para guardar
       const dailyLogData = {
