@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { Database } from '@/types/database'
@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [permissions, setPermissions] = useState<any[]>([])
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const isLoggingOutRef = useRef(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: any, session: any) => {
-        if (!mounted || isLoggingOut) return
+        if (!mounted || isLoggingOutRef.current) return
 
         console.log('🔄 Cambio de autenticación:', event, session ? 'Con sesión' : 'Sin sesión')
         
@@ -213,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('🚪 Iniciando logout...')
     
     // Marcar que estamos haciendo logout
-    setIsLoggingOut(true)
+    isLoggingOutRef.current = true
 
     // PRIMERO: Limpiar estado local inmediatamente
     setUser(null)
