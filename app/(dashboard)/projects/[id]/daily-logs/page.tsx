@@ -115,11 +115,38 @@ export default async function DailyLogsPage({ params }: { params: { id: string }
                     </div>
                   </div>
 
-                  {log.data?.activities && (
-                    <p className="text-sm text-gray-700 line-clamp-2">
-                      <span className="font-medium">Actividades:</span> {log.data.activities}
-                    </p>
-                  )}
+                  {/* Detalles adicionales */}
+                  <div className="space-y-2 mt-3">
+                    {log.data?.activities && (
+                      <p className="text-sm text-gray-700 line-clamp-2">
+                        <span className="font-medium">Actividades:</span> {log.data.activities}
+                      </p>
+                    )}
+                    
+                    {log.data?.materials && (
+                      <p className="text-sm text-gray-700 line-clamp-1">
+                        <span className="font-medium">Materiales:</span> {log.data.materials}
+                      </p>
+                    )}
+                    
+                    {log.data?.equipment && (
+                      <p className="text-sm text-gray-700 line-clamp-1">
+                        <span className="font-medium">Equipos:</span> {log.data.equipment}
+                      </p>
+                    )}
+                    
+                    {log.data?.observations && (
+                      <p className="text-sm text-gray-700 line-clamp-2">
+                        <span className="font-medium">Observaciones:</span> {log.data.observations}
+                      </p>
+                    )}
+                    
+                    {log.data?.issues && (
+                      <p className="text-sm text-red-600 line-clamp-1">
+                        <span className="font-medium">⚠️ Problemas:</span> {log.data.issues}
+                      </p>
+                    )}
+                  </div>
 
                   {/* Fotos */}
                   {log.photos && log.photos.length > 0 && (
