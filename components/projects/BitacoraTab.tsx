@@ -182,37 +182,43 @@ export function BitacoraTab({ projectId }: BitacoraTabProps) {
                   <div className="flex items-center text-sm">
                     <Wrench className="h-4 w-4 mr-2 text-gray-500" />
                     <span className="font-medium">Equipos:</span>
-                    <span className="ml-1">{entry.equipment?.length || 0}</span>
+                    <span className="ml-1">{Array.isArray(entry.equipment) ? entry.equipment.length : (entry.equipment ? 1 : 0)}</span>
                   </div>
 
                   {/* Materiales */}
                   <div className="flex items-center text-sm">
                     <Package className="h-4 w-4 mr-2 text-gray-500" />
                     <span className="font-medium">Materiales:</span>
-                    <span className="ml-1">{entry.materials?.length || 0}</span>
+                    <span className="ml-1">{Array.isArray(entry.materials) ? entry.materials.length : (entry.materials ? 1 : 0)}</span>
                   </div>
                 </div>
 
                 {/* Actividades principales */}
-                {entry.activities && entry.activities.length > 0 && (
+                {entry.activities && (
                   <div className="mb-4">
                     <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
                       <FileText className="h-4 w-4 mr-1" />
-                      Actividades Principales
+                      Actividades
                     </h4>
-                    <ul className="text-sm text-gray-600 space-y-1">
-                      {entry.activities.slice(0, 3).map((activity, index) => (
-                        <li key={index} className="flex items-start">
-                          <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                          {activity.description}
-                        </li>
-                      ))}
-                      {entry.activities.length > 3 && (
-                        <li className="text-blue-600 text-xs">
-                          +{entry.activities.length - 3} actividades más...
-                        </li>
-                      )}
-                    </ul>
+                    <div className="text-sm text-gray-600">
+                      {typeof entry.activities === 'string' ? (
+                        <p className="whitespace-pre-wrap">{entry.activities}</p>
+                      ) : Array.isArray(entry.activities) ? (
+                        <ul className="space-y-1">
+                          {entry.activities.slice(0, 3).map((activity, index) => (
+                            <li key={index} className="flex items-start">
+                              <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                              {typeof activity === 'string' ? activity : activity.description}
+                            </li>
+                          ))}
+                          {entry.activities.length > 3 && (
+                            <li className="text-blue-600 text-xs">
+                              +{entry.activities.length - 3} actividades más...
+                            </li>
+                          )}
+                        </ul>
+                      ) : null}
+                    </div>
                   </div>
                 )}
 
