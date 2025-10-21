@@ -29,6 +29,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const router = useRouter()
   const { user, profile, hasPermission, signOut, loading } = useAuth()
 
@@ -76,7 +77,14 @@ export default function DashboardLayout({
 
   // Wrapper para logout que maneja errores correctamente
   const handleLogoutClick = () => {
+    // Prevenir múltiples clicks
+    if (isLoggingOut) {
+      console.log('⚠️ Logout ya en progreso, ignorando click')
+      return
+    }
+    
     console.log('🚪 Click en botón de logout')
+    setIsLoggingOut(true)
     
     // Ejecutar de forma asíncrona sin bloquear
     handleSignOut().catch((error) => {
@@ -198,6 +206,7 @@ export default function DashboardLayout({
                 variant="ghost" 
                 size="sm" 
                 onClick={handleLogoutClick}
+                disabled={isLoggingOut}
                 className="flex-shrink-0"
                 title="Cerrar sesión"
               >
@@ -263,6 +272,7 @@ export default function DashboardLayout({
                 variant="ghost" 
                 size="sm" 
                 onClick={handleLogoutClick}
+                disabled={isLoggingOut}
                 className="flex-shrink-0"
                 title="Cerrar sesión"
               >
