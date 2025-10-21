@@ -8,13 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 import { 
   Plus, 
   Download, 
   DollarSign,
   TrendingUp,
   FileText,
-  AlertCircle 
+  AlertCircle,
+  Filter,
+  Search
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -47,6 +51,9 @@ export default function SimpleFinancialPage() {
   const [loading, setLoading] = useState(true)
   const [project, setProject] = useState<Project | null>(null)
   const [orders, setOrders] = useState<PaymentOrder[]>([])
+  const [filteredOrders, setFilteredOrders] = useState<PaymentOrder[]>([])
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     if (profile && !['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role)) {
@@ -80,12 +87,36 @@ export default function SimpleFinancialPage() {
 
       if (ordersError) throw ordersError
       setOrders(ordersData || [])
+      setFilteredOrders(ordersData || [])
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
       setLoading(false)
     }
   }
+
+  // Aplicar filtros
+  useEffect(() => {
+    let filtered = [...orders]
+
+    // Filtro por estado
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(o => o.status === statusFilter)
+    }
+
+    // Filtro por búsqueda (beneficiario, concepto, número de orden)
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter(o => 
+        o.beneficiary?.toLowerCase().includes(term) ||
+        o.concept?.toLowerCase().includes(term) ||
+        o.op_number?.toLowerCase().includes(term) ||
+        o.id_number?.toLowerCase().includes(term)
+      )
+    }
+
+    setFilteredOrders(filtered)
+  }, [orders, statusFilter, searchTerm])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -101,23 +132,21 @@ export default function SimpleFinancialPage() {
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      authorized: { label: 'Autorizado', className: 'bg-green-500' },
-      legalized: { label: 'Legalizado', className: 'bg-blue-500' },
-      pending: { label: 'Pendiente', className: 'bg-yellow-500' },
-      approved: { label: 'Aprobado', className: 'bg-green-600' },
-      rejected: { label: 'Rechazado', className: 'bg-red-500' },
-      paid: { label: 'Pagado', className: 'bg-blue-600' },
-      cancelled: { label: 'Cancelado', className: 'bg-gray-500' }
+      pendiente: { label: 'Pendiente', className: 'bg-yellow-500 text-white' },
+      aprobado: { label: 'Aprobado', className: 'bg-green-500 text-white' },
+      rechazado: { label: 'Rechazado', className: 'bg-red-500 text-white' },
+      pagado: { label: 'Pagado', className: 'bg-blue-500 text-white' },
+      cancelado: { label: 'Cancelado', className: 'bg-gray-500 text-white' }
     }
 
-    const config = statusMap[status] || { label: status, className: 'bg-gray-400' }
+    const config = statusMap[status] || { label: status, className: 'bg-gray-400 text-white' }
     return <Badge className={config.className}>{config.label}</Badge>
   }
 
   // Calcular estadísticas según Excel
   const stats = {
-    // Total Autorizado: suma de órdenes aprobadas
-    authorized: orders.filter(o => o.status === 'aprobado').reduce((sum, o) => sum + o.amount, 0),
+    // Total Autorizado: suma de órdenes aprobadas o pagadas (no rechazadas ni pendientes)
+    authorized: orders.filter(o => ['aprobado', 'pagado'].includes(o.status)).reduce((sum, o) => sum + o.amount, 0),
     // Legalizado: siempre 0 por ahora (pagos ejecutados por el cliente)
     legalized: 0,
     count: orders.length
@@ -213,13 +242,50 @@ export default function SimpleFinancialPage() {
         </Card>
       </div>
 
+      {/* Filtros */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Búsqueda */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar por beneficiario, concepto o número..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Filtro por estado */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Todos los estados" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="pendiente">Pendiente</SelectItem>
+                <SelectItem value="aprobado">Aprobado</SelectItem>
+                <SelectItem value="pagado">Pagado</SelectItem>
+                <SelectItem value="rechazado">Rechazado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Contador de resultados */}
+          <div className="mt-4 text-sm text-gray-600">
+            Mostrando {filteredOrders.length} de {orders.length} órdenes
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Tabla de Órdenes */}
       <Card>
         <CardHeader>
           <CardTitle>Órdenes de Pago</CardTitle>
         </CardHeader>
         <CardContent>
-          {orders.length === 0 ? (
+          {filteredOrders.length === 0 ? (
             <Alert>
               <FileText className="h-4 w-4" />
               <AlertDescription>
@@ -241,7 +307,7 @@ export default function SimpleFinancialPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((order) => (
+                  {filteredOrders.map((order) => (
                     <tr key={order.id} className="border-b hover:bg-gray-50">
                       <td className="p-3">
                         <div className="flex flex-col gap-1">

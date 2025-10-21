@@ -89,10 +89,10 @@ export default function DashboardLayout({
       href: '/reports',
       icon: FileText
     },
-    ...(profile?.role && ['admin', 'gerente'].includes(profile.role) ? [
+    ...(profile?.role && ['admin', 'super_admin', 'gerente'].includes(profile.role) ? [
       {
-        name: 'Gestión Financiera',
-        href: '/financial',
+        name: 'Desembolsos',
+        href: '/projects', // Temporal - se selecciona proyecto primero
         icon: Calculator
       }
     ] : []),
