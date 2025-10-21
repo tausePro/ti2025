@@ -56,6 +56,17 @@ export function SimplePaymentOrderForm({
   })
 
   const watchedStatus = watch('status')
+  const watchedAmount = watch('amount')
+
+  // Formatear monto en pesos colombianos
+  const formatCurrency = (amount: number) => {
+    if (!amount || isNaN(amount)) return '$0'
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0
+    }).format(amount)
+  }
 
   const onFormSubmit = async (data: PaymentOrderFormData) => {
     try {
@@ -156,6 +167,11 @@ export function SimplePaymentOrderForm({
             </div>
             {errors.amount && (
               <p className="text-sm text-red-500">{errors.amount.message}</p>
+            )}
+            {watchedAmount > 0 && (
+              <p className="text-sm font-semibold text-talento-green">
+                {formatCurrency(watchedAmount)}
+              </p>
             )}
           </div>
 

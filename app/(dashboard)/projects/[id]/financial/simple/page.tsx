@@ -26,7 +26,7 @@ interface PaymentOrder {
   order_date: string
   amount: number
   concept: string
-  beneficiary_name: string
+  beneficiary: string
   construction_act?: string
   status: string
 }
@@ -251,7 +251,7 @@ export default function SimpleFinancialPage() {
                       </td>
                       <td className="p-3">{formatDate(order.order_date)}</td>
                       <td className="p-3">{order.concept}</td>
-                      <td className="p-3">{order.beneficiary_name}</td>
+                      <td className="p-3">{order.beneficiary}</td>
                       <td className="p-3 text-right font-semibold">{formatCurrency(order.amount)}</td>
                       <td className="p-3 text-center text-sm text-gray-600">
                         {order.construction_act || '-'}
