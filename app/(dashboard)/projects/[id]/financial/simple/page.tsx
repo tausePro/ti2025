@@ -18,7 +18,11 @@ import {
   FileText,
   AlertCircle,
   Filter,
-  Search
+  Search,
+  Check,
+  X,
+  Trash2,
+  MoreVertical
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -54,6 +58,7 @@ export default function SimpleFinancialPage() {
   const [filteredOrders, setFilteredOrders] = useState<PaymentOrder[]>([])
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
     if (profile && !['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role)) {
@@ -130,6 +135,102 @@ export default function SimpleFinancialPage() {
     return new Date(dateString).toLocaleDateString('es-CO')
   }
 
+  // Acciones de órdenes
+  const handleApprove = async (orderId: string) => {
+    if (!confirm('¿Aprobar esta orden de pago?')) return
+    
+    setActionLoading(orderId)
+    try {
+      const { error } = await supabase
+        .from('payment_orders')
+        .update({ status: 'aprobado' })
+        .eq('id', orderId)
+
+      if (error) throw error
+      
+      await loadData()
+      alert('✅ Orden aprobada exitosamente')
+    } catch (error: any) {
+      console.error('Error approving order:', error)
+      alert('❌ Error al aprobar la orden: ' + error.message)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleMarkAsPaid = async (orderId: string) => {
+    if (!confirm('¿Marcar esta orden como pagada (legalizada)?')) return
+    
+    setActionLoading(orderId)
+    try {
+      const { error } = await supabase
+        .from('payment_orders')
+        .update({ 
+          status: 'pagado',
+          paid_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+
+      if (error) throw error
+      
+      await loadData()
+      alert('✅ Orden marcada como pagada')
+    } catch (error: any) {
+      console.error('Error marking as paid:', error)
+      alert('❌ Error al marcar como pagada: ' + error.message)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleReject = async (orderId: string) => {
+    const reason = prompt('¿Por qué rechazas esta orden?')
+    if (!reason) return
+    
+    setActionLoading(orderId)
+    try {
+      const { error } = await supabase
+        .from('payment_orders')
+        .update({ 
+          status: 'rechazado',
+          rejection_reason: reason
+        })
+        .eq('id', orderId)
+
+      if (error) throw error
+      
+      await loadData()
+      alert('✅ Orden rechazada')
+    } catch (error: any) {
+      console.error('Error rejecting order:', error)
+      alert('❌ Error al rechazar: ' + error.message)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleDelete = async (orderId: string) => {
+    if (!confirm('⚠️ ¿Eliminar esta orden? Esta acción no se puede deshacer.')) return
+    
+    setActionLoading(orderId)
+    try {
+      const { error } = await supabase
+        .from('payment_orders')
+        .delete()
+        .eq('id', orderId)
+
+      if (error) throw error
+      
+      await loadData()
+      alert('✅ Orden eliminada')
+    } catch (error: any) {
+      console.error('Error deleting order:', error)
+      alert('❌ Error al eliminar: ' + error.message)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
       pendiente: { label: 'Pendiente', className: 'bg-yellow-500 text-white' },
@@ -147,8 +248,8 @@ export default function SimpleFinancialPage() {
   const stats = {
     // Total Autorizado: suma de órdenes aprobadas o pagadas (no rechazadas ni pendientes)
     authorized: orders.filter(o => ['aprobado', 'pagado'].includes(o.status)).reduce((sum, o) => sum + o.amount, 0),
-    // Legalizado: siempre 0 por ahora (pagos ejecutados por el cliente)
-    legalized: 0,
+    // Legalizado: suma de órdenes pagadas (pagos ejecutados por el cliente)
+    legalized: orders.filter(o => o.status === 'pagado').reduce((sum, o) => sum + o.amount, 0),
     count: orders.length
   }
 
@@ -304,6 +405,7 @@ export default function SimpleFinancialPage() {
                     <th className="text-right p-3">Valor</th>
                     <th className="text-center p-3">Acta</th>
                     <th className="text-center p-3">Estado</th>
+                    <th className="text-center p-3">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -324,6 +426,60 @@ export default function SimpleFinancialPage() {
                       </td>
                       <td className="p-3 text-center">
                         {getStatusBadge(order.status)}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center justify-center gap-2">
+                          {order.status === 'pendiente' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleApprove(order.id)}
+                                disabled={actionLoading === order.id}
+                                title="Aprobar"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Check className="h-4 w-4 text-green-600" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleReject(order.id)}
+                                disabled={actionLoading === order.id}
+                                title="Rechazar"
+                                className="h-8 w-8 p-0"
+                              >
+                                <X className="h-4 w-4 text-red-600" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDelete(order.id)}
+                                disabled={actionLoading === order.id}
+                                title="Eliminar"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4 text-gray-600" />
+                              </Button>
+                            </>
+                          )}
+                          {order.status === 'aprobado' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleMarkAsPaid(order.id)}
+                              disabled={actionLoading === order.id}
+                              title="Marcar como Pagado"
+                              className="h-8 px-3"
+                            >
+                              <Check className="h-4 w-4 mr-1 text-blue-600" />
+                              <span className="text-xs">Pagado</span>
+                            </Button>
+                          )}
+                          {(order.status === 'pagado' || order.status === 'rechazado') && (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
