@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { Database } from '@/types/database'
@@ -21,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [permissions, setPermissions] = useState<any[]>([])
+  const isLoggingOut = useRef(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -76,7 +77,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         console.log('🔄 Evento de auth:', event)
         
-        // Ignorar evento SIGNED_OUT para evitar loops durante logout
+        // Ignorar TODOS los eventos durante logout
+        if (isLoggingOut.current) {
+          console.log('🚪 Ignorando evento durante logout:', event)
+          return
+        }
+        
+        // Ignorar evento SIGNED_OUT
         if (event === 'SIGNED_OUT') {
           console.log('🚪 Ignorando evento SIGNED_OUT')
           return
@@ -107,6 +114,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('🔄 Cargando perfil para usuario:', userId)
       console.log('🔍 DEBUG - Timestamp de carga:', new Date().toISOString())
+      
+      // Prevenir recarga si ya tenemos el perfil del mismo usuario
+      if (profile?.id === userId) {
+        console.log('✅ Perfil ya cargado para este usuario, omitiendo recarga')
+        return
+      }
 
       // Cargar perfil (SIN modificarlo)
       console.log('🔍 DEBUG - Cargando perfil desde BD...')
@@ -200,6 +213,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       console.log('🚪 Iniciando logout...')
+      
+      // Marcar que estamos haciendo logout
+      isLoggingOut.current = true
 
       // Hacer logout en Supabase primero
       const { error: logoutError } = await supabase.auth.signOut({
@@ -230,7 +246,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Redirigir inmediatamente
       console.log('🔄 Redirigiendo a login...')
-      window.location.href = '/login'
+      
+      // Pequeño delay para asegurar que se limpió todo
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 100)
 
     } catch (error) {
       console.error('❌ Error during signOut:', error)
