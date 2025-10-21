@@ -92,7 +92,10 @@ export default function NewPaymentOrderSimplePage() {
 
       if (orderError) throw orderError
 
-      // Redirigir a la lista de órdenes
+      console.log('✅ Orden de pago creada exitosamente:', order)
+
+      // Mostrar mensaje de éxito y redirigir
+      alert('✅ Orden de pago registrada exitosamente')
       router.push(`/projects/${params.id}/financial`)
     } catch (error: any) {
       console.error('Error creating payment order:', error)

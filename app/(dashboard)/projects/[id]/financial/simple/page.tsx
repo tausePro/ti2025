@@ -26,8 +26,8 @@ interface PaymentOrder {
   order_date: string
   amount: number
   concept: string
-  beneficiary: string
-  construction_act_reference?: string
+  beneficiary_name: string
+  construction_act?: string
   status: string
 }
 
@@ -114,17 +114,19 @@ export default function SimpleFinancialPage() {
     return <Badge className={config.className}>{config.label}</Badge>
   }
 
-  // Calcular estadísticas
+  // Calcular estadísticas según Excel
   const stats = {
-    total: orders.reduce((sum, o) => sum + o.amount, 0),
-    authorized: orders.filter(o => o.status === 'authorized').reduce((sum, o) => sum + o.amount, 0),
-    legalized: orders.filter(o => o.status === 'legalized').reduce((sum, o) => sum + o.amount, 0),
+    // Total Autorizado: suma de órdenes aprobadas
+    authorized: orders.filter(o => o.status === 'aprobado').reduce((sum, o) => sum + o.amount, 0),
+    // Legalizado: siempre 0 por ahora (pagos ejecutados por el cliente)
+    legalized: 0,
     count: orders.length
   }
 
   const budget = project?.budget || 0
-  const remaining = budget - stats.total
+  const remaining = budget - stats.authorized
   const authorizedPercentage = budget > 0 ? (stats.authorized / budget) * 100 : 0
+  const legalizedPercentage = 0 // Siempre 0% por ahora
 
   if (loading) {
     return (
@@ -249,10 +251,10 @@ export default function SimpleFinancialPage() {
                       </td>
                       <td className="p-3">{formatDate(order.order_date)}</td>
                       <td className="p-3">{order.concept}</td>
-                      <td className="p-3">{order.beneficiary}</td>
+                      <td className="p-3">{order.beneficiary_name}</td>
                       <td className="p-3 text-right font-semibold">{formatCurrency(order.amount)}</td>
                       <td className="p-3 text-center text-sm text-gray-600">
-                        {order.construction_act_reference || '-'}
+                        {order.construction_act || '-'}
                       </td>
                       <td className="p-3 text-center">
                         {getStatusBadge(order.status)}
