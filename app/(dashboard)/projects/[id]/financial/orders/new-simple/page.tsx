@@ -84,6 +84,7 @@ export default function NewPaymentOrderSimplePage() {
           construction_act: data.construction_act_reference,
           status: data.status,
           requested_at: data.order_date, // Usar order_date como requested_at
+          requested_date: data.order_date, // También agregar requested_date por si acaso
           created_by: user.id,
           description: data.concept // Usar concepto como descripción
         })
