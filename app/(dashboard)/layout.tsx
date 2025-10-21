@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useIdleTimeout } from '@/hooks/useIdleTimeout'
@@ -29,7 +29,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const isLoggingOut = useRef(false)
   const router = useRouter()
   const { user, profile, hasPermission, signOut, loading } = useAuth()
 
@@ -46,51 +46,31 @@ export default function DashboardLayout({
     }
   })
 
-  // DEBUG: Ver qué rol tiene el profile
-  console.log('🔍 LAYOUT - Profile:', profile)
-  console.log('🔍 LAYOUT - Role:', profile?.role)
-
-  const handleSignOut = async () => {
-    try {
-      console.log('🚪 Layout - Iniciando logout...')
-      await signOut()
-      // El signOut ya maneja la redirección, no necesitamos hacerlo aquí
-    } catch (error) {
-      console.error('❌ Layout - Error en logout:', error)
-      // Forzar redirección en caso de error
-      window.location.href = '/login'
+  // Logout simplificado y directo
+  const handleLogoutClick = () => {
+    // Prevenir múltiples clicks
+    if (isLoggingOut.current) {
+      console.log('⚠️ Logout ya en progreso, ignorando click')
+      return
     }
-  }
-
-  // Botón de logout de emergencia si el contexto falla
-  const handleEmergencyLogout = () => {
-    console.log('🚨 Logout de emergencia')
+    
+    console.log('🚪 Click en botón de logout')
+    isLoggingOut.current = true
+    
+    // Logout inmediato y forzado - sin esperar a nada
     if (typeof window !== 'undefined') {
       localStorage.clear()
       sessionStorage.clear()
       document.cookie.split(";").forEach(function(c) {
         document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
       })
-      window.location.href = '/login'
-    }
-  }
-
-  // Wrapper para logout que maneja errores correctamente
-  const handleLogoutClick = () => {
-    // Prevenir múltiples clicks
-    if (isLoggingOut) {
-      console.log('⚠️ Logout ya en progreso, ignorando click')
-      return
     }
     
-    console.log('🚪 Click en botón de logout')
-    setIsLoggingOut(true)
+    // Llamar a signOut de Supabase pero NO esperar
+    signOut().catch(() => {})
     
-    // Ejecutar de forma asíncrona sin bloquear
-    handleSignOut().catch((error) => {
-      console.error('❌ Error en logout, usando emergencia:', error)
-      handleEmergencyLogout()
-    })
+    // Redirigir inmediatamente
+    window.location.href = '/login'
   }
 
   const visibleMenuItems = [
@@ -206,7 +186,7 @@ export default function DashboardLayout({
                 variant="ghost" 
                 size="sm" 
                 onClick={handleLogoutClick}
-                disabled={isLoggingOut}
+                disabled={isLoggingOut.current}
                 className="flex-shrink-0"
                 title="Cerrar sesión"
               >
@@ -272,7 +252,7 @@ export default function DashboardLayout({
                 variant="ghost" 
                 size="sm" 
                 onClick={handleLogoutClick}
-                disabled={isLoggingOut}
+                disabled={isLoggingOut.current}
                 className="flex-shrink-0"
                 title="Cerrar sesión"
               >
