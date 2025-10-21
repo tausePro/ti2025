@@ -32,13 +32,15 @@ interface SimplePaymentOrderFormProps {
   onSubmit: (data: PaymentOrderFormData) => Promise<void>
   onCancel: () => void
   loading?: boolean
+  defaultValues?: Partial<PaymentOrderFormData>
 }
 
 export function SimplePaymentOrderForm({
   projectId,
   onSubmit,
   onCancel,
-  loading = false
+  loading = false,
+  defaultValues
 }: SimplePaymentOrderFormProps) {
   const [success, setSuccess] = useState(false)
 
@@ -50,7 +52,7 @@ export function SimplePaymentOrderForm({
     formState: { errors }
   } = useForm<PaymentOrderFormData>({
     resolver: zodResolver(paymentOrderSchema),
-    defaultValues: {
+    defaultValues: defaultValues || {
       status: 'pendiente'
     }
   })

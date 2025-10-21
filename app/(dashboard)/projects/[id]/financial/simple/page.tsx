@@ -22,7 +22,8 @@ import {
   Check,
   X,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  Edit
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -431,6 +432,16 @@ export default function SimpleFinancialPage() {
                         <div className="flex items-center justify-center gap-2">
                           {order.status === 'pendiente' && (
                             <>
+                              <Link href={`/projects/${params.id}/financial/orders/${order.id}/edit`}>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  title="Editar"
+                                  className="h-8 w-8 p-0"
+                                >
+                                  <Edit className="h-4 w-4 text-blue-600" />
+                                </Button>
+                              </Link>
                               <Button
                                 size="sm"
                                 variant="ghost"

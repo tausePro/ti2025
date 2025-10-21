@@ -92,7 +92,7 @@ export default function DashboardLayout({
     ...(profile?.role && ['admin', 'super_admin', 'gerente'].includes(profile.role) ? [
       {
         name: 'Desembolsos',
-        href: '/projects', // Temporal - se selecciona proyecto primero
+        href: '/desembolsos',
         icon: Calculator
       }
     ] : []),
