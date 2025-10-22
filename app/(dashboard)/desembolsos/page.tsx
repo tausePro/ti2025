@@ -95,7 +95,12 @@ export default function DesembolsosPage() {
         client_company: Array.isArray(p.company) && p.company.length > 0 ? p.company[0] : p.company
       }))
 
+      console.log('✅ Proyectos transformados:', transformedProjects.length)
+      console.log('✅ Primer proyecto:', transformedProjects[0])
+      
       setProjects(transformedProjects)
+      
+      console.log('✅ Estado actualizado')
 
       // Cargar estadísticas de cada proyecto
       const stats: Record<string, ProjectStats> = {}
@@ -137,11 +142,17 @@ export default function DesembolsosPage() {
     }).format(amount)
   }
 
-  const filteredProjects = projects.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.project_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.client_company?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredProjects = projects.filter(p => {
+    const term = searchTerm.toLowerCase()
+    return (
+      (p.name || '').toLowerCase().includes(term) ||
+      (p.project_code || '').toLowerCase().includes(term) ||
+      (p.client_company?.name || '').toLowerCase().includes(term)
+    )
+  })
+
+  console.log('🔍 Proyectos en estado:', projects.length)
+  console.log('🔍 Proyectos filtrados:', filteredProjects.length)
 
   if (loading) {
     return (
