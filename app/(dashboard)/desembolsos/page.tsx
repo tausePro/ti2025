@@ -22,6 +22,8 @@ interface Project {
   project_code: string
   budget: number
   status: string
+  service_type?: string
+  company_id?: string
   client_company?: {
     name: string
   }
@@ -55,33 +57,24 @@ export default function DesembolsosPage() {
 
   async function loadProjects() {
     try {
-      // Cargar proyectos activos con interventoría de desembolsos
+      console.log('🔍 Iniciando carga de proyectos...')
+      
+      // Cargar proyectos activos - SIN join primero para debug
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
-        .select(`
-          id,
-          name,
-          project_code,
-          budget,
-          status,
-          service_type,
-          client_company:companies(name)
-        `)
+        .select('id, name, project_code, budget, status, service_type, company_id')
         .in('status', ['active', 'in_progress'])
         .order('created_at', { ascending: false })
 
       console.log('📊 Proyectos encontrados:', projectsData?.length)
-      console.log('📋 Tipos de servicio:', projectsData?.map(p => ({ name: p.name, service_type: p.service_type })))
+      console.log('📋 Datos completos:', projectsData)
+      
+      if (projectsError) {
+        console.error('❌ Error al cargar proyectos:', projectsError)
+        throw projectsError
+      }
 
-      if (projectsError) throw projectsError
-
-      // Transformar datos para que client_company sea un objeto en lugar de array
-      const transformedProjects = (projectsData || []).map(p => ({
-        ...p,
-        client_company: Array.isArray(p.client_company) ? p.client_company[0] : p.client_company
-      }))
-
-      setProjects(transformedProjects)
+      setProjects(projectsData || [])
 
       // Cargar estadísticas de cada proyecto
       const stats: Record<string, ProjectStats> = {}
@@ -107,8 +100,9 @@ export default function DesembolsosPage() {
       }
 
       setProjectStats(stats)
-    } catch (error) {
-      console.error('Error loading projects:', error)
+    } catch (error: any) {
+      console.error('❌ Error loading projects:', error)
+      console.error('❌ Error details:', error.message, error.details, error.hint)
     } finally {
       setLoading(false)
     }
