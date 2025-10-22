@@ -5,15 +5,15 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Building2, Grid, List, Download, Archive } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { ArrowLeft, Building2, Grid, List, Archive } from 'lucide-react'
 import Link from 'next/link'
 import { Project, ProjectFilters } from '@/types'
 import { useProjects } from '@/hooks/useProjects'
 import { ProjectCard } from '@/components/projects/ProjectCard'
 import { ProjectFilters as ProjectFiltersComponent } from '@/components/projects/ProjectFilters'
 
-export default function ProjectsPage() {
+export default function ArchivedProjectsPage() {
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards')
   const [filters, setFilters] = useState<ProjectFilters>({
     search: '',
@@ -40,8 +40,11 @@ export default function ProjectsPage() {
     page: 1,
     pageSize: 20,
     filters,
-    includeArchived: false
+    includeArchived: true // Solo archivados
   })
+
+  // Filtrar solo archivados
+  const archivedProjects = projects.filter(p => p.is_archived)
 
   useEffect(() => {
     loadCompanies()
@@ -136,11 +139,6 @@ export default function ProjectsPage() {
     console.log('Duplicate project:', project.id)
   }
 
-  const handleExportProjects = () => {
-    // TODO: Implementar exportación a Excel
-    console.log('Export projects to Excel')
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -149,33 +147,29 @@ export default function ProjectsPage() {
     )
   }
 
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <Building2 className="h-12 w-12 text-red-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Error al cargar proyectos
-          </h3>
-          <p className="text-gray-500 text-center mb-6">
-            {error}
-          </p>
-          <Button onClick={refreshProjects}>
-            Intentar de nuevo
-          </Button>
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Proyectos</h1>
+          <div className="flex items-center gap-3 mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+            >
+              <Link href="/projects">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver a Proyectos
+              </Link>
+            </Button>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Archive className="h-6 w-6 text-orange-600" />
+            Proyectos Archivados
+          </h1>
           <p className="mt-1 text-sm text-gray-500">
-            {totalCount} proyectos • {projects.filter(p => p.status === 'activo').length} activos
+            {archivedProjects.length} proyectos archivados
           </p>
         </div>
         <div className="flex items-center gap-2 mt-4 sm:mt-0">
@@ -198,38 +192,6 @@ export default function ProjectsPage() {
               <List className="h-4 w-4" />
             </Button>
           </div>
-
-          {/* Botón de archivados */}
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-          >
-            <Link href="/projects/archived">
-              <Archive className="h-4 w-4 mr-2" />
-              Archivados
-            </Link>
-          </Button>
-
-          {/* Botón de exportar */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportProjects}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
-
-          {/* Botón de nuevo proyecto */}
-          {hasPermission('projects', 'create') && (
-            <Button asChild>
-              <Link href="/projects/new">
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo Proyecto
-              </Link>
-            </Button>
-          )}
         </div>
       </div>
 
@@ -238,17 +200,16 @@ export default function ProjectsPage() {
         filters={filters}
         onFiltersChange={setFilters}
         companies={companies}
-        loading={loading}
       />
 
-      {/* Proyectos */}
-      {projects.length > 0 ? (
+      {/* Proyectos archivados */}
+      {archivedProjects.length > 0 ? (
         <div className={
           viewMode === 'cards' 
             ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
             : "space-y-4"
         }>
-          {projects.map((project) => (
+          {archivedProjects.map((project) => (
             <ProjectCard
               key={project.id}
               project={project}
@@ -266,35 +227,21 @@ export default function ProjectsPage() {
       ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Building2 className="h-12 w-12 text-gray-400 mb-4" />
+            <Archive className="h-12 w-12 text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No se encontraron proyectos
+              No hay proyectos archivados
             </h3>
             <p className="text-gray-500 text-center mb-6">
-              {totalCount === 0 
-                ? 'Aún no hay proyectos creados. Crea tu primer proyecto para comenzar.'
-                : 'No hay proyectos que coincidan con los filtros aplicados.'
-              }
+              Los proyectos archivados aparecerán aquí.
             </p>
-            {hasPermission('projects', 'create') && totalCount === 0 && (
-              <Button asChild>
-                <Link href="/projects/new">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Crear Primer Proyecto
-                </Link>
-              </Button>
-            )}
+            <Button asChild variant="outline">
+              <Link href="/projects">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver a Proyectos
+              </Link>
+            </Button>
           </CardContent>
         </Card>
-      )}
-
-      {/* Cargar más */}
-      {hasMore && (
-        <div className="flex justify-center">
-          <Button variant="outline" onClick={() => {/* TODO: Implementar paginación */}}>
-            Cargar más proyectos
-          </Button>
-        </div>
       )}
     </div>
   )

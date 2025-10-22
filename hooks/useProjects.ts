@@ -55,7 +55,13 @@ export function useProjects(options: UseProjectsOptions = {}) {
             id, name, logo_url, company_type
           )
         `)
-        .eq('is_archived', includeArchived)
+      
+      // Filtrar archivados: si includeArchived es true, mostrar solo archivados; si es false, mostrar solo no archivados
+      if (includeArchived) {
+        query = query.eq('is_archived', true)
+      } else {
+        query = query.eq('is_archived', false)
+      }
       
       console.log('🔍 useProjects - Query configurada, ejecutando...')
 
