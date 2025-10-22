@@ -74,7 +74,7 @@ export default function DesembolsosPage() {
           intervention_types,
           company:companies!client_company_id(name)
         `)
-        .in('status', ['active', 'in_progress'])
+        .in('status', ['activo', 'planificacion', 'en_progreso'])
         .contains('intervention_types', ['interventoria_desembolsos'])
         .order('created_at', { ascending: false })
 
