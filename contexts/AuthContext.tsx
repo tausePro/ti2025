@@ -288,6 +288,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const hasPermission = (module: string, action: string): boolean => {
+    // Admin y super_admin tienen todos los permisos
+    if (profile?.role === 'admin' || profile?.role === 'super_admin') {
+      return true
+    }
+    
     return permissions.some(p => 
       p.module === module && 
       p.action === action && 
