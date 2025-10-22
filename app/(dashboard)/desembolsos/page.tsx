@@ -68,8 +68,10 @@ export default function DesembolsosPage() {
           client_company:companies(name)
         `)
         .in('status', ['active', 'in_progress'])
-        .eq('service_type', 'interventoria_desembolsos')
         .order('created_at', { ascending: false })
+
+      console.log('📊 Proyectos encontrados:', projectsData?.length)
+      console.log('📋 Tipos de servicio:', projectsData?.map(p => ({ name: p.name, service_type: p.service_type })))
 
       if (projectsError) throw projectsError
 
