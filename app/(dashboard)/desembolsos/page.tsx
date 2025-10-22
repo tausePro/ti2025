@@ -23,6 +23,7 @@ interface Project {
   budget: number
   status: string
   service_type?: string
+  intervention_types?: string[]
   company_id?: string
   client_company?: {
     name: string
@@ -61,7 +62,7 @@ export default function DesembolsosPage() {
     try {
       console.log('🔍 Iniciando carga de proyectos...')
       
-      // Cargar proyectos activos
+      // Cargar proyectos activos con interventoría de desembolsos
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -70,10 +71,11 @@ export default function DesembolsosPage() {
           project_code,
           budget,
           status,
-          service_type,
+          intervention_types,
           company:companies!client_company_id(name)
         `)
         .in('status', ['active', 'in_progress'])
+        .contains('intervention_types', ['interventoria_desembolsos'])
         .order('created_at', { ascending: false })
 
       console.log('📊 Proyectos encontrados:', projectsData?.length)
@@ -91,7 +93,7 @@ export default function DesembolsosPage() {
         project_code: p.project_code,
         budget: p.budget,
         status: p.status,
-        service_type: p.service_type,
+        intervention_types: p.intervention_types,
         client_company: Array.isArray(p.company) && p.company.length > 0 ? p.company[0] : p.company
       }))
 
