@@ -61,7 +61,7 @@ export default function DesembolsosPage() {
     try {
       console.log('🔍 Iniciando carga de proyectos...')
       
-      // Cargar proyectos activos con interventoría de desembolsos
+      // Cargar proyectos activos
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -74,7 +74,6 @@ export default function DesembolsosPage() {
           company:companies!client_company_id(name)
         `)
         .in('status', ['active', 'in_progress'])
-        .eq('service_type', 'interventoria_desembolsos')
         .order('created_at', { ascending: false })
 
       console.log('📊 Proyectos encontrados:', projectsData?.length)
