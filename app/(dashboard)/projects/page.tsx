@@ -106,9 +106,29 @@ export default function ProjectsPage() {
     }
   }
 
-  const handleArchiveProject = (project: Project) => {
-    // TODO: Implementar archivar proyecto
-    console.log('Archive project:', project.id)
+  const handleArchiveProject = async (project: Project) => {
+    const isArchived = project.is_archived
+    const action = isArchived ? 'desarchivar' : 'archivar'
+    const confirmMessage = `¿Estás seguro de que deseas ${action} el proyecto "${project.name}"?`
+    
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ is_archived: !isArchived })
+        .eq('id', project.id)
+
+      if (error) throw error
+
+      alert(`✅ Proyecto ${isArchived ? 'desarchivado' : 'archivado'} exitosamente`)
+      refreshProjects()
+    } catch (error: any) {
+      console.error('Error archiving project:', error)
+      alert(`❌ Error al ${action} proyecto: ${error.message}`)
+    }
   }
 
   const handleDuplicateProject = (project: Project) => {

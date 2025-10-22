@@ -19,7 +19,9 @@ import {
   AlertCircle,
   Settings,
   ClipboardList,
-  Trash2
+  Trash2,
+  Archive,
+  ArchiveRestore
 } from 'lucide-react'
 import { Project, ProjectMember } from '@/types'
 import { ProjectStatusBadge } from './ProjectStatusBadge'
@@ -248,10 +250,19 @@ export function ProjectCard({
                 {onArchive && (
                   <DropdownMenuItem 
                     onClick={() => onArchive(project)}
-                    className="text-orange-600"
+                    className={project.is_archived ? "text-blue-600" : "text-orange-600"}
                   >
-                    <AlertCircle className="h-4 w-4 mr-2" />
-                    Archivar
+                    {project.is_archived ? (
+                      <>
+                        <ArchiveRestore className="h-4 w-4 mr-2" />
+                        Desarchivar
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="h-4 w-4 mr-2" />
+                        Archivar
+                      </>
+                    )}
                   </DropdownMenuItem>
                 )}
                 {onDelete && (
