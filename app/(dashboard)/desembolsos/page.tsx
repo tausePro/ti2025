@@ -61,11 +61,20 @@ export default function DesembolsosPage() {
     try {
       console.log('🔍 Iniciando carga de proyectos...')
       
-      // Cargar proyectos activos - SIN join primero para debug
+      // Cargar proyectos activos con interventoría de desembolsos
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
-        .select('id, name, project_code, budget, status, service_type, company_id')
+        .select(`
+          id,
+          name,
+          project_code,
+          budget,
+          status,
+          service_type,
+          company:companies!client_company_id(name)
+        `)
         .in('status', ['active', 'in_progress'])
+        .eq('service_type', 'interventoria_desembolsos')
         .order('created_at', { ascending: false })
 
       console.log('📊 Proyectos encontrados:', projectsData?.length)
@@ -76,7 +85,18 @@ export default function DesembolsosPage() {
         throw projectsError
       }
 
-      setProjects(projectsData || [])
+      // Transformar datos - company viene como array, tomar el primer elemento
+      const transformedProjects = (projectsData || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        project_code: p.project_code,
+        budget: p.budget,
+        status: p.status,
+        service_type: p.service_type,
+        client_company: Array.isArray(p.company) && p.company.length > 0 ? p.company[0] : p.company
+      }))
+
+      setProjects(transformedProjects)
 
       // Cargar estadísticas de cada proyecto
       const stats: Record<string, ProjectStats> = {}
