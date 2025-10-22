@@ -83,9 +83,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
         
-        // Ignorar evento SIGNED_OUT
-        if (event === 'SIGNED_OUT') {
-          console.log('🚪 Ignorando evento SIGNED_OUT')
+        // Manejar TOKEN_REFRESHED - sesión renovada
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('🔄 Token renovado exitosamente')
+          if (session?.user) {
+            setUser(session.user)
+          }
+          return
+        }
+        
+        // Manejar sesión expirada
+        if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
+          console.log('⏰ Sesión expirada - redirigiendo a login...')
+          setUser(null)
+          setProfile(null)
+          setPermissions([])
+          // Redirigir a login
+          window.location.href = '/login?expired=true'
           return
         }
         

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -26,7 +26,17 @@ type LoginForm = z.infer<typeof loginSchema>
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [sessionExpired, setSessionExpired] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    // Verificar si la sesión expiró
+    if (searchParams.get('expired') === 'true') {
+      setSessionExpired(true)
+      setError('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.')
+    }
+  }, [searchParams])
 
   const {
     register,
@@ -95,6 +105,14 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
         <CardContent className="px-6 pb-6">
+          {sessionExpired && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>
+                ⏰ Tu sesión ha expirado por inactividad. Por favor, inicia sesión nuevamente.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
