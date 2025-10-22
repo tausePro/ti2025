@@ -47,13 +47,15 @@ export default function DesembolsosPage() {
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
-    if (profile && !['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role)) {
+    if (!profile) return
+    
+    if (!['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role)) {
       router.push('/projects')
       return
     }
 
     loadProjects()
-  }, [profile, router])
+  }, [profile?.id])
 
   async function loadProjects() {
     try {
