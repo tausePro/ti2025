@@ -18,7 +18,8 @@ import {
   FileText,
   AlertCircle,
   Settings,
-  ClipboardList
+  ClipboardList,
+  Trash2
 } from 'lucide-react'
 import { Project, ProjectMember } from '@/types'
 import { ProjectStatusBadge } from './ProjectStatusBadge'
@@ -43,6 +44,7 @@ interface ProjectCardProps {
   onViewFinancial?: (project: Project) => void
   onArchive?: (project: Project) => void
   onDuplicate?: (project: Project) => void
+  onDelete?: (project: Project) => void
   showActions?: boolean
 }
 
@@ -54,6 +56,7 @@ export function ProjectCard({
   onViewFinancial,
   onArchive,
   onDuplicate,
+  onDelete,
   showActions = true
 }: ProjectCardProps) {
   const [imageError, setImageError] = useState(false)
@@ -245,10 +248,19 @@ export function ProjectCard({
                 {onArchive && (
                   <DropdownMenuItem 
                     onClick={() => onArchive(project)}
-                    className="text-red-600"
+                    className="text-orange-600"
                   >
                     <AlertCircle className="h-4 w-4 mr-2" />
                     Archivar
+                  </DropdownMenuItem>
+                )}
+                {onDelete && (
+                  <DropdownMenuItem 
+                    onClick={() => onDelete(project)}
+                    className="text-red-600 font-semibold"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Eliminar proyecto
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>

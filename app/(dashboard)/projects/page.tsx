@@ -78,6 +78,34 @@ export default function ProjectsPage() {
     router.push(`/projects/${project.id}/financial`)
   }
 
+  const handleDeleteProject = async (project: Project) => {
+    const confirmMessage = `¿Estás seguro de que deseas eliminar el proyecto "${project.name}"?\n\nEsta acción NO se puede deshacer y eliminará:\n- Todas las bitácoras\n- Todos los reportes\n- Todas las órdenes de pago\n- Todo el equipo asignado\n\nEscribe "ELIMINAR" para confirmar:`
+    
+    const confirmation = prompt(confirmMessage)
+    
+    if (confirmation !== 'ELIMINAR') {
+      if (confirmation !== null) {
+        alert('❌ Debes escribir "ELIMINAR" exactamente para confirmar.')
+      }
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', project.id)
+
+      if (error) throw error
+
+      alert('✅ Proyecto eliminado exitosamente')
+      refreshProjects()
+    } catch (error: any) {
+      console.error('Error deleting project:', error)
+      alert(`❌ Error al eliminar proyecto: ${error.message}`)
+    }
+  }
+
   const handleArchiveProject = (project: Project) => {
     // TODO: Implementar archivar proyecto
     console.log('Archive project:', project.id)
@@ -198,6 +226,7 @@ export default function ProjectsPage() {
               onViewFinancial={hasPermission('financial', 'read') ? handleViewFinancial : undefined}
               onArchive={hasPermission('projects', 'delete') ? handleArchiveProject : undefined}
               onDuplicate={hasPermission('projects', 'create') ? handleDuplicateProject : undefined}
+              onDelete={hasPermission('projects', 'delete') ? handleDeleteProject : undefined}
               showActions={true}
             />
           ))}
