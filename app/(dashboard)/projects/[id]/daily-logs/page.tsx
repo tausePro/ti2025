@@ -34,6 +34,25 @@ export default async function DailyLogsPage({ params }: { params: { id: string }
     .eq('project_id', params.id)
     .order('date', { ascending: false })
 
+  // Convertir rutas de fotos a URLs públicas
+  const logsWithPublicUrls = dailyLogs?.map((log: any) => {
+    if (log.photos && Array.isArray(log.photos) && log.photos.length > 0) {
+      const publicUrls = log.photos.map((photoPath: string) => {
+        // Si ya es una URL completa, devolverla tal cual
+        if (photoPath.startsWith('http')) {
+          return photoPath
+        }
+        // Si es una ruta, convertirla a URL pública
+        const { data: { publicUrl } } = supabase.storage
+          .from('daily-logs-photos')
+          .getPublicUrl(photoPath)
+        return publicUrl
+      })
+      return { ...log, photos: publicUrls }
+    }
+    return log
+  })
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
@@ -53,7 +72,7 @@ export default async function DailyLogsPage({ params }: { params: { id: string }
       </div>
 
       {/* Lista de bitácoras */}
-      {!dailyLogs || dailyLogs.length === 0 ? (
+      {!logsWithPublicUrls || logsWithPublicUrls.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <p className="text-gray-500 mb-4">No hay bitácoras registradas</p>
           <Link
@@ -65,7 +84,7 @@ export default async function DailyLogsPage({ params }: { params: { id: string }
         </div>
       ) : (
         <div className="grid gap-4">
-          {dailyLogs.map((log: any) => (
+          {logsWithPublicUrls.map((log: any) => (
             <div key={log.id} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
