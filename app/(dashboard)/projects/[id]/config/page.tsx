@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { 
   ArrowLeft, 
   Settings, 
@@ -24,7 +26,7 @@ interface Project {
   id: string
   name: string
   project_code: string
-  intervention_type: string
+  intervention_types: string[]
   status: string
 }
 
@@ -49,7 +51,7 @@ export default function ProjectConfigPage() {
       
       const { data, error } = await supabase
         .from('projects')
-        .select('id, name, project_code, intervention_type, status')
+        .select('id, name, project_code, intervention_types, status')
         .eq('id', projectId)
         .single()
 
@@ -64,8 +66,26 @@ export default function ProjectConfigPage() {
     }
   }
 
-  const isAdministrativeIntervention = project?.intervention_type === 'administrativa' || 
-                                       project?.intervention_type?.includes('administrativa')
+  const isAdministrativeIntervention = project?.intervention_types?.includes('interventoria_administrativa') || 
+                                       project?.intervention_types?.includes('interventoria')
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ status: newStatus })
+        .eq('id', projectId)
+
+      if (error) throw error
+
+      setProject(prev => prev ? { ...prev, status: newStatus } : null)
+      alert('✅ Estado del proyecto actualizado exitosamente')
+      logger.info('Project status updated', { projectId, newStatus })
+    } catch (error) {
+      logger.error('Error updating project status', { projectId }, error as Error)
+      alert('❌ Error al actualizar el estado del proyecto')
+    }
+  }
 
   if (loading) {
     return (
@@ -144,16 +164,37 @@ export default function ProjectConfigPage() {
                 Información básica y configuración del proyecto
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700">Código del Proyecto</label>
                   <p className="text-sm text-gray-900 mt-1">{project.project_code}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">Tipo de Intervención</label>
-                  <p className="text-sm text-gray-900 mt-1">{project.intervention_type}</p>
+                  <label className="text-sm font-medium text-gray-700">Tipos de Intervención</label>
+                  <p className="text-sm text-gray-900 mt-1">{project.intervention_types?.join(', ') || 'N/A'}</p>
                 </div>
+              </div>
+
+              {/* Cambiar estado del proyecto */}
+              <div className="space-y-2">
+                <Label htmlFor="status">Estado del Proyecto</Label>
+                <Select value={project.status} onValueChange={handleStatusChange}>
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="Seleccionar estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="planificacion">Planificación</SelectItem>
+                    <SelectItem value="activo">Activo</SelectItem>
+                    <SelectItem value="en_progreso">En Progreso</SelectItem>
+                    <SelectItem value="pausado">Pausado</SelectItem>
+                    <SelectItem value="finalizado">Finalizado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  Cambia el estado del proyecto según su avance
+                </p>
               </div>
 
               <Alert>
