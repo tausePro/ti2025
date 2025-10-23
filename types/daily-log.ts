@@ -2,12 +2,13 @@
 
 export type ChecklistItemStatus = 'compliant' | 'non_compliant' | 'not_applicable' | null
 
-// Tipo para firma digital
+// Tipo para firma digital (usa firma del perfil)
 export interface Signature {
-  name: string
-  role: string
-  signature: string // base64
-  timestamp: string
+  user_id: string
+  user_name: string
+  user_role: string
+  signature_url: string // URL de Supabase Storage
+  signed_at: string
 }
 
 // Tipo para ubicación GPS

@@ -12,7 +12,7 @@ import {
   Location
 } from '@/types/daily-log'
 import { PhotoUpload } from './PhotoUpload'
-import { SignatureCapture } from './SignatureCapture'
+import { SignatureSelector } from './SignatureSelector'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { MapPin, Clock, User } from 'lucide-react'
 
@@ -584,10 +584,13 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
       {/* Firmas Digitales */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">Firmas Digitales</h2>
-        <SignatureCapture
+        <p className="text-sm text-gray-600 mb-4">
+          Selecciona los usuarios que firman esta bitácora. Las firmas se toman del perfil de cada usuario.
+        </p>
+        <SignatureSelector
+          projectId={projectId}
           signatures={formData.signatures || []}
-          onChange={(signatures) => updateField('signatures', signatures)}
-          maxSignatures={5}
+          onChange={(signatures: Signature[]) => updateField('signatures', signatures)}
         />
       </div>
 
