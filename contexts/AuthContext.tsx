@@ -54,15 +54,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Intentar cargar perfil desde localStorage primero
           if (typeof window !== 'undefined') {
             const cachedProfile = localStorage.getItem('user_profile')
+            const cachedPermissions = localStorage.getItem('user_permissions')
+            
             if (cachedProfile) {
               try {
                 const parsedProfile = JSON.parse(cachedProfile)
                 if (parsedProfile.id === session.user.id) {
                   console.log('📦 Perfil cargado desde localStorage')
                   setProfile(parsedProfile)
+                  
+                  // Cargar permisos desde cache también
+                  if (cachedPermissions) {
+                    const parsedPermissions = JSON.parse(cachedPermissions)
+                    console.log('📦 Permisos cargados desde localStorage')
+                    setPermissions(parsedPermissions)
+                  }
                 }
               } catch (e) {
-                console.error('Error parsing cached profile:', e)
+                console.error('Error parsing cached data:', e)
               }
             }
           }
@@ -75,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setPermissions([])
           if (typeof window !== 'undefined') {
             localStorage.removeItem('user_profile')
+            localStorage.removeItem('user_permissions')
           }
         }
         
@@ -122,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Limpiar localStorage
           if (typeof window !== 'undefined') {
             localStorage.removeItem('user_profile')
+            localStorage.removeItem('user_permissions')
           }
           // Redirigir a login
           window.location.href = '/login?expired=true'
@@ -244,6 +255,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('📋 Permisos cargados desde BD:', rolePermissions?.length || 0)
           console.log('🔍 DEBUG - Permisos obtenidos:', rolePermissions)
           setPermissions(rolePermissions || [])
+          
+          // Guardar permisos en localStorage
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('user_permissions', JSON.stringify(rolePermissions || []))
+          }
         }
       } else {
         console.log('🔍 DEBUG - No hay rol definido, no se cargan permisos')

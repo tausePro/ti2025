@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -14,11 +14,7 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const supabase = createClient()
 
-  useEffect(() => {
-    loadData()
-  }, [params.id])
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -85,7 +81,11 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id, router, supabase])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   if (loading) {
     return (
