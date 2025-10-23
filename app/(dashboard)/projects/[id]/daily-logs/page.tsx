@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { PhotoGallery } from '@/components/daily-logs/PhotoGallery'
-import { Camera, Loader2 } from 'lucide-react'
+import { DailyLogsTimeline } from '@/components/daily-logs/DailyLogsTimeline'
+import { Loader2 } from 'lucide-react'
 
 export default function DailyLogsPage({ params }: { params: { id: string } }) {
   const [project, setProject] = useState<any>(null)
@@ -135,122 +135,7 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-4">
-          {dailyLogs.map((log: any) => (
-            <div key={log.id} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-4 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {new Date(log.date).toLocaleDateString('es-CO', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </h3>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      log.sync_status === 'synced' 
-                        ? 'bg-green-100 text-green-800'
-                        : log.sync_status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {log.sync_status === 'synced' ? '✓ Sincronizado' : 
-                       log.sync_status === 'pending' ? '⏳ Pendiente' : 
-                       log.sync_status}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 mb-3">
-                    <div>
-                      <span className="font-medium">Clima:</span>{' '}
-                      {log.data?.weather === 'soleado' ? '☀️ Soleado' :
-                       log.data?.weather === 'nublado' ? '☁️ Nublado' :
-                       log.data?.weather === 'lluvioso' ? '🌧️ Lluvioso' :
-                       '⛈️ Tormentoso'}
-                    </div>
-                    <div>
-                      <span className="font-medium">Personal:</span> {log.data?.personnel_count || 0}
-                    </div>
-                    <div>
-                      <span className="font-medium">Creado por:</span>{' '}
-                      {log.created_by_profile?.full_name || 'Desconocido'}
-                    </div>
-                    <div>
-                      <span className="font-medium">Hora:</span>{' '}
-                      {new Date(log.created_at).toLocaleTimeString('es-CO', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Detalles adicionales */}
-                  <div className="space-y-2 mt-3">
-                    {log.data?.activities && (
-                      <p className="text-sm text-gray-700 line-clamp-2">
-                        <span className="font-medium">Actividades:</span> {log.data.activities}
-                      </p>
-                    )}
-                    
-                    {log.data?.materials && (
-                      <p className="text-sm text-gray-700 line-clamp-1">
-                        <span className="font-medium">Materiales:</span> {log.data.materials}
-                      </p>
-                    )}
-                    
-                    {log.data?.equipment && (
-                      <p className="text-sm text-gray-700 line-clamp-1">
-                        <span className="font-medium">Equipos:</span> {log.data.equipment}
-                      </p>
-                    )}
-                    
-                    {log.data?.observations && (
-                      <p className="text-sm text-gray-700 line-clamp-2">
-                        <span className="font-medium">Observaciones:</span> {log.data.observations}
-                      </p>
-                    )}
-                    
-                    {log.data?.issues && (
-                      <p className="text-sm text-red-600 line-clamp-1">
-                        <span className="font-medium">⚠️ Problemas:</span> {log.data.issues}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Fotos */}
-                  {log.photos && log.photos.length > 0 && (
-                    <div className="mt-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Camera className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium text-gray-700">
-                          {log.photos.length} {log.photos.length === 1 ? 'foto' : 'fotos'}
-                        </span>
-                      </div>
-                      <PhotoGallery photos={log.photos} />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-2 ml-4">
-                  <Link
-                    href={`/projects/${params.id}/daily-logs/${log.id}`}
-                    className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
-                  >
-                    Ver
-                  </Link>
-                  <Link
-                    href={`/projects/${params.id}/daily-logs/${log.id}/edit`}
-                    className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 rounded"
-                  >
-                    Editar
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <DailyLogsTimeline logs={dailyLogs} projectId={params.id} />
       )}
 
       {/* Botón volver */}
