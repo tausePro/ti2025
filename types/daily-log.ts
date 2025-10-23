@@ -2,6 +2,22 @@
 
 export type ChecklistItemStatus = 'compliant' | 'non_compliant' | 'not_applicable' | null
 
+// Tipo para firma digital
+export interface Signature {
+  name: string
+  role: string
+  signature: string // base64
+  timestamp: string
+}
+
+// Tipo para ubicación GPS
+export interface Location {
+  latitude: number
+  longitude: number
+  accuracy: number
+  timestamp?: number
+}
+
 export interface ChecklistItem {
   id: string
   description: string
@@ -292,6 +308,7 @@ export const CHECKLIST_SECTIONS: ChecklistSection[] = [
 // Campos base de la bitácora (80%)
 export interface DailyLogBaseFields {
   date: string
+  time?: string // Hora específica (HH:MM)
   weather: 'soleado' | 'nublado' | 'lluvioso' | 'tormentoso'
   temperature?: number
   personnel_count: number
@@ -301,6 +318,9 @@ export interface DailyLogBaseFields {
   observations?: string
   issues?: string
   recommendations?: string
+  assigned_to?: string // UUID del usuario asignado
+  location?: Location // GPS automático
+  signatures?: Signature[] // Firmas digitales
 }
 
 // Estructura completa de la bitácora

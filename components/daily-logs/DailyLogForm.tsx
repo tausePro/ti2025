@@ -1,15 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { 
   DailyLogFormData, 
   ChecklistSection, 
   ChecklistItemStatus,
-  CHECKLIST_SECTIONS 
+  CHECKLIST_SECTIONS,
+  Signature,
+  Location
 } from '@/types/daily-log'
 import { PhotoUpload } from './PhotoUpload'
+import { SignatureCapture } from './SignatureCapture'
+import { useGeolocation } from '@/hooks/useGeolocation'
+import { MapPin, Clock, User } from 'lucide-react'
 
 interface DailyLogFormProps {
   projectId: string
@@ -27,6 +32,7 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
   // Estado del formulario
   const [formData, setFormData] = useState<DailyLogFormData>({
     date: new Date().toISOString().split('T')[0],
+    time: new Date().toTimeString().slice(0, 5), // HH:MM
     weather: 'soleado',
     temperature: undefined,
     personnel_count: 0,
@@ -36,9 +42,52 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
     observations: '',
     issues: '',
     recommendations: '',
+    assigned_to: undefined,
+    location: undefined,
+    signatures: [],
     checklists: CHECKLIST_SECTIONS,
     photos: []
   })
+
+  // Hook de geolocalización
+  const { location, error: gpsError, loading: gpsLoading, requestLocation } = useGeolocation()
+  
+  // Usuarios del proyecto para asignar
+  const [projectUsers, setProjectUsers] = useState<any[]>([])
+
+  // Cargar ubicación automáticamente al montar
+  useEffect(() => {
+    requestLocation().then(loc => {
+      if (loc) {
+        setFormData(prev => ({
+          ...prev,
+          location: {
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            accuracy: loc.accuracy,
+            timestamp: loc.timestamp
+          }
+        }))
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Cargar usuarios del proyecto
+  useEffect(() => {
+    async function loadUsers() {
+      const { data } = await supabase
+        .from('project_team')
+        .select('user_id, profiles(id, full_name, email)')
+        .eq('project_id', projectId)
+      
+      if (data) {
+        setProjectUsers(data.map(d => d.profiles).filter(Boolean))
+      }
+    }
+    loadUsers()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId])
 
   // Actualizar campo base
   const updateField = (field: keyof DailyLogFormData, value: any) => {
@@ -106,6 +155,7 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
         template_id: templateId,
         created_by: user.id,
         date: formData.date,
+        time: formData.time,
         weather: formData.weather,
         temperature: formData.temperature?.toString(),
         personnel_count: formData.personnel_count,
@@ -115,6 +165,9 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
         observations: formData.observations,
         issues: formData.issues,
         recommendations: formData.recommendations,
+        assigned_to: formData.assigned_to || null,
+        location: formData.location || null,
+        signatures: formData.signatures || [],
         custom_fields: {
           checklists: formData.checklists
         },
@@ -222,6 +275,21 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
             />
           </div>
 
+          {/* Hora */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              Hora *
+            </label>
+            <input
+              type="time"
+              value={formData.time || ''}
+              onChange={(e) => updateField('time', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              required
+            />
+          </div>
+
           {/* Clima */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -267,6 +335,56 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
               required
               min="0"
             />
+          </div>
+
+          {/* Asignado a */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+              <User className="h-4 w-4" />
+              Asignado a
+            </label>
+            <select
+              value={formData.assigned_to || ''}
+              onChange={(e) => updateField('assigned_to', e.target.value || undefined)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              <option value="">Sin asignar</option>
+              {projectUsers.map(user => (
+                <option key={user.id} value={user.id}>
+                  {user.full_name || user.email}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Ubicación GPS */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+              <MapPin className="h-4 w-4" />
+              Ubicación GPS
+            </label>
+            <div className="flex items-center gap-2">
+              {gpsLoading && (
+                <span className="text-sm text-gray-500">Obteniendo ubicación...</span>
+              )}
+              {formData.location && (
+                <span className="text-sm text-green-600">
+                  ✓ Capturada ({formData.location.accuracy.toFixed(0)}m precisión)
+                </span>
+              )}
+              {gpsError && (
+                <span className="text-sm text-red-600">{gpsError}</span>
+              )}
+              {!formData.location && !gpsLoading && (
+                <button
+                  type="button"
+                  onClick={() => requestLocation()}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Obtener ubicación
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -460,6 +578,16 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
           maxPhotos={10}
           maxSizeMB={10}
           disabled={loading}
+        />
+      </div>
+
+      {/* Firmas Digitales */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-xl font-semibold mb-4">Firmas Digitales</h2>
+        <SignatureCapture
+          signatures={formData.signatures || []}
+          onChange={(signatures) => updateField('signatures', signatures)}
+          maxSignatures={5}
         />
       </div>
 
