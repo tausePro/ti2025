@@ -66,13 +66,18 @@ export function PhotoGallery({ photos, className = '' }: PhotoGalleryProps) {
             onClick={() => openLightbox(index)}
           >
             <CardContent className="p-0">
-              <div className="relative aspect-square">
+              <div className="relative aspect-square bg-gray-100">
                 <Image
                   src={photo}
                   alt={`Foto ${index + 1}`}
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                  unoptimized
+                  onError={(e) => {
+                    console.error('Error loading image:', photo)
+                    e.currentTarget.src = '/placeholder-image.png'
+                  }}
                 />
                 
                 {/* Overlay al hover */}
@@ -126,6 +131,10 @@ export function PhotoGallery({ photos, className = '' }: PhotoGalleryProps) {
                   className="object-contain"
                   sizes="90vw"
                   priority
+                  unoptimized
+                  onError={(e) => {
+                    console.error('Error loading full image:', photos[selectedIndex])
+                  }}
                 />
 
                 {/* Botones de navegación */}
@@ -171,6 +180,7 @@ export function PhotoGallery({ photos, className = '' }: PhotoGalleryProps) {
                         fill
                         className="object-cover"
                         sizes="64px"
+                        unoptimized
                       />
                     </button>
                   ))}
