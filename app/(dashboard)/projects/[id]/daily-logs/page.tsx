@@ -1,57 +1,109 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { PhotoGallery } from '@/components/daily-logs/PhotoGallery'
-import { Camera } from 'lucide-react'
+import { Camera, Loader2 } from 'lucide-react'
 
-export default async function DailyLogsPage({ params }: { params: { id: string } }) {
+export default function DailyLogsPage({ params }: { params: { id: string } }) {
+  const [project, setProject] = useState<any>(null)
+  const [dailyLogs, setDailyLogs] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
   const supabase = createClient()
 
-  // Verificar autenticación
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    redirect('/login')
+  useEffect(() => {
+    loadData()
+  }, [params.id])
+
+  async function loadData() {
+    try {
+      setLoading(true)
+
+      // Verificar autenticación
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      // Obtener proyecto
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', params.id)
+        .single()
+
+      if (projectError || !projectData) {
+        console.error('Error loading project:', projectError)
+        router.push('/projects')
+        return
+      }
+
+      setProject(projectData)
+
+      // Obtener bitácoras del proyecto
+      const { data: logsData, error: logsError } = await supabase
+        .from('daily_logs')
+        .select(`
+          *,
+          created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)
+        `)
+        .eq('project_id', params.id)
+        .order('date', { ascending: false })
+
+      if (logsError) {
+        console.error('Error loading logs:', logsError)
+        setDailyLogs([])
+        return
+      }
+
+      // Convertir rutas de fotos a URLs públicas
+      const logsWithPublicUrls = logsData?.map((log: any) => {
+        if (log.photos && Array.isArray(log.photos) && log.photos.length > 0) {
+          const publicUrls = log.photos.map((photoPath: string) => {
+            // Si ya es una URL completa, devolverla tal cual
+            if (photoPath.startsWith('http')) {
+              return photoPath
+            }
+            // Si es una ruta, convertirla a URL pública
+            const { data: { publicUrl } } = supabase.storage
+              .from('daily-logs-photos')
+              .getPublicUrl(photoPath)
+            return publicUrl
+          })
+          return { ...log, photos: publicUrls }
+        }
+        return log
+      }) || []
+
+      setDailyLogs(logsWithPublicUrls)
+    } catch (error) {
+      console.error('Error in loadData:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Obtener proyecto
-  const { data: project } = await (supabase
-    .from('projects') as any)
-    .select('*')
-    .eq('id', params.id)
-    .single()
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
 
   if (!project) {
-    redirect('/projects')
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">Proyecto no encontrado</p>
+        </div>
+      </div>
+    )
   }
-
-  // Obtener bitácoras del proyecto
-  const { data: dailyLogs } = await (supabase
-    .from('daily_logs') as any)
-    .select(`
-      *,
-      created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)
-    `)
-    .eq('project_id', params.id)
-    .order('date', { ascending: false })
-
-  // Convertir rutas de fotos a URLs públicas
-  const logsWithPublicUrls = dailyLogs?.map((log: any) => {
-    if (log.photos && Array.isArray(log.photos) && log.photos.length > 0) {
-      const publicUrls = log.photos.map((photoPath: string) => {
-        // Si ya es una URL completa, devolverla tal cual
-        if (photoPath.startsWith('http')) {
-          return photoPath
-        }
-        // Si es una ruta, convertirla a URL pública
-        const { data: { publicUrl } } = supabase.storage
-          .from('daily-logs-photos')
-          .getPublicUrl(photoPath)
-        return publicUrl
-      })
-      return { ...log, photos: publicUrls }
-    }
-    return log
-  })
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -72,7 +124,7 @@ export default async function DailyLogsPage({ params }: { params: { id: string }
       </div>
 
       {/* Lista de bitácoras */}
-      {!logsWithPublicUrls || logsWithPublicUrls.length === 0 ? (
+      {!dailyLogs || dailyLogs.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <p className="text-gray-500 mb-4">No hay bitácoras registradas</p>
           <Link
@@ -84,7 +136,7 @@ export default async function DailyLogsPage({ params }: { params: { id: string }
         </div>
       ) : (
         <div className="grid gap-4">
-          {logsWithPublicUrls.map((log: any) => (
+          {dailyLogs.map((log: any) => (
             <div key={log.id} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
               <div className="flex justify-between items-start">
                 <div className="flex-1">

@@ -50,11 +50,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (session?.user) {
           console.log('👤 Usuario encontrado:', session.user.email)
+          
+          // Intentar cargar perfil desde localStorage primero
+          if (typeof window !== 'undefined') {
+            const cachedProfile = localStorage.getItem('user_profile')
+            if (cachedProfile) {
+              try {
+                const parsedProfile = JSON.parse(cachedProfile)
+                if (parsedProfile.id === session.user.id) {
+                  console.log('📦 Perfil cargado desde localStorage')
+                  setProfile(parsedProfile)
+                }
+              } catch (e) {
+                console.error('Error parsing cached profile:', e)
+              }
+            }
+          }
+          
+          // Cargar perfil desde BD (esto actualizará el cache)
           await loadUserProfile(session.user.id)
         } else {
           console.log('❌ No hay usuario en la sesión')
           setProfile(null)
           setPermissions([])
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('user_profile')
+          }
         }
         
         if (mounted) {
@@ -98,6 +119,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null)
           setProfile(null)
           setPermissions([])
+          // Limpiar localStorage
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('user_profile')
+          }
           // Redirigir a login
           window.location.href = '/login?expired=true'
           return
@@ -170,6 +195,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('🔍 DEBUG - ¿Es super_admin?', userProfile.role === 'super_admin')
 
       setProfile(userProfile)
+      
+      // Guardar perfil en localStorage para persistencia
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user_profile', JSON.stringify(userProfile))
+      }
 
       // Cargar permisos del usuario
       if (userProfile?.role) {
