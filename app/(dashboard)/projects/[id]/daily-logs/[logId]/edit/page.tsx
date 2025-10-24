@@ -11,7 +11,7 @@ export default async function EditDailyLogPage({
 
   // Verificar autenticación
   const { data: { user } } = await supabase.auth.getUser()
-  if (\!user) {
+  if (!user) {
     redirect('/login')
   }
 
@@ -22,7 +22,7 @@ export default async function EditDailyLogPage({
     .eq('id', params.id)
     .single()
 
-  if (projectError || \!project) {
+  if (projectError || !project) {
     redirect('/projects')
   }
 
@@ -33,7 +33,7 @@ export default async function EditDailyLogPage({
     .eq('id', params.logId)
     .single()
 
-  if (logError || \!log) {
+  if (logError || !log) {
     redirect(`/projects/${params.id}/daily-logs`)
   }
 
