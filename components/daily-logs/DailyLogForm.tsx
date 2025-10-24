@@ -77,7 +77,7 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
   useEffect(() => {
     async function loadUsers() {
       const { data } = await supabase
-        .from('project_team')
+        .from('project_members')
         .select('user_id, profiles(id, full_name, email)')
         .eq('project_id', projectId)
       

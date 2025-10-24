@@ -53,7 +53,7 @@ CREATE POLICY "view_daily_log_configs" ON daily_log_configs
     project_id IN (
       SELECT id FROM projects 
       WHERE id IN (
-        SELECT project_id FROM project_team 
+        SELECT project_id FROM project_members 
         WHERE user_id = auth.uid()
       )
     )
@@ -64,19 +64,19 @@ CREATE POLICY "manage_daily_log_configs" ON daily_log_configs
   FOR ALL TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM project_team pt
-      INNER JOIN profiles p ON p.id = pt.user_id
-      WHERE pt.project_id = daily_log_configs.project_id
-        AND pt.user_id = auth.uid()
+      SELECT 1 FROM project_members pm
+      INNER JOIN profiles p ON p.id = pm.user_id
+      WHERE pm.project_id = daily_log_configs.project_id
+        AND pm.user_id = auth.uid()
         AND p.role IN ('super_admin', 'admin', 'supervisor')
     )
   )
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM project_team pt
-      INNER JOIN profiles p ON p.id = pt.user_id
-      WHERE pt.project_id = daily_log_configs.project_id
-        AND pt.user_id = auth.uid()
+      SELECT 1 FROM project_members pm
+      INNER JOIN profiles p ON p.id = pm.user_id
+      WHERE pm.project_id = daily_log_configs.project_id
+        AND pm.user_id = auth.uid()
         AND p.role IN ('super_admin', 'admin', 'supervisor')
     )
   );

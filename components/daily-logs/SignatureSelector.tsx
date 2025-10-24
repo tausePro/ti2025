@@ -36,7 +36,7 @@ export function SignatureSelector({ projectId, signatures, onChange }: Signature
       
       // Obtener usuarios del proyecto que tengan firma
       const { data, error } = await supabase
-        .from('project_team')
+        .from('project_members')
         .select(`
           user_id,
           role,
