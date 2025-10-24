@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { DailyLogsTimeline } from '@/components/daily-logs/DailyLogsTimeline'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Settings } from 'lucide-react'
 
 export default function DailyLogsPage({ params }: { params: { id: string } }) {
   const [project, setProject] = useState<any>(null)
@@ -111,16 +111,25 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Bitácoras Diarias</h1>
-          <p className="text-gray-600 mt-2">
-            Proyecto: {project.name}
+          <p className="text-gray-600 mt-1">
+            {project?.name}
           </p>
         </div>
-        <Link
-          href={`/projects/${params.id}/daily-logs/new`}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-        >
-          + Nueva Bitácora
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href={`/projects/${params.id}/daily-logs/settings`}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center gap-2"
+          >
+            <Settings className="h-4 w-4" />
+            Configurar
+          </Link>
+          <Link
+            href={`/projects/${params.id}/daily-logs/new`}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            + Nueva Bitácora
+          </Link>
+        </div>
       </div>
 
       {/* Lista de bitácoras */}
