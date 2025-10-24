@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { PhotoGallery } from './PhotoGallery'
-import { Camera, Clock, MapPin, User, FileText } from 'lucide-react'
+import { Camera, Clock, MapPin, User, FileText, CheckCircle2, XCircle, AlertCircle, Settings } from 'lucide-react'
 
 interface DailyLogsTimelineProps {
   logs: any[]
@@ -10,6 +10,26 @@ interface DailyLogsTimelineProps {
 }
 
 export function DailyLogsTimeline({ logs, projectId }: DailyLogsTimelineProps) {
+  // Función para obtener resumen de checklists
+  const getChecklistSummary = (log: any) => {
+    if (!log.custom_fields?.checklists) return null
+    
+    const allItems = log.custom_fields.checklists.flatMap((section: any) => section.items)
+    const compliant = allItems.filter((item: any) => item.status === 'compliant').length
+    const nonCompliant = allItems.filter((item: any) => item.status === 'non_compliant').length
+    const notApplicable = allItems.filter((item: any) => item.status === 'not_applicable').length
+    const pending = allItems.filter((item: any) => !item.status).length
+    
+    return { compliant, nonCompliant, notApplicable, pending, total: allItems.length }
+  }
+
+  // Función para obtener campos personalizados (excluyendo checklists)
+  const getCustomFields = (log: any) => {
+    if (!log.custom_fields) return {}
+    const { checklists, ...customFields } = log.custom_fields
+    return customFields
+  }
+
   // Agrupar bitácoras por día
   const groupedLogs = logs.reduce((acc: any, log: any) => {
     const dateKey = log.date
@@ -201,6 +221,73 @@ export function DailyLogsTimeline({ logs, projectId }: DailyLogsTimelineProps) {
                       <p className="text-sm text-red-600">{log.issues}</p>
                     </div>
                   )}
+
+                  {/* Resumen de Checklists */}
+                  {(() => {
+                    const summary = getChecklistSummary(log)
+                    if (!summary) return null
+                    
+                    return (
+                      <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Resumen de Checklists:</p>
+                        <div className="flex flex-wrap gap-3 text-sm">
+                          {summary.compliant > 0 && (
+                            <div className="flex items-center gap-1 text-green-700">
+                              <CheckCircle2 className="h-4 w-4" />
+                              <span>{summary.compliant} Cumple{summary.compliant > 1 ? 'n' : ''}</span>
+                            </div>
+                          )}
+                          {summary.nonCompliant > 0 && (
+                            <div className="flex items-center gap-1 text-red-700">
+                              <XCircle className="h-4 w-4" />
+                              <span>{summary.nonCompliant} No Cumple{summary.nonCompliant > 1 ? 'n' : ''}</span>
+                            </div>
+                          )}
+                          {summary.notApplicable > 0 && (
+                            <div className="flex items-center gap-1 text-gray-600">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>{summary.notApplicable} No Aplica{summary.notApplicable > 1 ? 'n' : ''}</span>
+                            </div>
+                          )}
+                          {summary.pending > 0 && (
+                            <div className="flex items-center gap-1 text-yellow-700">
+                              <AlertCircle className="h-4 w-4" />
+                              <span>{summary.pending} Pendiente{summary.pending > 1 ? 's' : ''}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-2 text-xs text-gray-500">
+                          Total: {summary.total} ítems revisados
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* Campos Personalizados */}
+                  {(() => {
+                    const customFields = getCustomFields(log)
+                    const entries = Object.entries(customFields)
+                    if (entries.length === 0) return null
+                    
+                    return (
+                      <div className="mb-3 p-3 bg-blue-50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Settings className="h-4 w-4 text-blue-700" />
+                          <p className="text-sm font-medium text-blue-900">Campos Personalizados:</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                          {entries.map(([key, value]) => (
+                            <div key={key} className="flex gap-2">
+                              <span className="text-gray-600 capitalize">{key.replace(/_/g, ' ')}:</span>
+                              <span className="font-medium text-gray-900">
+                                {Array.isArray(value) ? value.join(', ') : String(value)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   {/* Fotos */}
                   {log.photos && log.photos.length > 0 && (

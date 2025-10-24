@@ -541,6 +541,25 @@ export default function DailyLogFormTabs({ projectId, templateId, onSuccess }: D
 
         {/* TAB 4: CHECKLISTS */}
         <TabsContent value="checklists" className="space-y-4">
+          {/* Leyenda de estados */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm font-medium text-blue-900 mb-2">Leyenda de Estados:</p>
+            <div className="flex flex-wrap gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <span className="text-gray-700">Cumple</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <XCircle className="h-5 w-5 text-red-600" />
+                <span className="text-gray-700">No Cumple</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-gray-600" />
+                <span className="text-gray-700">No Aplica</span>
+              </div>
+            </div>
+          </div>
+
           {formData.checklists.map((section) => (
             <Card key={section.id}>
               <CardHeader>
