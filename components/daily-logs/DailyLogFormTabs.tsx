@@ -26,10 +26,11 @@ import { CustomField, DailyLogConfig } from '@/types/daily-log-config'
 interface DailyLogFormTabsProps {
   projectId: string
   templateId?: string
+  logId?: string // Para modo edición
   onSuccess?: () => void
 }
 
-export default function DailyLogFormTabs({ projectId, templateId, onSuccess }: DailyLogFormTabsProps) {
+export default function DailyLogFormTabs({ projectId, templateId, logId, onSuccess }: DailyLogFormTabsProps) {
   const router = useRouter()
   const supabase = createClient()
   
@@ -84,9 +85,12 @@ export default function DailyLogFormTabs({ projectId, templateId, onSuccess }: D
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Cargar configuración y usuarios
+  // Cargar configuración, usuarios y datos existentes (si es edición)
   useEffect(() => {
-    async function loadConfig() {
+    async function loadData() {
+      setLoading(true)
+      
+      // Cargar config
       const { data: configData } = await supabase
         .from('daily_log_configs')
         .select('*')
@@ -96,33 +100,67 @@ export default function DailyLogFormTabs({ projectId, templateId, onSuccess }: D
       if (configData) {
         setConfig(configData)
         setCustomFields(configData.custom_fields || [])
-        
-        const customFieldsData: Record<string, any> = {}
-        configData.custom_fields?.forEach((field: CustomField) => {
-          customFieldsData[field.id] = field.defaultValue || ''
-        })
-        setFormData(prev => ({
-          ...prev,
-          custom_fields: customFieldsData
-        }))
       }
-    }
-    
-    async function loadUsers() {
-      const { data } = await supabase
+      
+      // Cargar usuarios
+      const { data: usersData } = await supabase
         .from('project_members')
         .select('user_id, profiles(id, full_name, email)')
         .eq('project_id', projectId)
       
-      if (data) {
-        setProjectUsers(data.map(d => d.profiles).filter(Boolean))
+      if (usersData) {
+        setProjectUsers(usersData.map(d => d.profiles).filter(Boolean))
       }
+      
+      // Si es modo edición, cargar datos existentes
+      if (logId) {
+        const { data: logData } = await supabase
+          .from('daily_logs')
+          .select('*')
+          .eq('id', logId)
+          .single()
+        
+        if (logData) {
+          setFormData({
+            date: logData.date || new Date().toISOString().split('T')[0],
+            time: logData.time || new Date().toTimeString().slice(0, 5),
+            weather: logData.weather || 'soleado',
+            temperature: logData.temperature ? parseFloat(logData.temperature) : undefined,
+            personnel_count: logData.personnel_count || 0,
+            activities: logData.activities || '',
+            materials: logData.materials || '',
+            equipment: logData.equipment || '',
+            observations: logData.observations || '',
+            issues: logData.issues || '',
+            recommendations: logData.recommendations || '',
+            assigned_to: logData.assigned_to || undefined,
+            location: logData.location || undefined,
+            signatures: logData.signatures || [],
+            checklists: logData.custom_fields?.checklists || CHECKLIST_SECTIONS,
+            photos: [],
+            custom_fields: logData.custom_fields || {}
+          })
+        }
+      } else {
+        // Modo creación: inicializar campos custom con defaults
+        if (configData?.custom_fields) {
+          const customFieldsData: Record<string, any> = {}
+          configData.custom_fields.forEach((field: CustomField) => {
+            customFieldsData[field.id] = field.defaultValue || ''
+          })
+          setFormData(prev => ({
+            ...prev,
+            custom_fields: customFieldsData
+          }))
+        }
+      }
+      
+      setLoading(false)
     }
     
-    loadConfig()
-    loadUsers()
+    loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId])
+  }, [projectId, logId])
 
   // Actualizar campo base
   const updateField = (field: keyof DailyLogFormData, value: any) => {
@@ -204,7 +242,7 @@ export default function DailyLogFormTabs({ projectId, templateId, onSuccess }: D
       const dailyLogData = {
         project_id: projectId,
         template_id: templateId,
-        created_by: user.id,
+        ...(logId ? {} : { created_by: user.id }), // Solo en creación
         date: formData.date,
         time: formData.time,
         weather: formData.weather,
@@ -218,24 +256,40 @@ export default function DailyLogFormTabs({ projectId, templateId, onSuccess }: D
         recommendations: formData.recommendations,
         assigned_to: formData.assigned_to || null,
         location: formData.location || null,
-        signatures: [autoSignature],
+        signatures: logId ? formData.signatures : [autoSignature], // Mantener firmas existentes en edición
         custom_fields: {
           ...formData.custom_fields,
           checklists: formData.checklists
         },
-        sync_status: 'synced'
+        sync_status: 'synced',
+        ...(logId ? { updated_at: new Date().toISOString() } : {})
       }
 
-      console.log('📝 Datos a guardar:', dailyLogData)
+      console.log(logId ? '📝 Actualizando bitácora...' : '📝 Creando bitácora...', dailyLogData)
 
-      // Guardar
-      const { data, error: saveError } = await supabase
-        .from('daily_logs')
-        .insert(dailyLogData)
-        .select()
-        .single()
+      let data
+      if (logId) {
+        // Actualizar
+        const { data: updateData, error: updateError } = await supabase
+          .from('daily_logs')
+          .update(dailyLogData)
+          .eq('id', logId)
+          .select()
+          .single()
 
-      if (saveError) throw saveError
+        if (updateError) throw updateError
+        data = updateData
+      } else {
+        // Crear
+        const { data: insertData, error: insertError } = await supabase
+          .from('daily_logs')
+          .insert(dailyLogData)
+          .select()
+          .single()
+
+        if (insertError) throw insertError
+        data = insertData
+      }
 
       // Upload de fotos
       if (formData.photos && formData.photos.length > 0 && data) {
