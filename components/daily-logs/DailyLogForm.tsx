@@ -12,9 +12,10 @@ import {
   Location
 } from '@/types/daily-log'
 import { PhotoUpload } from './PhotoUpload'
-import { SignatureSelector } from './SignatureSelector'
+import { CustomFieldRenderer } from './CustomFieldRenderer'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { MapPin, Clock, User } from 'lucide-react'
+import { CustomField, DailyLogConfig } from '@/types/daily-log-config'
 
 interface DailyLogFormProps {
   projectId: string
@@ -28,6 +29,8 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [config, setConfig] = useState<DailyLogConfig | null>(null)
+  const [customFields, setCustomFields] = useState<CustomField[]>([])
   
   // Estado del formulario
   const [formData, setFormData] = useState<DailyLogFormData>({
@@ -73,8 +76,32 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Cargar usuarios del proyecto
+  // Cargar configuración del proyecto y usuarios
   useEffect(() => {
+    async function loadConfig() {
+      // Cargar config de bitácoras
+      const { data: configData } = await supabase
+        .from('daily_log_configs')
+        .select('*')
+        .eq('project_id', projectId)
+        .single()
+      
+      if (configData) {
+        setConfig(configData)
+        setCustomFields(configData.custom_fields || [])
+        
+        // Inicializar valores de campos custom
+        const customFieldsData: Record<string, any> = {}
+        configData.custom_fields?.forEach((field: CustomField) => {
+          customFieldsData[field.id] = field.defaultValue || ''
+        })
+        setFormData(prev => ({
+          ...prev,
+          custom_fields: customFieldsData
+        }))
+      }
+    }
+    
     async function loadUsers() {
       const { data } = await supabase
         .from('project_members')
@@ -85,6 +112,8 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
         setProjectUsers(data.map(d => d.profiles).filter(Boolean))
       }
     }
+    
+    loadConfig()
     loadUsers()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
@@ -92,6 +121,17 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
   // Actualizar campo base
   const updateField = (field: keyof DailyLogFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Actualizar campo personalizado
+  const updateCustomField = (fieldId: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      custom_fields: {
+        ...prev.custom_fields,
+        [fieldId]: value
+      }
+    }))
   }
 
   // Actualizar estado de checklist
@@ -137,16 +177,25 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
       if (!user) throw new Error('No hay usuario autenticado')
       if (!user.id) throw new Error('Usuario sin ID')
 
-      // Validar que el usuario existe en profiles
+      // Obtener perfil completo del usuario (con firma)
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, full_name, email, role, signature_url')
         .eq('id', user.id)
         .single()
       
       if (profileError || !profile) {
         console.error('❌ Perfil no encontrado:', profileError)
         throw new Error('Perfil de usuario no encontrado')
+      }
+
+      // Crear firma automática del usuario actual
+      const autoSignature: Signature = {
+        user_id: profile.id,
+        user_name: profile.full_name || profile.email,
+        user_role: profile.role || 'usuario',
+        signature_url: profile.signature_url || '',
+        signed_at: new Date().toISOString()
       }
 
       // Preparar datos para guardar
@@ -167,8 +216,9 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
         recommendations: formData.recommendations,
         assigned_to: formData.assigned_to || null,
         location: formData.location || null,
-        signatures: formData.signatures || [],
+        signatures: [autoSignature], // Firma automática del creador
         custom_fields: {
+          ...formData.custom_fields, // Campos personalizados
           checklists: formData.checklists
         },
         sync_status: 'synced'
@@ -581,18 +631,27 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
         />
       </div>
 
-      {/* Firmas Digitales */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">Firmas Digitales</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          Selecciona los usuarios que firman esta bitácora. Las firmas se toman del perfil de cada usuario.
-        </p>
-        <SignatureSelector
-          projectId={projectId}
-          signatures={formData.signatures || []}
-          onChange={(signatures: Signature[]) => updateField('signatures', signatures)}
-        />
-      </div>
+      {/* Campos Personalizados */}
+      {customFields.length > 0 && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Campos Personalizados</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Campos adicionales configurados para este proyecto
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {customFields
+              .sort((a, b) => a.order - b.order)
+              .map((field) => (
+                <CustomFieldRenderer
+                  key={field.id}
+                  field={field}
+                  value={formData.custom_fields?.[field.id]}
+                  onChange={(value) => updateCustomField(field.id, value)}
+                />
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Error */}
       {error && (
