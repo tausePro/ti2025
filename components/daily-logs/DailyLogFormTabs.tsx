@@ -404,14 +404,14 @@ export default function DailyLogFormTabs({ projectId, templateId, onSuccess }: D
               <div>
                 <Label htmlFor="assigned_to">Asignado a</Label>
                 <Select 
-                  value={formData.assigned_to || ''} 
-                  onValueChange={(value) => updateField('assigned_to', value || undefined)}
+                  value={formData.assigned_to || 'unassigned'} 
+                  onValueChange={(value) => updateField('assigned_to', value === 'unassigned' ? undefined : value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar usuario..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin asignar</SelectItem>
+                    <SelectItem value="unassigned">Sin asignar</SelectItem>
                     {projectUsers.map((user: any) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.full_name || user.email}
