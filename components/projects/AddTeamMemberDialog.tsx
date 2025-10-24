@@ -82,16 +82,16 @@ export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTe
     try {
       setLoading(true)
 
-      // Obtener usuarios que NO están en el proyecto
+      // Obtener usuarios que están ACTIVOS en el proyecto
       const { data: currentMembers } = await supabase
         .from('project_members')
         .select('user_id')
         .eq('project_id', projectId)
-        .eq('is_active', true)
+        .eq('is_active', true) // Solo los activos
 
       const currentMemberIds = currentMembers?.map((m: any) => m.user_id) || []
 
-      // Obtener todos los usuarios activos
+      // Obtener todos los usuarios activos del sistema
       const { data: allUsers, error } = await supabase
         .from('profiles')
         .select('id, full_name, email, phone, avatar_url, role')
@@ -100,7 +100,8 @@ export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTe
 
       if (error) throw error
 
-      // Filtrar usuarios que no están en el proyecto
+      // Filtrar usuarios que NO están activos en el proyecto
+      // (pueden estar inactivos o no estar en absoluto)
       const availableUsers = allUsers?.filter((user: any) => 
         !currentMemberIds.includes(user.id)
       ) || []
@@ -111,7 +112,8 @@ export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTe
       logger.info('Available users loaded', { 
         projectId, 
         total: allUsers?.length,
-        available: availableUsers.length 
+        available: availableUsers.length,
+        currentActive: currentMemberIds.length
       })
     } catch (error) {
       logger.error('Error loading users', { projectId }, error as Error)
@@ -131,33 +133,67 @@ export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTe
       setSaving(true)
       setError(null)
 
-      const memberData = {
-        project_id: projectId,
-        user_id: selectedUserId,
-        role_in_project: selectedRole,
-        assigned_by: profile?.id,
-        is_active: true
-      }
+      console.log('📝 Verificando si el miembro ya existe...')
 
-      console.log('📝 Intentando agregar miembro:', memberData)
-
-      const { data, error } = await supabase
+      // Verificar si ya existe un registro (activo o inactivo)
+      const { data: existingMember } = await supabase
         .from('project_members')
-        .insert(memberData)
-        .select()
+        .select('id, is_active')
+        .eq('project_id', projectId)
+        .eq('user_id', selectedUserId)
+        .single()
 
-      if (error) {
-        console.error('❌ Error al insertar miembro:', error)
-        throw error
+      if (existingMember) {
+        console.log('🔄 Miembro ya existe, reactivando:', existingMember)
+        
+        // Si existe, actualizar para reactivar
+        const { data, error } = await supabase
+          .from('project_members')
+          .update({
+            role_in_project: selectedRole,
+            is_active: true,
+            assigned_by: profile?.id,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingMember.id)
+          .select()
+
+        if (error) {
+          console.error('❌ Error al reactivar miembro:', error)
+          throw error
+        }
+
+        console.log('✅ Miembro reactivado exitosamente:', data)
+      } else {
+        console.log('➕ Creando nuevo miembro...')
+        
+        // Si no existe, crear nuevo
+        const memberData = {
+          project_id: projectId,
+          user_id: selectedUserId,
+          role_in_project: selectedRole,
+          assigned_by: profile?.id,
+          is_active: true
+        }
+
+        const { data, error } = await supabase
+          .from('project_members')
+          .insert(memberData)
+          .select()
+
+        if (error) {
+          console.error('❌ Error al insertar miembro:', error)
+          throw error
+        }
+
+        console.log('✅ Miembro agregado exitosamente:', data)
       }
-
-      console.log('✅ Miembro agregado exitosamente:', data)
 
       logger.info('Member added to project', { 
         projectId, 
         userId: selectedUserId, 
         role: selectedRole,
-        result: data
+        wasReactivated: !!existingMember
       })
 
       setSuccess(true)
