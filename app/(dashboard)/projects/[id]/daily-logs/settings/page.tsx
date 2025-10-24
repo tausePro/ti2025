@@ -48,7 +48,12 @@ export default function DailyLogSettingsPage({ params }: { params: { id: string 
         .eq('id', params.id)
         .single()
 
-      if (projectError) throw projectError
+      if (projectError) {
+        console.error('Error loading project:', projectError)
+        throw projectError
+      }
+      
+      console.log('✅ Proyecto cargado:', projectData)
       setProject(projectData)
 
       // Cargar configuración existente
@@ -58,17 +63,22 @@ export default function DailyLogSettingsPage({ params }: { params: { id: string 
         .eq('project_id', params.id)
         .single()
 
+      if (configError && configError.code !== 'PGRST116') {
+        console.error('Error loading config:', configError)
+      }
+
       if (configData) {
+        console.log('✅ Config cargada:', configData)
         setConfig(configData)
         setIsEnabled(configData.is_enabled)
         setCustomFields(configData.custom_fields || [])
         setSettings(configData.settings || DEFAULT_DAILY_LOG_SETTINGS)
+      } else {
+        console.log('ℹ️ No hay config previa, usando defaults')
       }
     } catch (error: any) {
-      console.error('Error loading data:', error)
-      if (error.code !== 'PGRST116') { // No rows found es OK
-        alert('Error al cargar configuración')
-      }
+      console.error('❌ Error loading data:', error)
+      alert('Error al cargar configuración: ' + error.message)
     } finally {
       setLoading(false)
     }
@@ -107,27 +117,41 @@ export default function DailyLogSettingsPage({ params }: { params: { id: string 
         settings: settings
       }
 
+      console.log('💾 Guardando config:', configData)
+
       if (config) {
         // Actualizar
-        const { error } = await supabase
+        console.log('📝 Actualizando config existente:', config.id)
+        const { data, error } = await supabase
           .from('daily_log_configs')
           .update(configData)
           .eq('id', config.id)
+          .select()
 
-        if (error) throw error
+        if (error) {
+          console.error('❌ Error actualizando:', error)
+          throw error
+        }
+        console.log('✅ Config actualizada:', data)
       } else {
         // Crear
-        const { error } = await supabase
+        console.log('➕ Creando nueva config')
+        const { data, error } = await supabase
           .from('daily_log_configs')
           .insert(configData)
+          .select()
 
-        if (error) throw error
+        if (error) {
+          console.error('❌ Error creando:', error)
+          throw error
+        }
+        console.log('✅ Config creada:', data)
       }
 
       alert('✅ Configuración guardada exitosamente')
       router.push(`/projects/${params.id}/daily-logs`)
     } catch (error: any) {
-      console.error('Error saving config:', error)
+      console.error('❌ Error saving config:', error)
       alert('Error al guardar configuración: ' + error.message)
     } finally {
       setSaving(false)
