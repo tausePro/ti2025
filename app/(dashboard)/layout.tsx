@@ -19,7 +19,8 @@ import {
   Wifi,
   Calculator,
   X,
-  User
+  User,
+  FileType
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -101,6 +102,11 @@ export default function DashboardLayout({
         name: 'Empresas',
         href: '/admin/companies',
         icon: Building
+      },
+      {
+        name: 'Plantillas PDF',
+        href: '/admin/report-templates',
+        icon: FileType
       }
     ] : []),
     ...(profile?.role && ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role) ? [
