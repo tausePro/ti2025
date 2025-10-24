@@ -1,3 +1,5 @@
+'use client'
+
 import { Document, Page } from '@react-pdf/renderer'
 import type { ReportTemplate, ProjectData } from '@/types/reports'
 import { createPDFStyles } from './PDFStyles'

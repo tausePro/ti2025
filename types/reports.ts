@@ -33,7 +33,7 @@ export interface StylesConfig {
   secondary_color: string
   accent_color: string
   font_family: string
-  page_size: 'A4' | 'Letter'
+  page_size: 'A4' | 'LETTER'
   orientation: 'portrait' | 'landscape'
   margins: {
     top: number

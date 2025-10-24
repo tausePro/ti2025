@@ -29,6 +29,18 @@ const nextConfig = {
       },
     ],
   },
+  // Configuración para @react-pdf/renderer
+  webpack: (config, { isServer }) => {
+    // Ignorar canvas en el cliente (requerido por @react-pdf/renderer)
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        canvas: false,
+        encoding: false,
+      }
+    }
+    return config
+  },
   async headers() {
     return [
       {
