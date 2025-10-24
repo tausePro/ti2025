@@ -90,7 +90,7 @@ export default function ProjectTeamPage() {
         .from('project_members')
         .select(`
           *,
-          user:profiles(
+          user:profiles!project_members_user_id_fkey(
             id,
             full_name,
             email,
