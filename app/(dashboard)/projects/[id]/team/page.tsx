@@ -84,6 +84,8 @@ export default function ProjectTeamPage() {
     try {
       setLoading(true)
       
+      console.log('🔄 Cargando miembros del proyecto:', projectId)
+      
       const { data, error } = await supabase
         .from('project_members')
         .select(`
@@ -101,11 +103,16 @@ export default function ProjectTeamPage() {
         .eq('is_active', true)
         .order('assigned_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Error cargando miembros:', error)
+        throw error
+      }
 
+      console.log('✅ Miembros cargados:', data)
       setMembers(data || [])
       logger.info('Team members loaded', { projectId, count: data?.length })
     } catch (error) {
+      console.error('❌ Error completo:', error)
       logger.error('Error loading team members', { projectId }, error as Error)
     } finally {
       setLoading(false)

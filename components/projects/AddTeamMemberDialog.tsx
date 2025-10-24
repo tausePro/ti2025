@@ -131,25 +131,33 @@ export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTe
       setSaving(true)
       setError(null)
 
-      const { error } = await supabase
+      const memberData = {
+        project_id: projectId,
+        user_id: selectedUserId,
+        role_in_project: selectedRole,
+        assigned_by: profile?.id,
+        is_active: true
+      }
+
+      console.log('📝 Intentando agregar miembro:', memberData)
+
+      const { data, error } = await supabase
         .from('project_members')
-        .insert({
-          project_id: projectId,
-          user_id: selectedUserId,
-          role_in_project: selectedRole,
-          assigned_by: profile?.id,
-          is_active: true
-        })
+        .insert(memberData)
+        .select()
 
       if (error) {
         console.error('❌ Error al insertar miembro:', error)
         throw error
       }
 
+      console.log('✅ Miembro agregado exitosamente:', data)
+
       logger.info('Member added to project', { 
         projectId, 
         userId: selectedUserId, 
-        role: selectedRole 
+        role: selectedRole,
+        result: data
       })
 
       setSuccess(true)
