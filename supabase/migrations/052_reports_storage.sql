@@ -14,73 +14,15 @@ VALUES (
   52428800, -- 50MB máximo por archivo
   ARRAY['application/pdf']::text[]
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  public = false,
+  file_size_limit = 52428800,
+  allowed_mime_types = ARRAY['application/pdf']::text[];
 
--- 2. POLÍTICAS DE ACCESO
-
--- Política: Los usuarios pueden subir reportes de sus proyectos
-CREATE POLICY "Users can upload reports for their projects"
-ON storage.objects FOR INSERT
-WITH CHECK (
-  bucket_id = 'reports'
-  AND auth.role() = 'authenticated'
-  AND (
-    -- Verificar que el usuario es miembro del proyecto
-    -- El path debe ser: daily-logs/weekly/PROJ-XXX_...pdf
-    -- Extraemos el código del proyecto del path
-    EXISTS (
-      SELECT 1 FROM project_members pm
-      JOIN projects p ON p.id = pm.project_id
-      WHERE pm.user_id = auth.uid()
-      AND pm.is_active = true
-      AND (storage.foldername(name))[1] LIKE '%' || p.project_code || '%'
-    )
-    OR
-    -- O es admin
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid()
-      AND role IN ('super_admin', 'admin')
-    )
-  )
-);
-
--- Política: Los usuarios pueden ver reportes de sus proyectos
-CREATE POLICY "Users can view reports from their projects"
-ON storage.objects FOR SELECT
-USING (
-  bucket_id = 'reports'
-  AND auth.role() = 'authenticated'
-  AND (
-    -- Miembro del proyecto
-    EXISTS (
-      SELECT 1 FROM project_members pm
-      JOIN projects p ON p.id = pm.project_id
-      WHERE pm.user_id = auth.uid()
-      AND pm.is_active = true
-      AND (storage.foldername(name))[1] LIKE '%' || p.project_code || '%'
-    )
-    OR
-    -- O es admin
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE id = auth.uid()
-      AND role IN ('super_admin', 'admin')
-    )
-  )
-);
-
--- Política: Los admins pueden eliminar reportes
-CREATE POLICY "Admins can delete reports"
-ON storage.objects FOR DELETE
-USING (
-  bucket_id = 'reports'
-  AND EXISTS (
-    SELECT 1 FROM profiles
-    WHERE id = auth.uid()
-    AND role IN ('super_admin', 'admin')
-  )
-);
+-- 2. NOTA SOBRE POLÍTICAS
+-- Las políticas de storage.objects requieren permisos de superusuario
+-- Se crearán automáticamente desde el código de la aplicación
+-- Ver: lib/supabase/setup-storage-policies.ts
 
 -- 3. FUNCIÓN: Limpiar reportes antiguos (más de 6 meses)
 CREATE OR REPLACE FUNCTION cleanup_old_reports()

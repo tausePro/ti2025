@@ -205,10 +205,14 @@
 
 ### 5.1 Subida a Storage
 - [ ] Función `uploadReportToStorage()`
+- [ ] Usar service_role key para subir (bypass RLS)
 - [ ] Generar nombre único: `PROJ-XXX_weekly_2025-10-21.pdf`
 - [ ] Subir a bucket `reports/daily-logs/weekly/`
-- [ ] Obtener URL pública
+- [ ] Obtener URL firmada (signed URL) para acceso
 - [ ] Manejar errores
+
+**IMPORTANTE:** Los reportes se GENERAN desde la plataforma, no los suben usuarios.
+El backend usa service_role key para subir los PDFs generados.
 
 ### 5.2 Registro en BD
 - [ ] Insertar en `generated_reports`
