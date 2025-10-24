@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import DailyLogForm from '@/components/daily-logs/DailyLogForm'
+import DailyLogFormTabs from '@/components/daily-logs/DailyLogFormTabs'
 
 export default async function NewDailyLogPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -39,7 +39,7 @@ export default async function NewDailyLogPage({ params }: { params: { id: string
         </p>
       </div>
 
-      <DailyLogForm 
+      <DailyLogFormTabs 
         projectId={params.id} 
         templateId={template?.id}
       />
