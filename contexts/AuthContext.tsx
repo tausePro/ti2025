@@ -334,16 +334,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const hasPermission = (module: string, action: string): boolean => {
+    console.log('🔍 hasPermission llamado:', { 
+      module, 
+      action, 
+      profileRole: profile?.role,
+      profileExists: !!profile,
+      permissionsCount: permissions?.length || 0
+    })
+    
     // Admin y super_admin tienen todos los permisos
     if (profile?.role === 'admin' || profile?.role === 'super_admin') {
+      console.log('✅ Acceso concedido por rol admin/super_admin')
       return true
     }
     
-    return permissions.some(p => 
+    // Si no hay permisos cargados, denegar acceso
+    if (!permissions || permissions.length === 0) {
+      console.log('⚠️ No hay permisos cargados para verificar')
+      return false
+    }
+    
+    const hasAccess = permissions.some(p => 
       p.module === module && 
       p.action === action && 
       p.allowed
     )
+    
+    console.log('🔍 Resultado verificación:', { 
+      hasAccess,
+      permissionsChecked: permissions.filter(p => p.module === module)
+    })
+    
+    return hasAccess
   }
 
   return (
