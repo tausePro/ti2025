@@ -11,10 +11,10 @@ export default async function NewTemplatePage() {
     redirect('/login')
   }
 
-  // Obtener perfil y permisos
+  // Obtener perfil
   const { data: profile } = await (supabase
     .from('profiles') as any)
-    .select('role, company_id')
+    .select('role')
     .eq('id', user.id)
     .single()
 
@@ -47,14 +47,14 @@ export default async function NewTemplatePage() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
-          Nueva Plantilla de Reporte
+          Nueva Plantilla de Informe
         </h1>
         <p className="text-gray-600 mt-2">
-          Configura una nueva plantilla para generar reportes PDF
+          Configura una nueva plantilla para generar informes PDF
         </p>
       </div>
 
-      <TemplateForm companyId={profile.company_id} userId={user.id} />
+      <TemplateForm companyId={null} userId={user.id} />
     </div>
   )
 }

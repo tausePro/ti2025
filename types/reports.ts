@@ -6,7 +6,13 @@
 // PLANTILLAS
 // ============================================
 
-export type ReportTemplateType = 'daily_log' | 'financial' | 'general' | 'custom'
+export type ReportTemplateType = 
+  | 'interventoria_administrativa'  // Informe de Interventoría Administrativa
+  | 'supervision_tecnica'            // Informe de Supervisión Técnica Independiente
+  | 'bitacora_diaria'                // Informe de Bitácora Diaria
+  | 'bitacora_semanal'               // Informe de Bitácora Semanal
+  | 'bitacora_mensual'               // Informe de Bitácora Mensual
+  | 'custom'                         // Personalizado
 
 export interface HeaderConfig {
   logo_url: string
@@ -44,16 +50,34 @@ export interface StylesConfig {
 }
 
 export interface SectionsConfig {
-  cover_page: boolean
-  table_of_contents: boolean
-  executive_summary: boolean
-  ai_insights: boolean
-  detailed_logs: boolean
-  photos: boolean
-  checklists: boolean
-  custom_fields: boolean
-  signatures: boolean
-  appendix: boolean
+  // Secciones generales
+  cover_page: boolean                    // Portada
+  table_of_contents: boolean             // Tabla de contenido
+  
+  // Secciones de Interventoría
+  project_info: boolean                  // Información del proyecto
+  executive_summary: boolean             // Resumen ejecutivo
+  progress_status: boolean               // Estado de avance de obra
+  technical_supervision: boolean         // Supervisión técnica
+  administrative_control: boolean        // Control administrativo
+  financial_status: boolean              // Estado financiero
+  quality_control: boolean               // Control de calidad
+  safety_compliance: boolean             // Cumplimiento de seguridad
+  
+  // Secciones de Bitácoras
+  daily_activities: boolean              // Actividades diarias
+  personnel_registry: boolean            // Registro de personal
+  weather_conditions: boolean            // Condiciones climáticas
+  materials_equipment: boolean           // Materiales y equipos
+  photos: boolean                        // Registro fotográfico
+  observations: boolean                  // Observaciones
+  issues_incidents: boolean              // Novedades e incidentes
+  
+  // Secciones adicionales
+  ai_insights: boolean                   // Análisis con IA
+  recommendations: boolean               // Recomendaciones
+  signatures: boolean                    // Firmas y aprobaciones
+  appendix: boolean                      // Anexos
 }
 
 export interface ReportTemplate {

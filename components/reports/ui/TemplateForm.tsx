@@ -8,7 +8,7 @@ import type { ReportTemplate, HeaderConfig, FooterConfig, StylesConfig, Sections
 
 interface TemplateFormProps {
   template?: ReportTemplate
-  companyId: string
+  companyId: string | null
   userId: string
 }
 
@@ -24,7 +24,7 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
 
   // Estados del formulario
   const [templateName, setTemplateName] = useState(template?.template_name || '')
-  const [templateType, setTemplateType] = useState(template?.template_type || 'daily_log')
+  const [templateType, setTemplateType] = useState(template?.template_type || 'bitacora_diaria')
   const [isDefault, setIsDefault] = useState(template?.is_default || false)
   const [isGlobal, setIsGlobal] = useState(!template?.company_id)
 
@@ -66,14 +66,32 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
 
   const [sectionsConfig, setSectionsConfig] = useState<SectionsConfig>(
     template?.sections || {
+      // Secciones generales
       cover_page: true,
-      table_of_contents: false,
+      table_of_contents: true,
+      
+      // Secciones de Interventoría
+      project_info: true,
       executive_summary: true,
-      ai_insights: true,
-      detailed_logs: true,
+      progress_status: true,
+      technical_supervision: true,
+      administrative_control: true,
+      financial_status: true,
+      quality_control: true,
+      safety_compliance: true,
+      
+      // Secciones de Bitácoras
+      daily_activities: true,
+      personnel_registry: true,
+      weather_conditions: true,
+      materials_equipment: true,
       photos: true,
-      checklists: true,
-      custom_fields: true,
+      observations: true,
+      issues_incidents: true,
+      
+      // Secciones adicionales
+      ai_insights: true,
+      recommendations: true,
       signatures: true,
       appendix: false
     }
@@ -185,16 +203,22 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo de Reporte
+                Tipo de Informe
               </label>
               <select
                 value={templateType}
                 onChange={(e) => setTemplateType(e.target.value as any)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="daily_log">Bitácoras Diarias</option>
-                <option value="financial">Financiero</option>
-                <option value="general">General</option>
+                <optgroup label="Informes de Interventoría">
+                  <option value="interventoria_administrativa">Interventoría Administrativa</option>
+                  <option value="supervision_tecnica">Supervisión Técnica Independiente</option>
+                </optgroup>
+                <optgroup label="Informes de Bitácora">
+                  <option value="bitacora_diaria">Bitácora Diaria</option>
+                  <option value="bitacora_semanal">Bitácora Semanal</option>
+                  <option value="bitacora_mensual">Bitácora Mensual</option>
+                </optgroup>
                 <option value="custom">Personalizado</option>
               </select>
             </div>
@@ -543,25 +567,110 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
 
         {/* Tab: Secciones */}
         {activeTab === 'sections' && (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600 mb-4">
-              Selecciona las secciones que se incluirán en el reporte PDF
+          <div className="space-y-6">
+            <p className="text-sm text-gray-600">
+              Selecciona las secciones que se incluirán en el informe PDF
             </p>
 
-            <div className="grid grid-cols-2 gap-4">
-              {Object.entries(sectionsConfig).map(([key, value]) => (
-                <label key={key} className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+            {/* Secciones Generales */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Secciones Generales</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={value}
-                    onChange={(e) => setSectionsConfig({ ...sectionsConfig, [key]: e.target.checked })}
+                    checked={sectionsConfig.cover_page}
+                    onChange={(e) => setSectionsConfig({ ...sectionsConfig, cover_page: e.target.checked })}
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
-                  <span className="text-sm text-gray-700 capitalize">
-                    {key.replace(/_/g, ' ')}
-                  </span>
+                  <span className="text-sm text-gray-700">Portada</span>
                 </label>
-              ))}
+                <label className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sectionsConfig.table_of_contents}
+                    onChange={(e) => setSectionsConfig({ ...sectionsConfig, table_of_contents: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Tabla de Contenido</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Secciones de Interventoría */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Secciones de Interventoría</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'project_info', label: 'Información del Proyecto' },
+                  { key: 'executive_summary', label: 'Resumen Ejecutivo' },
+                  { key: 'progress_status', label: 'Estado de Avance de Obra' },
+                  { key: 'technical_supervision', label: 'Supervisión Técnica' },
+                  { key: 'administrative_control', label: 'Control Administrativo' },
+                  { key: 'financial_status', label: 'Estado Financiero' },
+                  { key: 'quality_control', label: 'Control de Calidad' },
+                  { key: 'safety_compliance', label: 'Cumplimiento de Seguridad' }
+                ].map(({ key, label }) => (
+                  <label key={key} className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={sectionsConfig[key as keyof SectionsConfig]}
+                      onChange={(e) => setSectionsConfig({ ...sectionsConfig, [key]: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Secciones de Bitácoras */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Secciones de Bitácoras</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'daily_activities', label: 'Actividades Diarias' },
+                  { key: 'personnel_registry', label: 'Registro de Personal' },
+                  { key: 'weather_conditions', label: 'Condiciones Climáticas' },
+                  { key: 'materials_equipment', label: 'Materiales y Equipos' },
+                  { key: 'photos', label: 'Registro Fotográfico' },
+                  { key: 'observations', label: 'Observaciones' },
+                  { key: 'issues_incidents', label: 'Novedades e Incidentes' }
+                ].map(({ key, label }) => (
+                  <label key={key} className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={sectionsConfig[key as keyof SectionsConfig]}
+                      onChange={(e) => setSectionsConfig({ ...sectionsConfig, [key]: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Secciones Adicionales */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Secciones Adicionales</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: 'ai_insights', label: 'Análisis con IA' },
+                  { key: 'recommendations', label: 'Recomendaciones' },
+                  { key: 'signatures', label: 'Firmas y Aprobaciones' },
+                  { key: 'appendix', label: 'Anexos' }
+                ].map(({ key, label }) => (
+                  <label key={key} className="flex items-center gap-2 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={sectionsConfig[key as keyof SectionsConfig]}
+                      onChange={(e) => setSectionsConfig({ ...sectionsConfig, [key]: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">{label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
         )}
