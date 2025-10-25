@@ -48,7 +48,8 @@ const MODULES = [
   { key: 'financial', label: 'Financiero', description: 'Módulo financiero y presupuestos' },
   { key: 'users', label: 'Usuarios', description: 'Gestión de usuarios y perfiles' },
   { key: 'companies', label: 'Empresas', description: 'Gestión de empresas cliente' },
-  { key: 'bitacora', label: 'Bitácora', description: 'Registro de actividades diarias' }
+  { key: 'bitacora', label: 'Bitácora', description: 'Registro de actividades diarias' },
+  { key: 'plantillas_pdf', label: 'Plantillas PDF', description: 'Configuración de plantillas de reportes' }
 ]
 
 const ACTIONS = [
@@ -72,7 +73,8 @@ const DEFAULT_ROLES: Role[] = [
       financial: { create: true, read: true, update: true, delete: true, approve: true, sign: true, assign: true },
       users: { create: true, read: true, update: true, delete: true, approve: true, sign: true, assign: true },
       companies: { create: true, read: true, update: true, delete: true, approve: true, sign: true, assign: true },
-      bitacora: { create: true, read: true, update: true, delete: true, approve: true, sign: true, assign: true }
+      bitacora: { create: true, read: true, update: true, delete: true, approve: true, sign: true, assign: true },
+      plantillas_pdf: { create: true, read: true, update: true, delete: true, approve: true, sign: true, assign: true }
     }
   },
   {
@@ -85,7 +87,8 @@ const DEFAULT_ROLES: Role[] = [
       financial: { create: true, read: true, update: true, delete: false, approve: true, sign: true, assign: true },
       users: { create: true, read: true, update: true, delete: false, approve: true, sign: true, assign: true },
       companies: { create: true, read: true, update: true, delete: false, approve: true, sign: true, assign: true },
-      bitacora: { create: true, read: true, update: true, delete: false, approve: true, sign: true, assign: true }
+      bitacora: { create: true, read: true, update: true, delete: false, approve: true, sign: true, assign: true },
+      plantillas_pdf: { create: true, read: true, update: true, delete: true, approve: true, sign: true, assign: true }
     }
   },
   {
@@ -98,7 +101,8 @@ const DEFAULT_ROLES: Role[] = [
       financial: { create: false, read: true, update: false, delete: false, approve: true, sign: true, assign: false },
       users: { create: false, read: true, update: false, delete: false, approve: false, sign: false, assign: true },
       companies: { create: false, read: true, update: false, delete: false, approve: false, sign: false, assign: false },
-      bitacora: { create: true, read: true, update: true, delete: false, approve: true, sign: true, assign: true }
+      bitacora: { create: true, read: true, update: true, delete: false, approve: true, sign: true, assign: true },
+      plantillas_pdf: { create: false, read: true, update: false, delete: false, approve: false, sign: false, assign: false }
     }
   },
   {
@@ -111,7 +115,8 @@ const DEFAULT_ROLES: Role[] = [
       financial: { create: false, read: true, update: false, delete: false, approve: false, sign: false, assign: false },
       users: { create: false, read: true, update: false, delete: false, approve: false, sign: false, assign: false },
       companies: { create: false, read: true, update: false, delete: false, approve: false, sign: false, assign: false },
-      bitacora: { create: true, read: true, update: true, delete: false, approve: true, sign: true, assign: false }
+      bitacora: { create: true, read: true, update: true, delete: false, approve: true, sign: true, assign: false },
+      plantillas_pdf: { create: false, read: false, update: false, delete: false, approve: false, sign: false, assign: false }
     }
   },
   {
@@ -124,7 +129,8 @@ const DEFAULT_ROLES: Role[] = [
       financial: { create: false, read: false, update: false, delete: false, approve: false, sign: false, assign: false },
       users: { create: false, read: false, update: false, delete: false, approve: false, sign: false, assign: false },
       companies: { create: false, read: false, update: false, delete: false, approve: false, sign: false, assign: false },
-      bitacora: { create: true, read: true, update: true, delete: false, approve: false, sign: false, assign: false }
+      bitacora: { create: true, read: true, update: true, delete: false, approve: false, sign: false, assign: false },
+      plantillas_pdf: { create: false, read: false, update: false, delete: false, approve: false, sign: false, assign: false }
     }
   },
   {
@@ -137,7 +143,8 @@ const DEFAULT_ROLES: Role[] = [
       financial: { create: false, read: false, update: false, delete: false, approve: false, sign: false, assign: false },
       users: { create: false, read: false, update: false, delete: false, approve: false, sign: false, assign: false },
       companies: { create: false, read: false, update: false, delete: false, approve: false, sign: false, assign: false },
-      bitacora: { create: false, read: true, update: false, delete: false, approve: false, sign: false, assign: false }
+      bitacora: { create: false, read: true, update: false, delete: false, approve: false, sign: false, assign: false },
+      plantillas_pdf: { create: false, read: false, update: false, delete: false, approve: false, sign: false, assign: false }
     }
   }
 ]

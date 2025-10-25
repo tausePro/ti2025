@@ -97,12 +97,14 @@ export default function DashboardLayout({
         icon: Calculator
       }
     ] : []),
-    ...(profile?.role && ['admin', 'super_admin'].includes(profile.role) ? [
+    ...(hasPermission('companies', 'read') ? [
       {
         name: 'Empresas',
         href: '/admin/companies',
         icon: Building
-      },
+      }
+    ] : []),
+    ...(hasPermission('plantillas_pdf', 'read') ? [
       {
         name: 'Plantillas PDF',
         href: '/admin/report-templates',
