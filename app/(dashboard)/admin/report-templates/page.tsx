@@ -11,14 +11,29 @@ export default async function ReportTemplatesPage() {
     redirect('/login')
   }
 
-  // Verificar que sea admin
+  // Obtener perfil y permisos
   const { data: profile } = await (supabase
     .from('profiles') as any)
     .select('role, company_id')
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['super_admin', 'admin'].includes(profile.role)) {
+  if (!profile) {
+    redirect('/dashboard')
+  }
+
+  // Verificar permisos para el módulo plantillas_pdf
+  const { data: permissions } = await (supabase
+    .from('role_permissions') as any)
+    .select('*')
+    .eq('role', profile.role)
+    .eq('module', 'plantillas_pdf')
+    .eq('action', 'read')
+    .eq('allowed', true)
+    .single()
+
+  // Si no tiene permisos, redirigir
+  if (!permissions && !['super_admin', 'admin'].includes(profile.role)) {
     redirect('/dashboard')
   }
 
