@@ -22,19 +22,25 @@ export default async function NewTemplatePage() {
     redirect('/dashboard')
   }
 
-  // Verificar permisos para crear plantillas
-  const { data: permissions } = await (supabase
-    .from('role_permissions') as any)
-    .select('*')
-    .eq('role', profile.role)
-    .eq('module', 'plantillas_pdf')
-    .eq('action', 'create')
-    .eq('allowed', true)
-    .single()
+  // Admin y super_admin siempre tienen acceso
+  const isAdmin = ['super_admin', 'admin'].includes(profile.role)
+  
+  if (!isAdmin) {
+    // Para otros roles, verificar permisos
+    const { data: permissions, error: permError } = await (supabase
+      .from('role_permissions') as any)
+      .select('*')
+      .eq('role', profile.role)
+      .eq('module', 'plantillas_pdf')
+      .eq('action', 'create')
+      .eq('allowed', true)
+      .maybeSingle()
 
-  // Si no tiene permisos, redirigir
-  if (!permissions && !['super_admin', 'admin'].includes(profile.role)) {
-    redirect('/admin/report-templates')
+    // Si no tiene permisos o hay error, redirigir
+    if (!permissions || permError) {
+      console.log('❌ Sin permisos para crear plantillas:', { role: profile.role, error: permError })
+      redirect('/admin/report-templates')
+    }
   }
 
   return (

@@ -22,19 +22,25 @@ export default async function ReportTemplatesPage() {
     redirect('/dashboard')
   }
 
-  // Verificar permisos para el módulo plantillas_pdf
-  const { data: permissions } = await (supabase
-    .from('role_permissions') as any)
-    .select('*')
-    .eq('role', profile.role)
-    .eq('module', 'plantillas_pdf')
-    .eq('action', 'read')
-    .eq('allowed', true)
-    .single()
+  // Admin y super_admin siempre tienen acceso
+  const isAdmin = ['super_admin', 'admin'].includes(profile.role)
+  
+  if (!isAdmin) {
+    // Para otros roles, verificar permisos
+    const { data: permissions, error: permError } = await (supabase
+      .from('role_permissions') as any)
+      .select('*')
+      .eq('role', profile.role)
+      .eq('module', 'plantillas_pdf')
+      .eq('action', 'read')
+      .eq('allowed', true)
+      .maybeSingle()
 
-  // Si no tiene permisos, redirigir
-  if (!permissions && !['super_admin', 'admin'].includes(profile.role)) {
-    redirect('/dashboard')
+    // Si no tiene permisos o hay error, redirigir
+    if (!permissions || permError) {
+      console.log('❌ Sin permisos para plantillas_pdf:', { role: profile.role, error: permError })
+      redirect('/dashboard')
+    }
   }
 
   // Obtener plantillas
