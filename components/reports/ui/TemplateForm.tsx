@@ -12,7 +12,7 @@ interface TemplateFormProps {
   userId: string
 }
 
-type TabType = 'basic' | 'header' | 'footer' | 'styles' | 'sections'
+type TabType = 'basic' | 'header' | 'footer' | 'styles' | 'sections' | 'ai_config' | 'section_templates'
 
 export function TemplateForm({ template, companyId, userId }: TemplateFormProps) {
   const router = useRouter()
@@ -202,7 +202,9 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
     { id: 'header' as TabType, label: 'Encabezado' },
     { id: 'footer' as TabType, label: 'Pie de Página' },
     { id: 'styles' as TabType, label: 'Estilos' },
-    { id: 'sections' as TabType, label: 'Secciones' }
+    { id: 'sections' as TabType, label: 'Secciones' },
+    { id: 'ai_config' as TabType, label: 'Configuración IA' },
+    { id: 'section_templates' as TabType, label: 'Contenido Secciones' }
   ]
 
   return (
@@ -766,6 +768,151 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
                   </label>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Configuración IA */}
+        {activeTab === 'ai_config' && (
+          <div className="space-y-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <h3 className="text-sm font-semibold text-blue-900 mb-2">Configuración de Inteligencia Artificial</h3>
+              <p className="text-sm text-blue-700">
+                Entrena cómo la IA escribe en los informes. Define el tono, estilo y vocabulario preferido.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tono de Escritura
+              </label>
+              <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <option value="formal">Formal - Lenguaje profesional y estructurado</option>
+                <option value="tecnico">Técnico - Terminología especializada</option>
+                <option value="ejecutivo">Ejecutivo - Conciso y orientado a resultados</option>
+                <option value="casual">Casual - Lenguaje más accesible</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Instrucciones para la IA
+              </label>
+              <textarea
+                rows={4}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                placeholder="Ej: Escribe de forma clara y concisa. Usa datos específicos cuando estén disponibles. Mantén un tono profesional..."
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Guías específicas de cómo debe escribir la IA
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vocabulario Preferido
+              </label>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Término genérico"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <span className="flex items-center text-gray-400">→</span>
+                  <input
+                    type="text"
+                    placeholder="Término preferido"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    Agregar
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Ej: "trabajador" → "colaborador", "problema" → "oportunidad de mejora"
+              </p>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <p className="text-sm text-gray-600">
+                💡 <strong>Tip:</strong> La configuración de IA se aplicará al generar contenido automático para las secciones del informe.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Contenido Secciones */}
+        {activeTab === 'section_templates' && (
+          <div className="space-y-6">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <h3 className="text-sm font-semibold text-green-900 mb-2">Preconfiguración de Secciones</h3>
+              <p className="text-sm text-green-700">
+                Define el contenido predeterminado para cada sección. Usa placeholders como {`{{project_name}}`} o {`{{date}}`}
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-gray-900">Resumen Ejecutivo</h4>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" defaultChecked />
+                    <span className="text-sm text-gray-600">Usar IA</span>
+                  </label>
+                </div>
+                <textarea
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+                  placeholder="Durante el período del {{date_start}} al {{date_end}}, el proyecto {{project_name}} presentó un avance del {{progress}}%..."
+                />
+                <div className="mt-2 flex gap-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input type="checkbox" className="w-4 h-4 rounded" />
+                    Incluir gráficos
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input type="checkbox" className="w-4 h-4 rounded" />
+                    Incluir fotos
+                  </label>
+                </div>
+              </div>
+
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-gray-900">Estado de Avance</h4>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" defaultChecked />
+                    <span className="text-sm text-gray-600">Usar IA</span>
+                  </label>
+                </div>
+                <textarea
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+                  placeholder="El avance físico de la obra alcanzó el {{progress}}%, cumpliendo con el cronograma establecido..."
+                />
+                <div className="mt-2 flex gap-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input type="checkbox" className="w-4 h-4 rounded" defaultChecked />
+                    Incluir gráficos
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input type="checkbox" className="w-4 h-4 rounded" />
+                    Incluir fotos
+                  </label>
+                </div>
+              </div>
+
+              <button className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors">
+                + Agregar más secciones
+              </button>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <p className="text-sm text-gray-600">
+                💡 <strong>Placeholders disponibles:</strong> {`{{project_name}} {{date}} {{progress}} {{client_name}} {{supervisor_name}}`}
+              </p>
             </div>
           </div>
         )}
