@@ -187,7 +187,7 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
         if (insertError) throw insertError
       }
 
-      router.push('/admin/report-templates')
+      router.push('/dashboard/admin/report-templates')
       router.refresh()
     } catch (err: any) {
       console.error('Error guardando plantilla:', err)
@@ -853,61 +853,72 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
               </p>
             </div>
 
-            <div className="space-y-4">
-              <div className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-900">Resumen Ejecutivo</h4>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" defaultChecked />
-                    <span className="text-sm text-gray-600">Usar IA</span>
-                  </label>
-                </div>
-                <textarea
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="Durante el período del {{date_start}} al {{date_end}}, el proyecto {{project_name}} presentó un avance del {{progress}}%..."
-                />
-                <div className="mt-2 flex gap-2">
-                  <label className="flex items-center gap-2 text-sm text-gray-600">
-                    <input type="checkbox" className="w-4 h-4 rounded" />
-                    Incluir gráficos
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-600">
-                    <input type="checkbox" className="w-4 h-4 rounded" />
-                    Incluir fotos
-                  </label>
-                </div>
+            {/* Mostrar solo las secciones activas del Tab 5 */}
+            {Object.keys(sectionsConfig).filter(key => sectionsConfig[key as keyof SectionsConfig]).length === 0 ? (
+              <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+                <p className="text-gray-500">
+                  No hay secciones seleccionadas. Ve al tab <strong>&quot;Secciones&quot;</strong> para seleccionar las secciones que incluirá el informe.
+                </p>
               </div>
+            ) : (
+              <div className="space-y-4">
+                {Object.entries(sectionsConfig)
+                  .filter(([_, isActive]) => isActive)
+                  .map(([key]) => {
+                    // Mapeo de keys a labels
+                    const sectionLabels: Record<string, string> = {
+                      cover_page: 'Portada',
+                      table_of_contents: 'Tabla de Contenido',
+                      project_info: 'Información del Proyecto',
+                      executive_summary: 'Resumen Ejecutivo',
+                      progress_status: 'Estado de Avance de Obra',
+                      technical_supervision: 'Supervisión Técnica',
+                      administrative_control: 'Control Administrativo',
+                      financial_status: 'Estado Financiero',
+                      quality_control: 'Control de Calidad',
+                      safety_compliance: 'Cumplimiento de Seguridad',
+                      daily_activities: 'Actividades Diarias',
+                      personnel_registry: 'Registro de Personal',
+                      weather_conditions: 'Condiciones Climáticas',
+                      materials_equipment: 'Materiales y Equipos',
+                      photos: 'Registro Fotográfico',
+                      observations: 'Observaciones',
+                      issues_incidents: 'Novedades e Incidentes',
+                      ai_insights: 'Análisis con IA',
+                      recommendations: 'Recomendaciones',
+                      signatures: 'Firmas y Aprobaciones',
+                      appendix: 'Anexos'
+                    }
 
-              <div className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-900">Estado de Avance</h4>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" defaultChecked />
-                    <span className="text-sm text-gray-600">Usar IA</span>
-                  </label>
-                </div>
-                <textarea
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="El avance físico de la obra alcanzó el {{progress}}%, cumpliendo con el cronograma establecido..."
-                />
-                <div className="mt-2 flex gap-2">
-                  <label className="flex items-center gap-2 text-sm text-gray-600">
-                    <input type="checkbox" className="w-4 h-4 rounded" defaultChecked />
-                    Incluir gráficos
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-600">
-                    <input type="checkbox" className="w-4 h-4 rounded" />
-                    Incluir fotos
-                  </label>
-                </div>
+                    return (
+                      <div key={key} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-medium text-gray-900">{sectionLabels[key] || key}</h4>
+                          <label className="flex items-center gap-2">
+                            <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" defaultChecked />
+                            <span className="text-sm text-gray-600">Usar IA</span>
+                          </label>
+                        </div>
+                        <textarea
+                          rows={3}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder={`Contenido predeterminado para ${sectionLabels[key] || key}. Usa placeholders como {{project_name}}, {{date}}, etc.`}
+                        />
+                        <div className="mt-2 flex gap-2">
+                          <label className="flex items-center gap-2 text-sm text-gray-600">
+                            <input type="checkbox" className="w-4 h-4 rounded" />
+                            Incluir gráficos
+                          </label>
+                          <label className="flex items-center gap-2 text-sm text-gray-600">
+                            <input type="checkbox" className="w-4 h-4 rounded" />
+                            Incluir fotos
+                          </label>
+                        </div>
+                      </div>
+                    )
+                  })}
               </div>
-
-              <button className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors">
-                + Agregar más secciones
-              </button>
-            </div>
+            )}
 
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <p className="text-sm text-gray-600">
