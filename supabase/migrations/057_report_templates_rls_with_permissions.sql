@@ -20,14 +20,14 @@ CREATE POLICY "Usuarios con permiso pueden ver plantillas"
     EXISTS (
       SELECT 1 FROM profiles
       WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('admin', 'super_admin')
+      AND profiles.role::user_role IN ('admin', 'super_admin')
     )
     OR
     -- Otros roles verifican en role_permissions
     EXISTS (
       SELECT 1 
       FROM role_permissions rp
-      WHERE rp.role::text = (SELECT role FROM profiles WHERE id = auth.uid())
+      WHERE rp.role = (SELECT role::user_role FROM profiles WHERE id = auth.uid())
       AND rp.module = 'plantillas_pdf'
       AND rp.action = 'read'
       AND rp.allowed = true
@@ -44,14 +44,14 @@ CREATE POLICY "Usuarios con permiso pueden crear plantillas"
     EXISTS (
       SELECT 1 FROM profiles
       WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('admin', 'super_admin')
+      AND profiles.role::user_role IN ('admin', 'super_admin')
     )
     OR
     -- Otros roles verifican en role_permissions
     EXISTS (
       SELECT 1 
       FROM role_permissions rp
-      WHERE rp.role::text = (SELECT role FROM profiles WHERE id = auth.uid())
+      WHERE rp.role = (SELECT role::user_role FROM profiles WHERE id = auth.uid())
       AND rp.module = 'plantillas_pdf'
       AND rp.action = 'create'
       AND rp.allowed = true
@@ -68,14 +68,14 @@ CREATE POLICY "Usuarios con permiso pueden actualizar plantillas"
     EXISTS (
       SELECT 1 FROM profiles
       WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('admin', 'super_admin')
+      AND profiles.role::user_role IN ('admin', 'super_admin')
     )
     OR
     -- Otros roles verifican en role_permissions
     EXISTS (
       SELECT 1 
       FROM role_permissions rp
-      WHERE rp.role::text = (SELECT role FROM profiles WHERE id = auth.uid())
+      WHERE rp.role = (SELECT role::user_role FROM profiles WHERE id = auth.uid())
       AND rp.module = 'plantillas_pdf'
       AND rp.action = 'update'
       AND rp.allowed = true
@@ -86,14 +86,13 @@ CREATE POLICY "Usuarios con permiso pueden actualizar plantillas"
     EXISTS (
       SELECT 1 FROM profiles
       WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('admin', 'super_admin')
+      AND profiles.role::user_role IN ('admin', 'super_admin')
     )
     OR
     EXISTS (
       SELECT 1 
-      FROM profiles p
-      INNER JOIN role_permissions rp ON rp.role = p.role::text
-      WHERE p.id = auth.uid()
+      FROM role_permissions rp
+      WHERE rp.role = (SELECT role::user_role FROM profiles WHERE id = auth.uid())
       AND rp.module = 'plantillas_pdf'
       AND rp.action = 'update'
       AND rp.allowed = true
@@ -110,14 +109,14 @@ CREATE POLICY "Usuarios con permiso pueden eliminar plantillas"
     EXISTS (
       SELECT 1 FROM profiles
       WHERE profiles.id = auth.uid()
-      AND profiles.role IN ('admin', 'super_admin')
+      AND profiles.role::user_role IN ('admin', 'super_admin')
     )
     OR
     -- Otros roles verifican en role_permissions
     EXISTS (
       SELECT 1 
       FROM role_permissions rp
-      WHERE rp.role::text = (SELECT role FROM profiles WHERE id = auth.uid())
+      WHERE rp.role = (SELECT role::user_role FROM profiles WHERE id = auth.uid())
       AND rp.module = 'plantillas_pdf'
       AND rp.action = 'delete'
       AND rp.allowed = true
