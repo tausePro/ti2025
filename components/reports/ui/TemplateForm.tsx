@@ -123,9 +123,9 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
       const fileName = `logo-${Date.now()}.${fileExt}`
       const filePath = `${fileName}`
 
-      // Subir a Supabase Storage (bucket avatars)
+      // Subir a Supabase Storage (bucket project-documents)
       const { data, error: uploadError } = await supabase.storage
-        .from('avatars')
+        .from('project-documents')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
@@ -135,7 +135,7 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
 
       // Obtener URL pública
       const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
+        .from('project-documents')
         .getPublicUrl(filePath)
 
       // Actualizar el estado del logo
