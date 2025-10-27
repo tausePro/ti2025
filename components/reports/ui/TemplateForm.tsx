@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Save, X } from 'lucide-react'
+import { Save, X, Upload, Image as ImageIcon } from 'lucide-react'
 import type { ReportTemplate, HeaderConfig, FooterConfig, StylesConfig, SectionsConfig } from '@/types/reports'
 
 interface TemplateFormProps {
@@ -21,6 +21,7 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
   const [activeTab, setActiveTab] = useState<TabType>('basic')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
 
   // Estados del formulario
   const [templateName, setTemplateName] = useState(template?.template_name || '')
@@ -96,6 +97,56 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
       appendix: false
     }
   )
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      setError('Por favor selecciona un archivo de imagen')
+      return
+    }
+
+    // Validar tamaño (máximo 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setError('La imagen no debe superar los 2MB')
+      return
+    }
+
+    try {
+      setUploadingLogo(true)
+      setError(null)
+
+      // Generar nombre único para el archivo
+      const fileExt = file.name.split('.').pop()
+      const fileName = `logo-${Date.now()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      // Subir a Supabase Storage (bucket avatars)
+      const { data, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (uploadError) throw uploadError
+
+      // Obtener URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      // Actualizar el estado del logo
+      setHeaderConfig({ ...headerConfig, logo_url: publicUrl })
+    } catch (err: any) {
+      console.error('Error subiendo logo:', err)
+      setError(err.message || 'Error al subir el logo')
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
 
   const handleSave = async () => {
     if (!templateName.trim()) {
@@ -252,15 +303,59 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                URL del Logo
+                Logo del Encabezado
               </label>
-              <input
-                type="text"
-                value={headerConfig.logo_url}
-                onChange={(e) => setHeaderConfig({ ...headerConfig, logo_url: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://..."
-              />
+              
+              {/* Preview del logo actual */}
+              {headerConfig.logo_url && (
+                <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="flex items-center gap-4">
+                    <img 
+                      src={headerConfig.logo_url} 
+                      alt="Logo" 
+                      className="h-16 w-auto object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setHeaderConfig({ ...headerConfig, logo_url: '' })}
+                      className="text-sm text-red-600 hover:text-red-700"
+                    >
+                      Eliminar logo
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Botón de subida */}
+              <div className="flex items-center gap-3">
+                <label className="flex-1 cursor-pointer">
+                  <div className="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors">
+                    {uploadingLogo ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <span className="text-sm text-gray-600">Subiendo...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 text-gray-600" />
+                        <span className="text-sm text-gray-600">
+                          {headerConfig.logo_url ? 'Cambiar logo' : 'Subir logo'}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={uploadingLogo}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Formatos: JPG, PNG, SVG. Tamaño máximo: 2MB
+              </p>
             </div>
 
             <div>
