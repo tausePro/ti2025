@@ -104,4 +104,4 @@ jspm_packages/
 *.js
 !next.config.js
 !postcss.config.js
-!tailwind.config.ts
+!tailwind.config.ts*.pdf
