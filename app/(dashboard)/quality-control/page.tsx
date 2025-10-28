@@ -50,13 +50,36 @@ export default function QualityControlPage() {
 
   const loadProjects = async () => {
     try {
+      // Obtener el user_id actual
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Query que respeta las políticas RLS
       const { data, error } = await supabase
         .from('projects')
         .select('id, name, project_code')
+        .or(`created_by.eq.${user.id},id.in.(select project_id from project_members where user_id = ${user.id})`)
         .eq('is_archived', false)
         .order('name')
 
-      if (error) throw error
+      if (error) {
+        console.error('Error loading projects:', error)
+        // Si falla la query compleja, intentar query simple
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('projects')
+          .select('id, name, project_code')
+          .eq('is_archived', false)
+          .order('name')
+        
+        if (!simpleError && simpleData) {
+          setProjects(simpleData)
+          if (simpleData.length > 0) {
+            setSelectedProject(simpleData[0].id)
+          }
+        }
+        return
+      }
+
       setProjects(data || [])
       
       // Seleccionar primer proyecto por defecto
