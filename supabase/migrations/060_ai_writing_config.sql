@@ -6,11 +6,11 @@
 -- 1. Tabla de configuración de escritura de IA
 CREATE TABLE IF NOT EXISTS ai_writing_config (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
   
   -- Configuración general
   config_name TEXT NOT NULL,
   is_active BOOLEAN DEFAULT true,
+  is_global BOOLEAN DEFAULT false, -- Si es configuración global (visible para todos)
   
   -- Estilo de escritura
   tone TEXT NOT NULL DEFAULT 'formal' CHECK (tone IN ('formal', 'tecnico', 'ejecutivo', 'casual')),
@@ -39,11 +39,11 @@ CREATE TABLE IF NOT EXISTS ai_writing_config (
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   
-  UNIQUE(company_id, config_name)
+  UNIQUE(config_name)
 );
 
 -- 2. Índices
-CREATE INDEX idx_ai_writing_config_company ON ai_writing_config(company_id);
+CREATE INDEX idx_ai_writing_config_global ON ai_writing_config(is_global) WHERE is_global = true;
 CREATE INDEX idx_ai_writing_config_active ON ai_writing_config(is_active) WHERE is_active = true;
 
 -- 3. Trigger para updated_at
@@ -54,14 +54,14 @@ CREATE TRIGGER update_ai_writing_config_updated_at
 
 -- 4. Configuración por defecto
 INSERT INTO ai_writing_config (
-  company_id,
+  is_global,
   config_name,
   tone,
   system_prompt,
   writing_guidelines,
   section_prompts
 ) VALUES (
-  NULL, -- Global
+  true, -- Global
   'Configuración Estándar',
   'formal',
   'Eres un asistente especializado en redacción de informes técnicos de construcción e interventoría. Escribe de forma clara, precisa y profesional.',
@@ -73,22 +73,20 @@ INSERT INTO ai_writing_config (
     "recommendations": "Proporciona recomendaciones específicas y accionables basadas en los hallazgos del período."
   }'::jsonb
 )
-ON CONFLICT (company_id, config_name) DO NOTHING;
+ON CONFLICT (config_name) DO NOTHING;
 
 -- 5. RLS
 ALTER TABLE ai_writing_config ENABLE ROW LEVEL SECURITY;
 
--- Política SELECT: Ver configuraciones globales o de su empresa
+-- Política SELECT: Ver configuraciones globales o propias
 CREATE POLICY "Usuarios pueden ver configuraciones de IA"
   ON ai_writing_config
   FOR SELECT
   TO authenticated
   USING (
-    company_id IS NULL -- Configuraciones globales
+    is_global = true -- Configuraciones globales
     OR
-    company_id IN (
-      SELECT company_id FROM profiles WHERE id = auth.uid()
-    )
+    created_by = auth.uid() -- O configuraciones propias
   );
 
 -- Política INSERT: Solo admin y super_admin
