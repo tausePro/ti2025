@@ -20,7 +20,8 @@ import {
   Calculator,
   X,
   User,
-  FileType
+  FileType,
+  ClipboardCheck
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -90,6 +91,13 @@ export default function DashboardLayout({
       href: '/reports',
       icon: FileText
     },
+    ...(hasPermission('control_calidad', 'read') ? [
+      {
+        name: 'Control de Calidad',
+        href: '/quality-control',
+        icon: ClipboardCheck
+      }
+    ] : []),
     ...(profile?.role && ['admin', 'super_admin', 'gerente'].includes(profile.role) ? [
       {
         name: 'Desembolsos',
