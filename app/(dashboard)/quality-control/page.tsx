@@ -27,7 +27,7 @@ interface QualitySample {
 }
 
 export default function QualityControlPage() {
-  const { profile, hasPermission } = useAuth()
+  const { profile, hasPermission, loading: authLoading } = useAuth()
   const supabase = createClientComponentClient()
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('')
@@ -37,18 +37,41 @@ export default function QualityControlPage() {
 
   // Debug: Ver cuando cambia el profile
   useEffect(() => {
-    console.log('🔄 Profile cambió:', profile ? `${profile.full_name} (${profile.role})` : 'null')
-  }, [profile])
+    console.log('🔄 Profile cambió:', profile ? `${profile.full_name} (${profile.role})` : 'null', 'Auth loading:', authLoading)
+  }, [profile, authLoading])
 
   // Cargar proyectos cuando el profile esté listo
   useEffect(() => {
-    if (profile) {
+    if (profile && !authLoading) {
       console.log('🚀 Profile cargado, iniciando carga de proyectos')
       loadProjects()
     } else {
-      console.log('⏳ Esperando a que profile se cargue...')
+      console.log('⏳ Esperando a que profile se cargue... authLoading:', authLoading)
     }
-  }, [profile])
+  }, [profile, authLoading])
+
+  // Mostrar loading mientras auth se carga
+  if (authLoading) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="ml-4 text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Si no hay profile después de cargar, mostrar error
+  if (!authLoading && !profile) {
+    return (
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">Error: No se pudo cargar el perfil del usuario</p>
+        </div>
+      </div>
+    )
+  }
 
   // Cargar muestras cuando se selecciona un proyecto
   useEffect(() => {
