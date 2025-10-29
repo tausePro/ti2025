@@ -23,10 +23,16 @@ BEGIN
       ADD COLUMN is_global BOOLEAN DEFAULT false;
     END IF;
     
-    -- Migrar datos
-    UPDATE quality_control_templates 
-    SET is_global = true 
-    WHERE company_id IS NULL;
+    -- Migrar datos solo si existe company_id
+    IF EXISTS (
+      SELECT FROM information_schema.columns 
+      WHERE table_name = 'quality_control_templates' 
+      AND column_name = 'company_id'
+    ) THEN
+      UPDATE quality_control_templates 
+      SET is_global = true 
+      WHERE company_id IS NULL;
+    END IF;
     
     -- Eliminar constraint UNIQUE viejo si existe
     ALTER TABLE quality_control_templates 
@@ -36,9 +42,15 @@ BEGIN
     ALTER TABLE quality_control_templates 
     ADD CONSTRAINT quality_control_templates_template_name_key UNIQUE (template_name);
     
-    -- Hacer company_id nullable
-    ALTER TABLE quality_control_templates 
-    ALTER COLUMN company_id DROP NOT NULL;
+    -- Hacer company_id nullable si existe
+    IF EXISTS (
+      SELECT FROM information_schema.columns 
+      WHERE table_name = 'quality_control_templates' 
+      AND column_name = 'company_id'
+    ) THEN
+      ALTER TABLE quality_control_templates 
+      ALTER COLUMN company_id DROP NOT NULL;
+    END IF;
     
     -- Eliminar índice viejo
     DROP INDEX IF EXISTS idx_qc_templates_company;
