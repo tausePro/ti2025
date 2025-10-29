@@ -71,8 +71,8 @@ export default function QualityControlPage() {
         return
       }
 
-      // Para otros roles, obtener proyectos donde es miembro O creador
-      const { data: memberData, error: memberError } = await supabase
+      // Para otros roles, obtener proyectos donde es miembro
+      const { data: memberData } = await supabase
         .from('project_members')
         .select('project_id')
         .eq('user_id', user.id)
@@ -80,11 +80,29 @@ export default function QualityControlPage() {
 
       const projectIds = memberData?.map(m => m.project_id) || []
 
-      // Cargar proyectos donde es miembro O creador
+      if (projectIds.length === 0) {
+        // Si no es miembro de ningún proyecto, intentar cargar proyectos creados por él
+        const { data: createdData, error: createdError } = await supabase
+          .from('projects')
+          .select('id, name, project_code')
+          .eq('created_by', user.id)
+          .eq('is_archived', false)
+          .order('name')
+
+        if (!createdError && createdData) {
+          setProjects(createdData)
+          if (createdData.length > 0) {
+            setSelectedProject(createdData[0].id)
+          }
+        }
+        return
+      }
+
+      // Cargar proyectos donde es miembro
       const { data, error } = await supabase
         .from('projects')
         .select('id, name, project_code')
-        .or(`id.in.(${projectIds.length > 0 ? projectIds.join(',') : '00000000-0000-0000-0000-000000000000'}),created_by.eq.${user.id}`)
+        .in('id', projectIds)
         .eq('is_archived', false)
         .order('name')
 
