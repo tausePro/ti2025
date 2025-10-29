@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { Plus, Search, FileText } from 'lucide-react'
 import Link from 'next/link'
 
@@ -27,28 +27,32 @@ interface QualitySample {
 }
 
 export default function QualityControlPage() {
-  const { profile, hasPermission, loading: authLoading } = useAuth()
-  const supabase = createClientComponentClient()
+  const { user, profile, hasPermission, loading: authLoading } = useAuth()
+  const supabase = createClient()
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('')
   const [samples, setSamples] = useState<QualitySample[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Debug: Ver cuando cambia el profile
+  // Debug: Ver cuando cambia el profile y user
   useEffect(() => {
-    console.log('🔄 Profile cambió:', profile ? `${profile.full_name} (${profile.role})` : 'null', 'Auth loading:', authLoading)
-  }, [profile, authLoading])
+    console.log('🔄 Auth cambió:', {
+      user: user ? user.id : 'null',
+      profile: profile ? `${profile.full_name} (${profile.role})` : 'null',
+      authLoading
+    })
+  }, [user, profile, authLoading])
 
-  // Cargar proyectos cuando el profile esté listo
+  // Cargar proyectos cuando user y profile estén listos
   useEffect(() => {
-    if (profile && !authLoading) {
-      console.log('🚀 Profile cargado, iniciando carga de proyectos')
+    if (user && profile && !authLoading) {
+      console.log('🚀 User y Profile cargados, iniciando carga de proyectos')
       loadProjects()
     } else {
-      console.log('⏳ Esperando a que profile se cargue... authLoading:', authLoading)
+      console.log('⏳ Esperando auth...', { hasUser: !!user, hasProfile: !!profile, authLoading })
     }
-  }, [profile, authLoading])
+  }, [user, profile, authLoading])
 
   // Mostrar loading mientras auth se carga
   if (authLoading) {
@@ -82,9 +86,9 @@ export default function QualityControlPage() {
 
   const loadProjects = async () => {
     try {
-      console.log('🔍 Control de Calidad - Profile ID:', profile?.id, 'Role:', profile?.role)
-      if (!profile?.id) {
-        console.error('❌ No hay profile.id disponible')
+      console.log('🔍 Control de Calidad - User ID:', user?.id, 'Role:', profile?.role)
+      if (!user?.id) {
+        console.error('❌ No hay user.id disponible')
         return
       }
 
@@ -107,11 +111,11 @@ export default function QualityControlPage() {
       }
 
       // Para otros roles, obtener proyectos donde es miembro
-      console.log('👤 Buscando proyectos para profile.id:', profile.id)
-      const { data: memberData, error: memberError } = await supabase
+      console.log('👤 Buscando proyectos para user.id:', user.id)
+      const { data: memberData, error: memberError} = await supabase
         .from('project_members')
         .select('project_id, user_id, role_in_project, is_active')
-        .eq('user_id', profile.id)
+        .eq('user_id', user.id)
         .eq('is_active', true)
 
       console.log('📋 Project members encontrados:', memberData?.length, 'Error:', memberError)
@@ -125,7 +129,7 @@ export default function QualityControlPage() {
         const { data: createdData, error: createdError } = await supabase
           .from('projects')
           .select('id, name, project_code')
-          .eq('created_by', profile.id)
+          .eq('created_by', user.id)
           .eq('is_archived', false)
           .order('name')
 
