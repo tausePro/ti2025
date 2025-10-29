@@ -54,37 +54,49 @@ export default function QualityControlPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      // Query que respeta las políticas RLS
-      const { data, error } = await supabase
-        .from('projects')
-        .select('id, name, project_code')
-        .or(`created_by.eq.${user.id},id.in.(select project_id from project_members where user_id = ${user.id})`)
-        .eq('is_archived', false)
-        .order('name')
-
-      if (error) {
-        console.error('Error loading projects:', error)
-        // Si falla la query compleja, intentar query simple
-        const { data: simpleData, error: simpleError } = await supabase
+      // Si es super_admin, ver todos los proyectos
+      if (profile?.role === 'super_admin') {
+        const { data, error } = await supabase
           .from('projects')
           .select('id, name, project_code')
           .eq('is_archived', false)
           .order('name')
-        
-        if (!simpleError && simpleData) {
-          setProjects(simpleData)
-          if (simpleData.length > 0) {
-            setSelectedProject(simpleData[0].id)
+
+        if (!error && data) {
+          setProjects(data)
+          if (data.length > 0) {
+            setSelectedProject(data[0].id)
           }
         }
         return
       }
 
+      // Para otros roles, solo proyectos donde es miembro activo
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, name, project_code')
+        .in('id', `
+          SELECT project_id 
+          FROM project_members 
+          WHERE user_id = '${user.id}' 
+          AND is_active = true
+        `)
+        .eq('is_archived', false)
+        .order('name')
+
+      if (error) {
+        console.error('Error loading projects:', error)
+        return
+      }
+
       setProjects(data || [])
       
-      // Seleccionar primer proyecto por defecto
-      if (data && data.length > 0) {
+      // Si solo tiene un proyecto, seleccionarlo automáticamente
+      if (data && data.length === 1) {
         setSelectedProject(data[0].id)
+      } else if (data && data.length > 1) {
+        // Si tiene múltiples proyectos, mostrar selector
+        setSelectedProject('')
       }
     } catch (error) {
       console.error('Error loading projects:', error)
@@ -169,37 +181,55 @@ export default function QualityControlPage() {
       </div>
 
       {/* Selector de proyecto y acciones */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-          <div className="flex-1 max-w-md">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Proyecto
-            </label>
-            <select
-              value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              {projects.map(project => (
-                <option key={project.id} value={project.id}>
-                  {project.project_code} - {project.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      {projects.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            <div className="flex-1 max-w-md">
+              {projects.length > 1 ? (
+                <>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Seleccionar Proyecto
+                  </label>
+                  <select
+                    value={selectedProject}
+                    onChange={(e) => setSelectedProject(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Seleccione un proyecto...</option>
+                    {projects.map(project => (
+                      <option key={project.id} value={project.id}>
+                        {project.project_code} - {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Proyecto Actual
+                  </label>
+                  <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                    <span className="font-medium text-gray-900">
+                      {projects[0].project_code} - {projects[0].name}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
 
-          <div className="flex gap-2">
-            {canCreate && selectedProject && (
-              <Link href={`/quality-control/${selectedProject}/new`}>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nueva Muestra
-                </Button>
-              </Link>
-            )}
+            <div className="flex gap-2">
+              {canCreate && selectedProject && (
+                <Link href={`/quality-control/${selectedProject}/new`}>
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nueva Muestra
+                  </Button>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Búsqueda y filtros */}
       {selectedProject && (

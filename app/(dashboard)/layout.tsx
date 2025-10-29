@@ -91,7 +91,7 @@ export default function DashboardLayout({
       href: '/reports',
       icon: FileText
     },
-    ...(hasPermission('control_calidad', 'read') ? [
+    ...(profile?.role && ['supervisor', 'residente'].includes(profile.role) || hasPermission('control_calidad', 'read') ? [
       {
         name: 'Control de Calidad',
         href: '/quality-control',
