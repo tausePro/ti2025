@@ -107,14 +107,15 @@ export default function QualityControlPage() {
       }
 
       // Para otros roles, obtener proyectos donde es miembro
-      console.log('👤 Buscando proyectos para usuario:', user.id)
+      console.log('👤 Buscando proyectos para usuario:', user.id, 'Tipo:', typeof user.id)
       const { data: memberData, error: memberError } = await supabase
         .from('project_members')
-        .select('project_id')
+        .select('project_id, user_id, role_in_project, is_active')
         .eq('user_id', user.id)
         .eq('is_active', true)
 
       console.log('📋 Project members encontrados:', memberData?.length, 'Error:', memberError)
+      console.log('📋 Datos completos:', memberData)
       const projectIds = memberData?.map(m => m.project_id) || []
       console.log('🔑 Project IDs:', projectIds)
 
