@@ -36,10 +36,13 @@ export default function QualityControlPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Cargar proyectos
+  // Cargar proyectos cuando el profile esté listo
   useEffect(() => {
-    loadProjects()
-  }, [])
+    if (profile) {
+      console.log('🚀 Profile cargado, iniciando carga de proyectos')
+      loadProjects()
+    }
+  }, [profile])
 
   // Cargar muestras cuando se selecciona un proyecto
   useEffect(() => {
