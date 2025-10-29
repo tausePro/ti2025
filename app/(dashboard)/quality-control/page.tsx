@@ -27,7 +27,7 @@ interface QualitySample {
 }
 
 export default function QualityControlPage() {
-  const { profile, hasPermission, loading: authLoading, user } = useAuth()
+  const { profile, hasPermission, loading: authLoading } = useAuth()
   const supabase = createClientComponentClient()
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('')
@@ -82,9 +82,9 @@ export default function QualityControlPage() {
 
   const loadProjects = async () => {
     try {
-      console.log('🔍 Control de Calidad - Usuario:', user?.id, 'Role:', profile?.role)
-      if (!user) {
-        console.error('❌ No hay usuario autenticado')
+      console.log('🔍 Control de Calidad - Profile ID:', profile?.id, 'Role:', profile?.role)
+      if (!profile?.id) {
+        console.error('❌ No hay profile.id disponible')
         return
       }
 
@@ -107,11 +107,11 @@ export default function QualityControlPage() {
       }
 
       // Para otros roles, obtener proyectos donde es miembro
-      console.log('👤 Buscando proyectos para usuario:', user.id, 'Tipo:', typeof user.id)
+      console.log('👤 Buscando proyectos para profile.id:', profile.id)
       const { data: memberData, error: memberError } = await supabase
         .from('project_members')
         .select('project_id, user_id, role_in_project, is_active')
-        .eq('user_id', user.id)
+        .eq('user_id', profile.id)
         .eq('is_active', true)
 
       console.log('📋 Project members encontrados:', memberData?.length, 'Error:', memberError)
@@ -125,7 +125,7 @@ export default function QualityControlPage() {
         const { data: createdData, error: createdError } = await supabase
           .from('projects')
           .select('id, name, project_code')
-          .eq('created_by', user.id)
+          .eq('created_by', profile.id)
           .eq('is_archived', false)
           .order('name')
 
