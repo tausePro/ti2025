@@ -244,8 +244,19 @@ export default function QualityControlPage() {
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Control de Calidad</h1>
-        <p className="text-gray-600">Gestión de muestras y ensayos de calidad en obra</p>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Control de Calidad</h1>
+            <p className="text-gray-600">Gestión de muestras y ensayos de calidad en obra</p>
+          </div>
+          <Link
+            href="/quality-control/reports"
+            className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Ver Informes
+          </Link>
+        </div>
       </div>
 
       {/* Selector de proyecto y acciones */}
