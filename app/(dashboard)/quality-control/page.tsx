@@ -27,7 +27,7 @@ interface QualitySample {
 }
 
 export default function QualityControlPage() {
-  const { profile, hasPermission, loading: authLoading } = useAuth()
+  const { profile, hasPermission, loading: authLoading, user } = useAuth()
   const supabase = createClientComponentClient()
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<string>('')
@@ -82,10 +82,11 @@ export default function QualityControlPage() {
 
   const loadProjects = async () => {
     try {
-      // Obtener el user_id actual
-      const { data: { user } } = await supabase.auth.getUser()
       console.log('🔍 Control de Calidad - Usuario:', user?.id, 'Role:', profile?.role)
-      if (!user) return
+      if (!user) {
+        console.error('❌ No hay usuario autenticado')
+        return
+      }
 
       // Si es super_admin, ver todos los proyectos
       if (profile?.role === 'super_admin') {
