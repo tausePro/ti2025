@@ -52,10 +52,12 @@ export default function QualityControlPage() {
     try {
       // Obtener el user_id actual
       const { data: { user } } = await supabase.auth.getUser()
+      console.log('🔍 Control de Calidad - Usuario:', user?.id, 'Role:', profile?.role)
       if (!user) return
 
       // Si es super_admin, ver todos los proyectos
       if (profile?.role === 'super_admin') {
+        console.log('👑 Es super_admin, cargando todos los proyectos')
         const { data, error } = await supabase
           .from('projects')
           .select('id, name, project_code')
@@ -72,15 +74,19 @@ export default function QualityControlPage() {
       }
 
       // Para otros roles, obtener proyectos donde es miembro
-      const { data: memberData } = await supabase
+      console.log('👤 Buscando proyectos para usuario:', user.id)
+      const { data: memberData, error: memberError } = await supabase
         .from('project_members')
         .select('project_id')
         .eq('user_id', user.id)
         .eq('is_active', true)
 
+      console.log('📋 Project members encontrados:', memberData?.length, 'Error:', memberError)
       const projectIds = memberData?.map(m => m.project_id) || []
+      console.log('🔑 Project IDs:', projectIds)
 
       if (projectIds.length === 0) {
+        console.log('⚠️ No es miembro de ningún proyecto, buscando proyectos creados por él')
         // Si no es miembro de ningún proyecto, intentar cargar proyectos creados por él
         const { data: createdData, error: createdError } = await supabase
           .from('projects')
@@ -99,6 +105,7 @@ export default function QualityControlPage() {
       }
 
       // Cargar proyectos donde es miembro
+      console.log('🔍 Cargando proyectos con IDs:', projectIds)
       const { data, error } = await supabase
         .from('projects')
         .select('id, name, project_code')
@@ -107,10 +114,11 @@ export default function QualityControlPage() {
         .order('name')
 
       if (error) {
-        console.error('Error loading projects:', error)
+        console.error('❌ Error loading projects:', error)
         return
       }
 
+      console.log('✅ Proyectos cargados:', data?.length, data)
       setProjects(data || [])
       
       // Si solo tiene un proyecto, seleccionarlo automáticamente
