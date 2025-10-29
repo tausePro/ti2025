@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { Button } from '@/components/ui/button'
-import { Plus, Search, Filter, FileText } from 'lucide-react'
+import { Plus, Search, FileText } from 'lucide-react'
 import Link from 'next/link'
 
 interface Project {
@@ -259,11 +258,12 @@ export default function QualityControlPage() {
 
             <div className="flex gap-2">
               {canCreate && selectedProject && (
-                <Link href={`/quality-control/${selectedProject}/new`}>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nueva Muestra
-                  </Button>
+                <Link 
+                  href={`/quality-control/${selectedProject}/new`}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nueva Muestra
                 </Link>
               )}
             </div>
@@ -310,11 +310,12 @@ export default function QualityControlPage() {
                 }
               </p>
               {canCreate && !searchTerm && (
-                <Link href={`/quality-control/${selectedProject}/new`}>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Registrar Primera Muestra
-                  </Button>
+                <Link 
+                  href={`/quality-control/${selectedProject}/new`}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Registrar Primera Muestra
                 </Link>
               )}
             </div>
