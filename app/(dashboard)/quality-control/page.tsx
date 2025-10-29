@@ -36,11 +36,18 @@ export default function QualityControlPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
 
+  // Debug: Ver cuando cambia el profile
+  useEffect(() => {
+    console.log('🔄 Profile cambió:', profile ? `${profile.full_name} (${profile.role})` : 'null')
+  }, [profile])
+
   // Cargar proyectos cuando el profile esté listo
   useEffect(() => {
     if (profile) {
       console.log('🚀 Profile cargado, iniciando carga de proyectos')
       loadProjects()
+    } else {
+      console.log('⏳ Esperando a que profile se cargue...')
     }
   }, [profile])
 
