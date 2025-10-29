@@ -176,7 +176,7 @@ export default function NewSamplePage({ params }: { params: { projectId: string 
               <SelectValue placeholder={`Seleccionar ${field.label}`} />
             </SelectTrigger>
             <SelectContent>
-              {field.options?.map(option => (
+              {field.options?.map((option: string) => (
                 <SelectItem key={option} value={option}>
                   {option}
                 </SelectItem>
@@ -245,7 +245,7 @@ export default function NewSamplePage({ params }: { params: { projectId: string 
   }
 
   const handleSave = async () => {
-    if (!validateForm()) return
+    if (!validateForm() || !selectedTemplate) return
 
     try {
       setSaving(true)
@@ -271,7 +271,7 @@ export default function NewSamplePage({ params }: { params: { projectId: string 
       if (sampleError) throw sampleError
 
       // Crear ensayos programados según el template
-      const testsToCreate = selectedTemplate.test_configuration.test_periods.map(period => ({
+      const testsToCreate = selectedTemplate.test_configuration.test_periods.map((period: number) => ({
         sample_id: sampleData.id,
         test_name: selectedTemplate.test_configuration.test_name,
         test_period: period,

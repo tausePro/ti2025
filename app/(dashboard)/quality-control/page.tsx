@@ -71,16 +71,30 @@ export default function QualityControlPage() {
         return
       }
 
-      // Para otros roles, solo proyectos donde es miembro activo
+      // Para otros roles, primero obtener los IDs de proyectos donde es miembro
+      const { data: memberData, error: memberError } = await supabase
+        .from('project_members')
+        .select('project_id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+
+      if (memberError) {
+        console.error('Error loading project members:', memberError)
+        return
+      }
+
+      const projectIds = memberData?.map(m => m.project_id) || []
+
+      if (projectIds.length === 0) {
+        setProjects([])
+        return
+      }
+
+      // Luego cargar los proyectos
       const { data, error } = await supabase
         .from('projects')
         .select('id, name, project_code')
-        .in('id', `
-          SELECT project_id 
-          FROM project_members 
-          WHERE user_id = '${user.id}' 
-          AND is_active = true
-        `)
+        .in('id', projectIds)
         .eq('is_archived', false)
         .order('name')
 
