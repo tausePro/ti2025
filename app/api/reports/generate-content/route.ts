@@ -1,10 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+// OpenAI es opcional - solo se usa si hay API key configurada
+let openai: any = null
+if (process.env.OPENAI_API_KEY) {
+  const OpenAI = require('openai')
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  })
+}
 
 export async function POST(request: Request) {
   try {
@@ -96,26 +100,47 @@ export async function POST(request: Request) {
       // Preparar contexto para la IA
       const context = prepareContext(section, sourceData)
       
-      // Generar contenido con OpenAI
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [
-          {
-            role: 'system',
-            content: aiConfig?.system_prompt || 
-              'Eres un ingeniero civil experto en redacción de informes técnicos de interventoría. Escribe de forma profesional, técnica y detallada.'
-          },
-          {
-            role: 'user',
-            content: `${section.content_template}\n\nContexto del proyecto:\n${context}\n\nGenera el contenido en formato HTML profesional con etiquetas <h3>, <p>, <ul>, <li>, etc. No incluyas estilos inline.`
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      })
+      let content = ''
+      
+      // Generar contenido con OpenAI si está disponible
+      if (openai) {
+        try {
+          const completion = await openai.chat.completions.create({
+            model: 'gpt-4o',
+            messages: [
+              {
+                role: 'system',
+                content: aiConfig?.system_prompt || 
+                  'Eres un ingeniero civil experto en redacción de informes técnicos de interventoría. Escribe de forma profesional, técnica y detallada.'
+              },
+              {
+                role: 'user',
+                content: `${section.content_template}\n\nContexto del proyecto:\n${context}\n\nGenera el contenido en formato HTML profesional con etiquetas <h3>, <p>, <ul>, <li>, etc. No incluyas estilos inline.`
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 2000,
+          })
 
-      const content = completion.choices[0]?.message?.content || ''
-      totalTokens += completion.usage?.total_tokens || 0
+          content = completion.choices[0]?.message?.content || ''
+          totalTokens += completion.usage?.total_tokens || 0
+        } catch (error) {
+          console.error('Error generating with OpenAI:', error)
+          // Fallback: usar template con contexto
+          content = `<div class="placeholder">
+            <h3>${section.section_name}</h3>
+            <p>${section.content_template}</p>
+            <pre>${context}</pre>
+          </div>`
+        }
+      } else {
+        // Sin OpenAI: usar template con contexto básico
+        content = `<div class="placeholder">
+          <h3>${section.section_name}</h3>
+          <p>${section.content_template}</p>
+          <p><em>Nota: Configura OPENAI_API_KEY para generación automática con IA</em></p>
+        </div>`
+      }
 
       generatedContent[section.section_key] = {
         title: section.section_name,
