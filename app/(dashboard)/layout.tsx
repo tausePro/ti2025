@@ -21,7 +21,9 @@ import {
   X,
   User,
   FileType,
-  ClipboardCheck
+  ClipboardCheck,
+  Sparkles,
+  FileBarChart
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -98,6 +100,13 @@ export default function DashboardLayout({
         icon: ClipboardCheck
       }
     ] : []),
+    ...(profile?.role && ['supervisor', 'residente'].includes(profile.role) ? [
+      {
+        name: 'Informes Quincenales',
+        href: '/reports/biweekly/new',
+        icon: FileBarChart
+      }
+    ] : []),
     ...(profile?.role && ['admin', 'super_admin', 'gerente'].includes(profile.role) ? [
       {
         name: 'Desembolsos',
@@ -124,6 +133,13 @@ export default function DashboardLayout({
         name: 'Usuarios',
         href: '/admin/users',
         icon: Users
+      }
+    ] : []),
+    ...(profile?.role === 'super_admin' ? [
+      {
+        name: 'Configuración IA',
+        href: '/admin/ai-settings',
+        icon: Sparkles
       }
     ] : []),
     {
