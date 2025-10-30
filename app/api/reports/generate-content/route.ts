@@ -1,13 +1,29 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-// OpenAI es opcional - solo se usa si hay API key configurada
-let openai: any = null
-if (process.env.OPENAI_API_KEY) {
+// OpenAI se configura dinámicamente desde la BD o env
+async function getOpenAIClient(supabase: any) {
+  // Primero intentar obtener de la BD
+  const { data: aiSettings } = await supabase
+    .from('ai_settings')
+    .select('api_key, model_name, temperature, max_tokens')
+    .eq('provider', 'openai')
+    .eq('is_active', true)
+    .single()
+
+  let apiKey = aiSettings?.api_key || process.env.OPENAI_API_KEY
+  
+  if (!apiKey) return null
+
   const OpenAI = require('openai')
-  openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  })
+  return {
+    client: new OpenAI({ apiKey }),
+    config: {
+      model: aiSettings?.model_name || 'gpt-4o',
+      temperature: aiSettings?.temperature || 0.7,
+      max_tokens: aiSettings?.max_tokens || 2000
+    }
+  }
 }
 
 export async function POST(request: Request) {
@@ -83,7 +99,10 @@ export async function POST(request: Request) {
       sectionsToGenerate = sections || []
     }
 
-    // 4. Generar contenido para cada sección con IA
+    // 4. Obtener cliente de OpenAI
+    const openaiSetup = await getOpenAIClient(supabase)
+
+    // 5. Generar contenido para cada sección con IA
     const generatedContent: any = {}
     let totalTokens = 0
 
@@ -103,10 +122,10 @@ export async function POST(request: Request) {
       let content = ''
       
       // Generar contenido con OpenAI si está disponible
-      if (openai) {
+      if (openaiSetup) {
         try {
-          const completion = await openai.chat.completions.create({
-            model: 'gpt-4o',
+          const completion = await openaiSetup.client.chat.completions.create({
+            model: openaiSetup.config.model,
             messages: [
               {
                 role: 'system',
@@ -118,12 +137,22 @@ export async function POST(request: Request) {
                 content: `${section.content_template}\n\nContexto del proyecto:\n${context}\n\nGenera el contenido en formato HTML profesional con etiquetas <h3>, <p>, <ul>, <li>, etc. No incluyas estilos inline.`
               }
             ],
-            temperature: 0.7,
-            max_tokens: 2000,
+            temperature: openaiSetup.config.temperature,
+            max_tokens: openaiSetup.config.max_tokens,
           })
 
           content = completion.choices[0]?.message?.content || ''
           totalTokens += completion.usage?.total_tokens || 0
+
+          // Registrar uso
+          await supabase.rpc('log_ai_usage', {
+            p_user_id: user.id,
+            p_feature: 'biweekly_report',
+            p_entity_type: 'section',
+            p_entity_id: null,
+            p_tokens_total: completion.usage?.total_tokens || 0,
+            p_model: openaiSetup.config.model
+          })
         } catch (error) {
           console.error('Error generating with OpenAI:', error)
           // Fallback: usar template con contexto
@@ -138,7 +167,7 @@ export async function POST(request: Request) {
         content = `<div class="placeholder">
           <h3>${section.section_name}</h3>
           <p>${section.content_template}</p>
-          <p><em>Nota: Configura OPENAI_API_KEY para generación automática con IA</em></p>
+          <p><em>Nota: Configura la API key de OpenAI en Administración → Configuración de IA</em></p>
         </div>`
       }
 
