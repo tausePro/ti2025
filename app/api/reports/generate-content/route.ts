@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     if (sectionKey) {
       // Generar solo una sección específica
       const { data: section } = await supabase
-        .from('report_sections')
+        .from('section_templates')
         .select('*')
         .eq('section_key', sectionKey)
         .single()
@@ -71,10 +71,10 @@ export async function POST(request: Request) {
     } else {
       // Generar todas las secciones
       const { data: sections } = await supabase
-        .from('report_sections')
+        .from('section_templates')
         .select('*')
         .eq('is_active', true)
-        .order('display_order')
+        .order('section_order')
       
       sectionsToGenerate = sections || []
     }
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       if (!section.use_ai) {
         // Si no usa IA, usar template estático
         generatedContent[section.section_key] = {
-          title: section.section_title,
+          title: section.section_name,
           content: section.content_template || ''
         }
         continue
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
           },
           {
             role: 'user',
-            content: `${section.ai_prompt}\n\nContexto del proyecto:\n${context}\n\nGenera el contenido en formato HTML profesional con etiquetas <h3>, <p>, <ul>, <li>, etc. No incluyas estilos inline.`
+            content: `${section.content_template}\n\nContexto del proyecto:\n${context}\n\nGenera el contenido en formato HTML profesional con etiquetas <h3>, <p>, <ul>, <li>, etc. No incluyas estilos inline.`
           }
         ],
         temperature: 0.7,
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
       totalTokens += completion.usage?.total_tokens || 0
 
       generatedContent[section.section_key] = {
-        title: section.section_title,
+        title: section.section_name,
         content: content
       }
     }

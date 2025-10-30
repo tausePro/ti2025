@@ -24,9 +24,9 @@ interface Project {
 
 interface ReportSection {
   section_key: string
-  section_number: string
-  section_title: string
-  display_order: number
+  section_name: string
+  section_order: number
+  content_template: string
   use_ai: boolean
 }
 
@@ -69,10 +69,10 @@ export default function NewBiweeklyReportPage() {
 
       // Cargar secciones del informe
       const { data: sectionsData } = await supabase
-        .from('report_sections')
+        .from('section_templates')
         .select('*')
         .eq('is_active', true)
-        .order('display_order')
+        .order('section_order')
 
       setSections(sectionsData || [])
 
@@ -354,7 +354,7 @@ export default function NewBiweeklyReportPage() {
             return (
               <div key={section.section_key} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  {section.section_number}. {section.section_title}
+                  {section.section_name}
                 </h3>
                 <RichTextEditor
                   content={sectionContent.content}
@@ -367,7 +367,7 @@ export default function NewBiweeklyReportPage() {
                       }
                     }))
                   }}
-                  placeholder={`Contenido de ${section.section_title}...`}
+                  placeholder={`Contenido de ${section.section_name}...`}
                 />
               </div>
             )

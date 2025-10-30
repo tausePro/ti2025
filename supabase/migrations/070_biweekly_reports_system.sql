@@ -8,6 +8,7 @@
 CREATE TABLE IF NOT EXISTS biweekly_reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  report_template_id UUID REFERENCES report_templates(id) ON DELETE SET NULL,
   
   -- Período del informe
   report_number VARCHAR(50) NOT NULL, -- Ej: "PROJ-2025-01-Q1"
@@ -76,104 +77,139 @@ CREATE TABLE IF NOT EXISTS biweekly_reports (
   CONSTRAINT unique_project_period UNIQUE(project_id, period_start, period_end, version)
 );
 
--- 2. Tabla de secciones del informe (plantillas)
-CREATE TABLE IF NOT EXISTS report_sections (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- 2. Crear plantilla de informe quincenal si no existe
+DO $$
+DECLARE
+  v_template_id UUID;
+BEGIN
+  -- Verificar si ya existe la plantilla
+  SELECT id INTO v_template_id
+  FROM report_templates
+  WHERE template_name = 'Informe Quincenal de Interventoría'
+    AND company_id IS NULL;
   
-  -- Identificación
-  section_key VARCHAR(50) NOT NULL UNIQUE, -- "section_1_info_general"
-  section_number VARCHAR(10) NOT NULL, -- "1", "1.1", "3.2"
-  section_title TEXT NOT NULL,
-  
-  -- Orden y jerarquía
-  parent_section_id UUID REFERENCES report_sections(id),
-  display_order INTEGER NOT NULL DEFAULT 0,
-  
-  -- Configuración de contenido
-  content_template TEXT, -- Template HTML con placeholders
-  use_ai BOOLEAN DEFAULT true,
-  ai_prompt TEXT, -- Prompt específico para esta sección
-  
-  -- Fuentes de datos a incluir
-  data_sources JSONB DEFAULT '[]'::jsonb,
-  -- ["daily_logs", "quality_samples", "financial_orders", "photos"]
-  
-  -- Configuración de formato
-  include_in_toc BOOLEAN DEFAULT true, -- Incluir en tabla de contenidos
-  page_break_before BOOLEAN DEFAULT false,
-  
-  -- Metadatos
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+  -- Si no existe, crearla
+  IF v_template_id IS NULL THEN
+    INSERT INTO report_templates (
+      company_id,
+      template_name,
+      template_type,
+      header_config,
+      footer_config,
+      sections,
+      is_default,
+      is_active
+    ) VALUES (
+      NULL, -- Global
+      'Informe Quincenal de Interventoría',
+      'interventoria_administrativa',
+      jsonb_build_object(
+        'logo_url', '',
+        'company_name', 'TALENTO INMOBILIARIO',
+        'show_project_code', true,
+        'show_date', true,
+        'background_color', '#ffffff',
+        'text_color', '#000000',
+        'height', 100
+      ),
+      jsonb_build_object(
+        'show_page_numbers', true,
+        'show_generation_date', true,
+        'custom_text', 'Documento confidencial - Interventoría',
+        'include_signatures', true,
+        'text_color', '#666666',
+        'height', 80
+      ),
+      jsonb_build_object(
+        'cover_page', true,
+        'table_of_contents', true,
+        'executive_summary', true,
+        'ai_insights', true,
+        'detailed_logs', true,
+        'photos', true,
+        'signatures', true
+      ),
+      true, -- is_default
+      true  -- is_active
+    )
+    RETURNING id INTO v_template_id;
+    
+    RAISE NOTICE 'Plantilla de informe quincenal creada con ID: %', v_template_id;
+  END IF;
+END $$;
 
--- 3. Insertar secciones estándar del informe
-INSERT INTO report_sections (section_key, section_number, section_title, display_order, ai_prompt, data_sources) VALUES
-  ('section_1', '1', 'INFORMACIÓN GENERAL', 1, 
+-- 3. Insertar secciones estándar usando section_templates
+DO $$
+DECLARE
+  v_template_id UUID;
+BEGIN
+  -- Obtener ID de la plantilla
+  SELECT id INTO v_template_id
+  FROM report_templates
+  WHERE template_name = 'Informe Quincenal de Interventoría'
+    AND company_id IS NULL;
+  
+  IF v_template_id IS NOT NULL THEN
+    -- Insertar secciones
+    INSERT INTO section_templates (report_template_id, section_key, section_title, display_order, content_template, use_ai, data_sources) VALUES
+  (v_template_id, 'section_1', 'INFORMACIÓN GENERAL', 1, 
    'Genera una introducción formal del informe incluyendo objetivo, descripción del proyecto y ubicación.',
-   '["project_info"]'),
+   true, '["project_info"]'::jsonb),
   
-  ('section_1_1', '1.1', 'OBJETIVO DEL INFORME', 2,
+  (v_template_id, 'section_1_1', 'OBJETIVO DEL INFORME', 2,
    'Describe el objetivo del informe quincenal de interventoría de forma técnica y profesional.',
-   '["project_info"]'),
+   true, '["project_info"]'::jsonb),
   
-  ('section_1_2', '1.2', 'DESCRIPCIÓN DEL PROYECTO', 3,
+  (v_template_id, 'section_1_2', 'DESCRIPCIÓN DEL PROYECTO', 3,
    'Describe detalladamente el proyecto, su alcance y características principales.',
-   '["project_info"]'),
+   true, '["project_info"]'::jsonb),
   
-  ('section_1_3', '1.3', 'DIRECCIÓN DEL PROYECTO', 4,
+  (v_template_id, 'section_1_3', 'DIRECCIÓN DEL PROYECTO', 4,
    'Detalla la ubicación exacta del proyecto y datos de contacto relevantes.',
-   '["project_info"]'),
+   true, '["project_info"]'::jsonb),
   
-  ('section_2', '2', 'CONTROL ACTIVIDADES TÉCNICAS EJECUTADAS', 5,
+  (v_template_id, 'section_2', 'CONTROL ACTIVIDADES TÉCNICAS EJECUTADAS', 5,
    'Resume las actividades técnicas ejecutadas durante el período del informe basándote en las bitácoras diarias.',
-   '["daily_logs", "photos"]'),
+   true, '["daily_logs", "photos"]'::jsonb),
   
-  ('section_3', '3', 'PROGRAMA DE CONTROL Y SEGUIMIENTO', 6,
+  (v_template_id, 'section_3', 'PROGRAMA DE CONTROL Y SEGUIMIENTO', 6,
    'Describe el programa de control y seguimiento implementado.',
-   '["daily_logs", "quality_samples"]'),
+   true, '["daily_logs", "quality_samples"]'::jsonb),
   
-  ('section_3_1', '3.1', 'CONTROL DE DOCUMENTOS', 7,
+  (v_template_id, 'section_3_1', 'CONTROL DE DOCUMENTOS', 7,
    'Lista y describe el control de documentos técnicos del proyecto.',
-   '["daily_logs"]'),
+   true, '["daily_logs"]'::jsonb),
   
-  ('section_3_2', '3.2', 'CONTROL DE CALIDAD Y CONTROL DE MATERIALES', 8,
+  (v_template_id, 'section_3_2', 'CONTROL DE CALIDAD Y CONTROL DE MATERIALES', 8,
    'Detalla los ensayos de calidad realizados, resultados y cumplimiento de especificaciones.',
-   '["quality_samples"]'),
+   true, '["quality_samples"]'::jsonb),
   
-  ('section_3_3', '3.3', 'PÓLIZAS', 9,
+  (v_template_id, 'section_3_3', 'PÓLIZAS', 9,
    'Verifica el estado de las pólizas del proyecto.',
-   '["project_info"]'),
+   true, '["project_info"]'::jsonb),
   
-  ('section_4', '4', 'CONTROL Y MANEJO AMBIENTAL', 10,
+  (v_template_id, 'section_4', 'CONTROL Y MANEJO AMBIENTAL', 10,
    'Describe las medidas de control ambiental implementadas durante el período.',
-   '["daily_logs"]'),
+   true, '["daily_logs"]'::jsonb),
   
-  ('section_5', '5', 'REGISTRO FOTOGRÁFICO', 11,
+  (v_template_id, 'section_5', 'REGISTRO FOTOGRÁFICO', 11,
    'Incluye el registro fotográfico del avance de obra.',
-   '["photos"]'),
+   true, '["photos"]'::jsonb),
   
-  ('section_6', '6', 'CONCLUSIONES Y RECOMENDACIONES', 12,
+  (v_template_id, 'section_6', 'CONCLUSIONES Y RECOMENDACIONES', 12,
    'Genera conclusiones técnicas y recomendaciones basadas en el avance y hallazgos del período.',
-   '["daily_logs", "quality_samples"]')
-ON CONFLICT (section_key) DO NOTHING;
+   true, '["daily_logs", "quality_samples"]'::jsonb)
+ON CONFLICT (report_template_id, section_key) DO NOTHING;
+  END IF;
+END $$;
 
--- 4. Actualizar jerarquía de secciones
-UPDATE report_sections SET parent_section_id = (SELECT id FROM report_sections WHERE section_key = 'section_1')
-WHERE section_key IN ('section_1_1', 'section_1_2', 'section_1_3');
+-- 4. Índices
+CREATE INDEX IF NOT EXISTS idx_biweekly_reports_project ON biweekly_reports(project_id);
+CREATE INDEX IF NOT EXISTS idx_biweekly_reports_status ON biweekly_reports(status);
+CREATE INDEX IF NOT EXISTS idx_biweekly_reports_period ON biweekly_reports(period_start, period_end);
+CREATE INDEX IF NOT EXISTS idx_biweekly_reports_created_by ON biweekly_reports(created_by);
 
-UPDATE report_sections SET parent_section_id = (SELECT id FROM report_sections WHERE section_key = 'section_3')
-WHERE section_key IN ('section_3_1', 'section_3_2', 'section_3_3');
-
--- 5. Índices
-CREATE INDEX idx_biweekly_reports_project ON biweekly_reports(project_id);
-CREATE INDEX idx_biweekly_reports_status ON biweekly_reports(status);
-CREATE INDEX idx_biweekly_reports_period ON biweekly_reports(period_start, period_end);
-CREATE INDEX idx_biweekly_reports_created_by ON biweekly_reports(created_by);
-CREATE INDEX idx_report_sections_order ON report_sections(display_order);
-
--- 6. Función para recopilar datos del período
+-- 5. Función para recopilar datos del período
 CREATE OR REPLACE FUNCTION collect_report_data(
   p_project_id UUID,
   p_period_start DATE,
@@ -255,7 +291,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 7. Función para generar número de informe
+-- 6. Función para generar número de informe
 CREATE OR REPLACE FUNCTION generate_report_number(
   p_project_id UUID,
   p_period_start DATE
@@ -288,7 +324,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 8. Trigger para notificar cuando se envía un informe
+-- 7. Trigger para notificar cuando se envía un informe
 CREATE OR REPLACE FUNCTION notify_biweekly_report_submission()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -338,7 +374,7 @@ CREATE TRIGGER trigger_notify_biweekly_report_submission
   FOR EACH ROW
   EXECUTE FUNCTION notify_biweekly_report_submission();
 
--- 9. Trigger para notificar aprobación/rechazo
+-- 8. Trigger para notificar aprobación/rechazo
 CREATE OR REPLACE FUNCTION notify_biweekly_report_review()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -389,9 +425,8 @@ CREATE TRIGGER trigger_notify_biweekly_report_review
   FOR EACH ROW
   EXECUTE FUNCTION notify_biweekly_report_review();
 
--- 10. RLS Policies
+-- 9. RLS Policies
 ALTER TABLE biweekly_reports ENABLE ROW LEVEL SECURITY;
-ALTER TABLE report_sections ENABLE ROW LEVEL SECURITY;
 
 -- Ver informes: miembros del proyecto
 CREATE POLICY "Users can view their project reports"
@@ -425,14 +460,7 @@ CREATE POLICY "Users can update reports based on role"
     )
   );
 
--- Secciones: todos pueden ver
-CREATE POLICY "Users can view report sections"
-  ON report_sections FOR SELECT
-  TO authenticated
-  USING (is_active = true);
-
--- 11. Comentarios
+-- 10. Comentarios
 COMMENT ON TABLE biweekly_reports IS 'Informes quincenales de interventoría generados con IA y editados por residentes';
-COMMENT ON TABLE report_sections IS 'Plantillas de secciones para los informes quincenales';
 COMMENT ON FUNCTION collect_report_data IS 'Recopila todos los datos del período para generar el informe';
 COMMENT ON FUNCTION generate_report_number IS 'Genera número de informe automático: PROJ-2025-Q01';
