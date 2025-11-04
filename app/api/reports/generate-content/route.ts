@@ -88,31 +88,56 @@ export async function POST(request: Request) {
     
     if (sectionKey) {
       // Generar solo una sección específica
-      const { data: section } = await supabase
+      const { data: section, error: sectionError } = await supabase
         .from('section_templates')
         .select('*')
         .eq('section_key', sectionKey)
         .single()
       
+      if (sectionError) {
+        console.error('Error getting section:', sectionError)
+        return NextResponse.json(
+          { error: 'Error al obtener sección: ' + sectionError.message },
+          { status: 500 }
+        )
+      }
+      
       if (section) sectionsToGenerate = [section]
     } else {
       // Generar todas las secciones de la plantilla quincenal
-      const { data: template } = await supabase
+      const { data: template, error: templateError } = await supabase
         .from('report_templates')
         .select('id')
         .eq('template_name', 'Informe Quincenal de Interventoría')
         .eq('is_active', true)
         .single()
 
+      if (templateError) {
+        console.error('Error getting template:', templateError)
+        return NextResponse.json(
+          { error: 'Error al obtener plantilla: ' + templateError.message },
+          { status: 500 }
+        )
+      }
+
       if (template) {
-        const { data: sections } = await supabase
+        const { data: sections, error: sectionsError } = await supabase
           .from('section_templates')
           .select('*')
           .eq('report_template_id', template.id)
           .eq('is_active', true)
           .order('section_order')
         
+        if (sectionsError) {
+          console.error('Error getting sections:', sectionsError)
+          return NextResponse.json(
+            { error: 'Error al obtener secciones: ' + sectionsError.message },
+            { status: 500 }
+          )
+        }
+        
         sectionsToGenerate = sections || []
+        console.log('Sections to generate:', sectionsToGenerate.length)
       }
     }
 
