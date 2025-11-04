@@ -70,9 +70,9 @@ export async function POST(request: Request) {
 
     // 2. Obtener configuración de IA
     const { data: aiConfig } = await supabase
-      .from('ai_writing_config')
+      .from('ai_settings')
       .select('*')
-      .eq('is_global', true)
+      .eq('provider', 'openai')
       .eq('is_active', true)
       .single()
 
@@ -89,14 +89,24 @@ export async function POST(request: Request) {
       
       if (section) sectionsToGenerate = [section]
     } else {
-      // Generar todas las secciones
-      const { data: sections } = await supabase
-        .from('section_templates')
-        .select('*')
+      // Generar todas las secciones de la plantilla quincenal
+      const { data: template } = await supabase
+        .from('report_templates')
+        .select('id')
+        .eq('template_name', 'Informe Quincenal de Interventoría')
         .eq('is_active', true)
-        .order('section_order')
-      
-      sectionsToGenerate = sections || []
+        .single()
+
+      if (template) {
+        const { data: sections } = await supabase
+          .from('section_templates')
+          .select('*')
+          .eq('report_template_id', template.id)
+          .eq('is_active', true)
+          .order('section_order')
+        
+        sectionsToGenerate = sections || []
+      }
     }
 
     // 4. Obtener cliente de OpenAI
