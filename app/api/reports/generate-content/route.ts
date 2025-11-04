@@ -33,10 +33,13 @@ export async function POST(request: Request) {
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
+      console.error('Auth error:', authError)
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
+    console.log('Request body:', body)
+    
     const { 
       projectId, 
       periodStart, 
@@ -46,6 +49,7 @@ export async function POST(request: Request) {
     } = body
 
     if (!projectId || !periodStart || !periodEnd) {
+      console.error('Missing required params:', { projectId, periodStart, periodEnd })
       return NextResponse.json(
         { error: 'Faltan parámetros requeridos' },
         { status: 400 }
@@ -53,6 +57,7 @@ export async function POST(request: Request) {
     }
 
     // 1. Recopilar datos del período
+    console.log('Calling collect_report_data with:', { projectId, periodStart, periodEnd })
     const { data: sourceData, error: dataError } = await supabase
       .rpc('collect_report_data', {
         p_project_id: projectId,
@@ -63,10 +68,12 @@ export async function POST(request: Request) {
     if (dataError) {
       console.error('Error collecting data:', dataError)
       return NextResponse.json(
-        { error: 'Error al recopilar datos del proyecto' },
+        { error: 'Error al recopilar datos del proyecto: ' + dataError.message },
         { status: 500 }
       )
     }
+    
+    console.log('Source data collected:', sourceData)
 
     // 2. Obtener configuración de IA
     const { data: aiConfig } = await supabase
@@ -195,9 +202,10 @@ export async function POST(request: Request) {
     })
 
   } catch (error: any) {
-    console.error('Error generating content:', error)
+    console.error('Error in generate-content API:', error)
+    console.error('Error stack:', error.stack)
     return NextResponse.json(
-      { error: error.message || 'Error al generar contenido' },
+      { error: 'Error interno del servidor: ' + error.message },
       { status: 500 }
     )
   }
