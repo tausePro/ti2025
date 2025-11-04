@@ -104,40 +104,29 @@ export async function POST(request: Request) {
       
       if (section) sectionsToGenerate = [section]
     } else {
-      // Generar todas las secciones de la plantilla quincenal
-      const { data: template, error: templateError } = await supabase
-        .from('report_templates')
-        .select('id')
-        .eq('template_name', 'Informe Quincenal de Interventoría')
+      // Generar todas las secciones activas (sin filtrar por plantilla específica)
+      const { data: sections, error: sectionsError } = await supabase
+        .from('section_templates')
+        .select('*')
         .eq('is_active', true)
-        .single()
-
-      if (templateError) {
-        console.error('Error getting template:', templateError)
+        .order('section_order')
+      
+      if (sectionsError) {
+        console.error('Error getting sections:', sectionsError)
         return NextResponse.json(
-          { error: 'Error al obtener plantilla: ' + templateError.message },
+          { error: 'Error al obtener secciones: ' + sectionsError.message },
           { status: 500 }
         )
       }
-
-      if (template) {
-        const { data: sections, error: sectionsError } = await supabase
-          .from('section_templates')
-          .select('*')
-          .eq('report_template_id', template.id)
-          .eq('is_active', true)
-          .order('section_order')
-        
-        if (sectionsError) {
-          console.error('Error getting sections:', sectionsError)
-          return NextResponse.json(
-            { error: 'Error al obtener secciones: ' + sectionsError.message },
-            { status: 500 }
-          )
-        }
-        
-        sectionsToGenerate = sections || []
-        console.log('Sections to generate:', sectionsToGenerate.length)
+      
+      sectionsToGenerate = sections || []
+      console.log('Sections to generate:', sectionsToGenerate.length)
+      
+      if (sectionsToGenerate.length === 0) {
+        return NextResponse.json(
+          { error: 'No hay secciones configuradas. Por favor contacta al administrador.' },
+          { status: 404 }
+        )
       }
     }
 
