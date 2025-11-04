@@ -328,7 +328,7 @@ export default function NewBiweeklyReportPage() {
         <button
           onClick={handleGenerateContent}
           disabled={generating || !selectedProject || !periodStart || !periodEnd}
-          className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {generating ? (
             <>
@@ -341,6 +341,33 @@ export default function NewBiweeklyReportPage() {
               Generar Contenido con IA
             </>
           )}
+        </button>
+        
+        {/* Debug button */}
+        <button
+          onClick={async () => {
+            try {
+              const response = await fetch('/api/reports/debug', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  projectId: selectedProject,
+                  periodStart,
+                  periodEnd
+                })
+              })
+              const result = await response.json()
+              console.log('DEBUG RESULT:', result)
+              alert('Debug result: ' + JSON.stringify(result, null, 2))
+            } catch (error) {
+              console.error('Debug error:', error)
+              alert('Debug error: ' + error)
+            }
+          }}
+          disabled={!selectedProject || !periodStart || !periodEnd}
+          className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50"
+        >
+          🔍 Debug
         </button>
       </div>
 
