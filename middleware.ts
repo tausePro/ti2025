@@ -29,6 +29,10 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
+  // Rutas públicas que no requieren autenticación
+  const publicRoutes = ['/login', '/register', '/']
+  const isPublicRoute = publicRoutes.includes(pathname)
+
   try {
     const {
       data: { user },
@@ -42,10 +46,13 @@ export async function middleware(request: NextRequest) {
     }
 
     // Si no está autenticado y trata de acceder a rutas protegidas
-    if (!user && (pathname.startsWith('/admin') || pathname.startsWith('/dashboard') || pathname.startsWith('/projects') || pathname.startsWith('/reports') || pathname.startsWith('/financial'))) {
+    if (!user && !isPublicRoute && (pathname.startsWith('/admin') || pathname.startsWith('/dashboard') || pathname.startsWith('/projects') || pathname.startsWith('/reports') || pathname.startsWith('/financial') || pathname.startsWith('/quality-control') || pathname.startsWith('/desembolsos'))) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
-      return NextResponse.redirect(url)
+      // Evitar loop: solo redirigir si no estamos ya en login
+      if (pathname !== '/login') {
+        return NextResponse.redirect(url)
+      }
     }
 
     // Si no está autenticado y accede a la raíz, redirigir a login
@@ -57,6 +64,12 @@ export async function middleware(request: NextRequest) {
 
   } catch (error) {
     console.error('Middleware error:', error)
+    // En caso de error, permitir acceso a rutas públicas
+    if (!isPublicRoute) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
   }
 
   // Agregar headers de seguridad
