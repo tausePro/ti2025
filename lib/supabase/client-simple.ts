@@ -1,9 +1,17 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/database.types'
 
 // Cliente simple sin SSR para evitar problemas de cookies
 export function createClient() {
-  return createSupabaseClient<Database>(
+  if (typeof window === 'undefined') {
+    // En el servidor, usar cliente básico sin opciones
+    return createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  }
+
+  // En el cliente, usar con persistencia
+  return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -11,7 +19,7 @@ export function createClient() {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        storage: typeof window !== 'undefined' ? window.localStorage : undefined
+        storage: window.localStorage
       }
     }
   )
