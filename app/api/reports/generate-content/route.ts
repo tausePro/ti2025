@@ -45,6 +45,7 @@ export async function POST(request: Request) {
       periodStart, 
       periodEnd, 
       sectionKey,
+      currentContent,
       regenerate = false 
     } = body
 
@@ -150,6 +151,9 @@ export async function POST(request: Request) {
       // Preparar contexto para la IA
       const context = prepareContext(section, sourceData)
       
+      // Obtener contenido actual del residente (si existe)
+      const residentContent = currentContent?.[section.section_key] || section.content_template || ''
+      
       let content = ''
       
       // Generar contenido con OpenAI si está disponible
@@ -165,7 +169,7 @@ export async function POST(request: Request) {
               },
               {
                 role: 'user',
-                content: `${section.content_template}\n\nContexto del proyecto:\n${context}\n\nGenera el contenido en formato HTML profesional con etiquetas <h3>, <p>, <ul>, <li>, etc. No incluyas estilos inline.`
+                content: `CONTENIDO ACTUAL DEL RESIDENTE:\n${residentContent}\n\nDATOS DE BITÁCORAS Y CONTROL DE CALIDAD:\n${context}\n\nINSTRUCCIONES:\n1. Mantén el contenido que escribió el residente\n2. Complementa con los datos de bitácoras y control de calidad\n3. Enriquece con análisis técnico profesional\n4. Genera el resultado en formato HTML con etiquetas <h3>, <p>, <ul>, <li>, etc.\n5. NO incluyas estilos inline\n6. NO reemplaces lo que el residente escribió, solo complementa`
               }
             ],
             temperature: openaiSetup.config.temperature,

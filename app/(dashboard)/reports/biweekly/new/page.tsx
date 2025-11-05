@@ -76,6 +76,17 @@ export default function NewBiweeklyReportPage() {
 
       setSections(sectionsData || [])
 
+      // Inicializar contenido con templates preconfigurados
+      if (sectionsData && sectionsData.length > 0) {
+        const initialContent: any = {}
+        sectionsData.forEach((section: any) => {
+          // Usar content_template como contenido inicial
+          initialContent[section.section_key] = section.content_template || ''
+        })
+        setContent(initialContent)
+        console.log('✅ Contenido inicial cargado:', Object.keys(initialContent).length, 'secciones')
+      }
+
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -92,13 +103,15 @@ export default function NewBiweeklyReportPage() {
     try {
       setGenerating(true)
 
+      // 1. Generar contenido con IA (complementar, no reemplazar)
       const response = await fetch('/api/reports/generate-content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId: selectedProject,
           periodStart,
-          periodEnd
+          periodEnd,
+          currentContent: content // Enviar contenido actual del residente
         })
       })
 
