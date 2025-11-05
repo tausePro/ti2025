@@ -15,13 +15,16 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
+          cookiesToSet.forEach(({ name, value, options }) => {
+            // Configurar cookies con opciones correctas
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              httpOnly: false, // Permitir acceso desde JavaScript
+              secure: process.env.NODE_ENV === 'production', // HTTPS en producción
+              sameSite: 'lax', // Permitir cookies en navegación
+              path: '/',
+            })
           })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
         },
       },
     }
