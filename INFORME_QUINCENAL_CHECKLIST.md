@@ -209,9 +209,9 @@
 ---
 
 ## 🚀 ORDEN DE IMPLEMENTACIÓN SUGERIDO
-1. ✅ FASE 1: Cargar secciones preconfiguradas (BASE)
-2. ✅ FASE 3: Guardar borrador automático (PERSISTENCIA)
-3. ✅ FASE 2: Generación con IA (COMPLEMENTAR)
+1. ✅ FASE 1: Cargar secciones preconfiguradas (BASE) - COMPLETADA
+2. ⏳ FASE 3: Guardar borrador automático (PERSISTENCIA) - EN PROGRESO
+3. ⏳ FASE 2: Generación con IA (COMPLEMENTAR) - PARCIAL
 4. ⏳ FASE 4: Publicar informe (WORKFLOW)
 5. ⏳ FASE 5: Vista de revisión (SANTIAGO)
 6. ⏳ FASE 7: Notificaciones (COMUNICACIÓN)
@@ -222,5 +222,28 @@
 
 ---
 
-**ÚLTIMA ACTUALIZACIÓN:** 2025-11-04 20:53
-**PRÓXIMO PASO:** Implementar FASE 1 - Cargar secciones preconfiguradas
+## 📝 PROGRESO ACTUAL
+
+### ✅ COMPLETADO:
+- Cargar section_templates al iniciar página
+- Inicializar content con content_template
+- Mostrar contenido base en editores WYSIWYG
+- Permitir edición manual del residente
+- IA complementa (no reemplaza) contenido del residente
+- Enviar currentContent a API
+
+### ⏳ EN PROGRESO:
+- Guardar borrador automáticamente después de generar
+- Verificar que secciones existen en BD
+
+### ❌ PENDIENTE:
+- Publicar informe
+- Vista de revisión
+- Notificaciones
+- Generación de PDF
+- Listado de informes
+
+---
+
+**ÚLTIMA ACTUALIZACIÓN:** 2025-11-04 23:08
+**PRÓXIMO PASO:** Verificar secciones en BD y completar guardado automático
