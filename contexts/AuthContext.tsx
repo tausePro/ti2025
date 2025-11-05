@@ -119,13 +119,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('🔄 Token renovado exitosamente')
           if (session?.user) {
             setUser(session.user)
+            // Recargar perfil si cambió
+            await loadUserProfile(session.user.id)
           }
           return
         }
         
-        // Manejar sesión expirada
-        if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
-          console.log('⏰ Sesión expirada - redirigiendo a login...')
+        // Manejar SIGNED_OUT explícitamente
+        if (event === 'SIGNED_OUT') {
+          console.log('👋 Usuario cerró sesión')
           setUser(null)
           setProfile(null)
           setPermissions([])
@@ -134,8 +136,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             localStorage.removeItem('user_profile')
             localStorage.removeItem('user_permissions')
           }
-          // Redirigir a login
-          window.location.href = '/login?expired=true'
+          // Solo redirigir si no estamos en login
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+            window.location.href = '/login'
+          }
           return
         }
         
