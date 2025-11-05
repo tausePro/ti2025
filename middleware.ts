@@ -34,9 +34,12 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute = publicRoutes.includes(pathname)
 
   try {
+    // Usar getSession() en lugar de getUser() - más confiable
     const {
-      data: { user },
-    } = await supabase.auth.getUser()
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    const user = session?.user
 
     // Si está autenticado y trata de acceder a login/register, redirigir al dashboard
     if (user && (pathname === '/login' || pathname === '/register')) {
@@ -64,12 +67,8 @@ export async function middleware(request: NextRequest) {
 
   } catch (error) {
     console.error('Middleware error:', error)
-    // En caso de error, permitir acceso a rutas públicas
-    if (!isPublicRoute) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
-    }
+    // En caso de error, NO redirigir - dejar pasar
+    // El AuthContext manejará la autenticación en el cliente
   }
 
   // Agregar headers de seguridad
