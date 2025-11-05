@@ -6,7 +6,24 @@ type UserRole = 'super_admin' | 'admin' | 'gerente' | 'supervisor' | 'residente'
 export function createClient() {
   return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        storageKey: 'sb-auth-token',
+      },
+      cookieOptions: {
+        name: 'sb-auth-token',
+        lifetime: 60 * 60 * 24 * 7, // 7 días
+        domain: typeof window !== 'undefined' ? window.location.hostname : undefined,
+        path: '/',
+        sameSite: 'lax',
+      },
+    }
   )
 }
 
