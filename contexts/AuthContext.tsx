@@ -119,8 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('🔄 Token renovado exitosamente')
           if (session?.user) {
             setUser(session.user)
-            // Recargar perfil si cambió
-            await loadUserProfile(session.user.id)
+            // NO recargar perfil - ya lo tenemos
           }
           return
         }
