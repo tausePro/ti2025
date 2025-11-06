@@ -16,14 +16,8 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // Configurar cookies con opciones correctas
-            supabaseResponse.cookies.set(name, value, {
-              ...options,
-              httpOnly: false, // Permitir acceso desde JavaScript
-              secure: process.env.NODE_ENV === 'production', // HTTPS en producción
-              sameSite: 'lax', // Permitir cookies en navegación
-              path: '/',
-            })
+            // Usar las opciones que vienen de Supabase sin modificar
+            supabaseResponse.cookies.set(name, value, options)
           })
         },
       },
