@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true
+    let sessionCheckInterval: NodeJS.Timeout | null = null
 
     // Obtener sesión inicial
     const getInitialSession = async () => {
@@ -46,10 +47,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (!mounted) return
 
-        setUser(session?.user ?? null)
-        
         if (session?.user) {
           console.log('👤 Usuario encontrado:', session.user.email)
+          
+          // PRIMERO establecer el user
+          setUser(session.user)
           
           // Intentar cargar perfil desde localStorage primero
           if (typeof window !== 'undefined') {
@@ -78,8 +80,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           // Cargar perfil desde BD (esto actualizará el cache)
           await loadUserProfile(session.user.id)
+          
+          // Verificar sesión cada 30 segundos
+          sessionCheckInterval = setInterval(async () => {
+            const { data: { session: currentSession } } = await supabase.auth.getSession()
+            if (!currentSession && mounted) {
+              console.log('⚠️ Sesión perdida - redirigiendo a login')
+              window.location.href = '/login'
+            }
+          }, 30000)
+          
         } else {
           console.log('❌ No hay usuario en la sesión')
+          setUser(null)
           setProfile(null)
           setPermissions([])
           if (typeof window !== 'undefined') {
@@ -156,6 +169,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false
       subscription.unsubscribe()
+      if (sessionCheckInterval) {
+        clearInterval(sessionCheckInterval)
+      }
     }
   }, [])
 
