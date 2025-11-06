@@ -29,12 +29,13 @@ CREATE TABLE IF NOT EXISTS project_report_templates (
   -- Auditoría
   created_by UUID REFERENCES profiles(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
-  -- Solo una plantilla activa por defecto por proyecto
-  CONSTRAINT unique_default_per_project UNIQUE(project_id, is_default) 
-    WHERE is_default = true
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Índice único parcial para solo una plantilla por defecto por proyecto
+CREATE UNIQUE INDEX unique_default_per_project 
+  ON project_report_templates(project_id) 
+  WHERE is_default = true;
 
 -- 2. Modificar section_templates para soportar plantillas de proyecto
 ALTER TABLE section_templates 
