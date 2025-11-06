@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event: any, session: any) => {
         if (!mounted) return
 
-        console.log('🔄 Evento de auth:', event)
+        console.log('🔄 Evento de auth:', event, 'Session:', !!session)
         
         // Ignorar TODOS los eventos durante logout
         if (isLoggingOut.current) {
@@ -114,14 +114,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
         
-        // Manejar TOKEN_REFRESHED - sesión renovada
+        // Manejar TOKEN_REFRESHED - sesión renovada (NO hacer nada)
         if (event === 'TOKEN_REFRESHED') {
-          console.log('🔄 Token renovado exitosamente')
-          if (session?.user) {
-            setUser(session.user)
-            // NO recargar perfil - ya lo tenemos
-          }
-          return
+          console.log('🔄 Token renovado - manteniendo estado actual')
+          return // NO tocar nada
         }
         
         // Manejar SIGNED_OUT explícitamente
@@ -142,8 +138,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
         
-        // Solo procesar SIGNED_IN e INITIAL_SESSION
-        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        // Solo procesar SIGNED_IN (NO INITIAL_SESSION para evitar loops)
+        if (event === 'SIGNED_IN') {
           if (session?.user) {
             console.log('👤 Usuario autenticado:', session.user.email)
             setUser(session.user)
