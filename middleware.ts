@@ -31,41 +31,22 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute = publicRoutes.includes(pathname)
 
   try {
-    // Usar getSession() en lugar de getUser() - más confiable
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+    // Refrescar sesión para mantener cookies actualizadas
+    await supabase.auth.getSession()
 
-    const user = session?.user
+    // NO verificar autenticación aquí - dejar que el cliente lo maneje
+    // Solo manejar redirecciones básicas
 
-    // Si está autenticado y trata de acceder a login/register, redirigir al dashboard
-    if (user && (pathname === '/login' || pathname === '/register')) {
+    // Si accede a la raíz, redirigir a dashboard (el cliente verificará auth)
+    if (pathname === '/') {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)
     }
 
-    // Si no está autenticado y trata de acceder a rutas protegidas
-    if (!user && !isPublicRoute && (pathname.startsWith('/admin') || pathname.startsWith('/dashboard') || pathname.startsWith('/projects') || pathname.startsWith('/reports') || pathname.startsWith('/financial') || pathname.startsWith('/quality-control') || pathname.startsWith('/desembolsos'))) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      // Evitar loop: solo redirigir si no estamos ya en login
-      if (pathname !== '/login') {
-        return NextResponse.redirect(url)
-      }
-    }
-
-    // Si no está autenticado y accede a la raíz, redirigir a login
-    if (!user && pathname === '/') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
-    }
-
   } catch (error) {
     console.error('Middleware error:', error)
-    // En caso de error, NO redirigir - dejar pasar
-    // El AuthContext manejará la autenticación en el cliente
+    // En caso de error, dejar pasar
   }
 
   // Agregar headers de seguridad

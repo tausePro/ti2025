@@ -37,6 +37,14 @@ export default function DashboardLayout({
   const router = useRouter()
   const { user, profile, hasPermission, signOut, loading } = useAuth()
 
+  // Protección del lado del cliente
+  if (!loading && !user) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    }
+    return null
+  }
+
   // Sistema de logout por inactividad
   const { showWarning, timeRemaining, resetTimer } = useIdleTimeout({
     onIdle: async () => {
