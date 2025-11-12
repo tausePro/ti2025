@@ -103,37 +103,46 @@ export default function NewBiweeklyReportPage() {
     try {
       setGenerating(true)
 
-      // 1. Generar contenido con IA (complementar, no reemplazar)
-      const response = await fetch('/api/reports/generate-content', {
+      // 1. Generar informe desde plantilla del proyecto
+      const response = await fetch('/api/reports/generate-from-template', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId: selectedProject,
           periodStart,
-          periodEnd,
-          currentContent: content // Enviar contenido actual del residente
+          periodEnd
         })
       })
 
       if (!response.ok) {
-        throw new Error('Error al generar contenido')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al generar informe')
       }
 
       const data = await response.json()
+      
+      // Actualizar contenido generado
       setContent(data.content)
+      setShortTitle(data.shortTitle)
+      setLongTitle(data.longTitle)
 
-      // Generar títulos automáticos
-      const project = projects.find(p => p.id === selectedProject)
-      if (project) {
-        const start = new Date(periodStart)
-        const end = new Date(periodEnd)
-        setShortTitle(`Informe Quincenal ${start.toLocaleDateString('es-CO')} - ${end.toLocaleDateString('es-CO')}`)
-      }
+      // Mostrar resumen de datos recopilados
+      const summary = data.sourceData?.summary
+      const message = `✅ Informe generado exitosamente
 
-      alert('✅ Contenido generado exitosamente con IA')
-    } catch (error) {
+📊 Datos recopilados:
+- ${data.sourceData?.dailyLogsCount || 0} bitácoras diarias
+- ${data.sourceData?.qualityControlCount || 0} ensayos de control de calidad
+- ${data.sourceData?.photosCount || 0} fotos
+- ${summary?.workDays || 0} días trabajados
+- ${summary?.totalTests || 0} ensayos realizados
+
+El contenido se generó automáticamente desde la plantilla del proyecto.`
+
+      alert(message)
+    } catch (error: any) {
       console.error('Error generating content:', error)
-      alert('Error al generar contenido. Por favor intenta de nuevo.')
+      alert(`Error: ${error.message}`)
     } finally {
       setGenerating(false)
     }
