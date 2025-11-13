@@ -20,7 +20,8 @@ import {
   FileText, 
   MessageSquare,
   Settings,
-  Plus
+  Plus,
+  FileEdit
 } from 'lucide-react'
 import Link from 'next/link'
 import { Project, Company, User, ProjectStatus, InterventionType } from '@/types'
@@ -190,12 +191,20 @@ export default function ProjectDetailPage() {
             {getStatusText(project.status)}
           </Badge>
           {hasPermission('projects', 'update') && (
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`/dashboard/projects/${project.id}/edit`}>
-                <Edit className="h-4 w-4 mr-2" />
-                Editar
-              </Link>
-            </Button>
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/projects/${project.id}/report-template`}>
+                  <FileEdit className="h-4 w-4 mr-2" />
+                  Plantilla de Informes
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/dashboard/projects/${project.id}/edit`}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar
+                </Link>
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -332,8 +341,48 @@ export default function ProjectDetailPage() {
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4">
-            <div className="text-center py-8 text-gray-500">
-              Módulo de reportes en desarrollo
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Configurar Plantilla */}
+              <Card>
+                <CardContent className="py-12">
+                  <div className="text-center">
+                    <FileEdit className="h-16 w-16 mx-auto text-talento-green mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Plantilla de Informes</h3>
+                    <p className="text-gray-600 mb-6">
+                      Configura la plantilla base para los informes quincenales.
+                      <br />
+                      Define secciones y contenido con placeholders.
+                    </p>
+                    <Link href={`/projects/${project.id}/report-template`}>
+                      <Button>
+                        <FileEdit className="h-4 w-4 mr-2" />
+                        Configurar Plantilla
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Crear Informe */}
+              <Card>
+                <CardContent className="py-12">
+                  <div className="text-center">
+                    <FileText className="h-16 w-16 mx-auto text-blue-600 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Crear Informe Quincenal</h3>
+                    <p className="text-gray-600 mb-6">
+                      Genera un nuevo informe quincenal automáticamente
+                      <br />
+                      desde la plantilla configurada.
+                    </p>
+                    <Link href="/reports/biweekly/new">
+                      <Button variant="outline">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nuevo Informe
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
