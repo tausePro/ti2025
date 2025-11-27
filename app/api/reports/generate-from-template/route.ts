@@ -18,12 +18,14 @@ export async function POST(request: NextRequest) {
     const supabase = createClient()
 
     // 1. Obtener plantilla activa del proyecto
-    const { data: template, error: templateError } = await supabase
+    //    Ahora puede haber varias, escogemos la default (o la más reciente)
+    const { data: templates, error: templateError } = await supabase
       .from('project_report_templates')
       .select('*')
       .eq('project_id', projectId)
       .eq('is_active', true)
-      .maybeSingle()
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (templateError) {
       console.error('Error obteniendo plantilla:', templateError)
@@ -32,6 +34,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    const template = templates?.[0]
 
     if (!template) {
       return NextResponse.json(

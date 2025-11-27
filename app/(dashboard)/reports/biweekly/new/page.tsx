@@ -47,7 +47,7 @@ export default function NewBiweeklyReportPage() {
   const [periodEnd, setPeriodEnd] = useState('')
   const [shortTitle, setShortTitle] = useState('')
   const [longTitle, setLongTitle] = useState('INFORME QUINCENAL DE INTERVENTORÍA Y SUPERVISIÓN TÉCNICA INDEPENDIENTE')
-  const [content, setContent] = useState<Record<string, { title: string; content: string }>>({})
+  const [content, setContent] = useState<Record<string, string>>({})
   const [reportId, setReportId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -67,7 +67,7 @@ export default function NewBiweeklyReportPage() {
 
       setProjects(projectsData || [])
 
-      // Cargar secciones del informe
+      // Cargar secciones del informe (plantilla base)
       const { data: sectionsData } = await supabase
         .from('section_templates')
         .select('*')
@@ -78,9 +78,9 @@ export default function NewBiweeklyReportPage() {
 
       // Inicializar contenido con templates preconfigurados
       if (sectionsData && sectionsData.length > 0) {
-        const initialContent: any = {}
+        const initialContent: Record<string, string> = {}
         sectionsData.forEach((section: any) => {
-          // Usar content_template como contenido inicial
+          // Usar content_template como contenido inicial de la sección
           initialContent[section.section_key] = section.content_template || ''
         })
         setContent(initialContent)
@@ -406,14 +406,11 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
                   {section.section_name}
                 </h3>
                 <RichTextEditor
-                  content={sectionContent.content}
+                  content={sectionContent}
                   onChange={(newContent) => {
                     setContent(prev => ({
                       ...prev,
-                      [section.section_key]: {
-                        ...sectionContent,
-                        content: newContent
-                      }
+                      [section.section_key]: newContent
                     }))
                   }}
                   placeholder={`Contenido de ${section.section_name}...`}

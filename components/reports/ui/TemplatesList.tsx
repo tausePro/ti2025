@@ -18,7 +18,7 @@ export function TemplatesList({ templates: initialTemplates }: TemplatesListProp
   }
 
   const handleEdit = (id: string) => {
-    router.push(`/admin/report-templates/${id}/edit`)
+    router.push(`/admin/report-templates/${id}`)
   }
 
   const handleDuplicate = async (template: ReportTemplate) => {
