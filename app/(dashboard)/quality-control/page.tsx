@@ -54,6 +54,13 @@ export default function QualityControlPage() {
     }
   }, [user, profile, authLoading])
 
+  // Cargar muestras cuando se selecciona un proyecto
+  useEffect(() => {
+    if (selectedProject) {
+      loadSamples(selectedProject)
+    }
+  }, [selectedProject])
+
   // Mostrar loading mientras auth se carga
   if (authLoading) {
     return (
@@ -76,13 +83,6 @@ export default function QualityControlPage() {
       </div>
     )
   }
-
-  // Cargar muestras cuando se selecciona un proyecto
-  useEffect(() => {
-    if (selectedProject) {
-      loadSamples(selectedProject)
-    }
-  }, [selectedProject])
 
   const loadProjects = async () => {
     try {
