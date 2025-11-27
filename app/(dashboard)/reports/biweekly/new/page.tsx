@@ -12,9 +12,12 @@ import {
   Loader2, 
   Sparkles,
   Calendar,
-  FileText
+  FileText,
+  Eye,
+  AlertCircle
 } from 'lucide-react'
 import Link from 'next/link'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface Project {
   id: string
@@ -23,11 +26,19 @@ interface Project {
 }
 
 interface ReportSection {
+  id: string
   section_key: string
   section_name: string
   section_order: number
   content_template: string
+  base_content: string
   use_ai: boolean
+}
+
+interface ProjectTemplate {
+  id: string
+  template_name: string
+  report_type: string | null
 }
 
 export default function NewBiweeklyReportPage() {
@@ -49,16 +60,30 @@ export default function NewBiweeklyReportPage() {
   const [longTitle, setLongTitle] = useState('INFORME QUINCENAL DE INTERVENTORÍA Y SUPERVISIÓN TÉCNICA INDEPENDIENTE')
   const [content, setContent] = useState<Record<string, string>>({})
   const [reportId, setReportId] = useState<string | null>(null)
+  const [projectTemplate, setProjectTemplate] = useState<ProjectTemplate | null>(null)
+  const [noTemplateWarning, setNoTemplateWarning] = useState(false)
 
   useEffect(() => {
-    loadInitialData()
+    loadProjects()
   }, [])
 
-  const loadInitialData = async () => {
+  // Cargar plantilla cuando se selecciona proyecto
+  useEffect(() => {
+    if (selectedProject) {
+      loadProjectTemplate(selectedProject)
+    } else {
+      setProjectTemplate(null)
+      setSections([])
+      setContent({})
+      setNoTemplateWarning(false)
+    }
+  }, [selectedProject])
+
+  const loadProjects = async () => {
     try {
       setLoading(true)
 
-      // Cargar proyectos del usuario
+      // Cargar proyectos del usuario (donde es miembro activo)
       const { data: projectsData } = await supabase
         .from('projects')
         .select('id, name, project_code')
@@ -66,31 +91,60 @@ export default function NewBiweeklyReportPage() {
         .order('name')
 
       setProjects(projectsData || [])
+    } catch (error) {
+      console.error('Error loading projects:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-      // Cargar secciones del informe (plantilla base)
+  const loadProjectTemplate = async (projectId: string) => {
+    try {
+      // Buscar plantilla activa del proyecto
+      const { data: templateData, error: templateError } = await supabase
+        .from('project_report_templates')
+        .select('id, template_name, report_type')
+        .eq('project_id', projectId)
+        .eq('is_active', true)
+        .order('is_default', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (templateError || !templateData) {
+        console.log('⚠️ No hay plantilla configurada para este proyecto')
+        setProjectTemplate(null)
+        setSections([])
+        setContent({})
+        setNoTemplateWarning(true)
+        return
+      }
+
+      setProjectTemplate(templateData)
+      setNoTemplateWarning(false)
+
+      // Cargar secciones de la plantilla del proyecto
       const { data: sectionsData } = await supabase
         .from('section_templates')
         .select('*')
+        .eq('project_template_id', templateData.id)
         .eq('is_active', true)
         .order('section_order')
 
       setSections(sectionsData || [])
 
-      // Inicializar contenido con templates preconfigurados
+      // Inicializar contenido con base_content o content_template
       if (sectionsData && sectionsData.length > 0) {
         const initialContent: Record<string, string> = {}
         sectionsData.forEach((section: any) => {
-          // Usar content_template como contenido inicial de la sección
-          initialContent[section.section_key] = section.content_template || ''
+          initialContent[section.section_key] = section.base_content || section.content_template || ''
         })
         setContent(initialContent)
-        console.log('✅ Contenido inicial cargado:', Object.keys(initialContent).length, 'secciones')
+        console.log('✅ Plantilla cargada:', templateData.template_name, '-', sectionsData.length, 'secciones')
       }
 
     } catch (error) {
-      console.error('Error loading data:', error)
-    } finally {
-      setLoading(false)
+      console.error('Error loading project template:', error)
+      setNoTemplateWarning(true)
     }
   }
 
@@ -230,7 +284,7 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
       const { error } = await supabase
         .from('biweekly_reports')
         .update({
-          status: 'submitted',
+          status: 'pending_review',
           submitted_at: new Date().toISOString(),
           submitted_by: profile?.id
         })
@@ -238,7 +292,7 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
 
       if (error) throw error
 
-      alert('✅ Informe enviado para revisión')
+      alert('✅ Informe enviado para revisión. El supervisor será notificado.')
       router.push('/reports/biweekly')
     } catch (error: any) {
       console.error('Error submitting report:', error)
@@ -347,50 +401,63 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
           />
         </div>
 
-        <button
-          onClick={handleGenerateContent}
-          disabled={generating || !selectedProject || !periodStart || !periodEnd}
-          className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {generating ? (
-            <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Generando con IA...
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-5 h-5 mr-2" />
-              Generar Contenido con IA
-            </>
+        {/* Alerta si no hay plantilla */}
+        {noTemplateWarning && selectedProject && (
+          <Alert className="mb-4 bg-amber-50 border-amber-200">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800">
+              <strong>No hay plantilla configurada para este proyecto.</strong>
+              <br />
+              El supervisor debe asignar una plantilla desde la configuración del proyecto antes de poder generar informes.
+              <Link 
+                href={`/projects/${selectedProject}/report-template`}
+                className="ml-2 text-blue-600 hover:underline"
+              >
+                Ir a configurar plantilla →
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Info de plantilla activa */}
+        {projectTemplate && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-800">
+              <strong>Plantilla activa:</strong> {projectTemplate.template_name}
+              {projectTemplate.report_type && ` (${projectTemplate.report_type})`}
+            </p>
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            onClick={handleGenerateContent}
+            disabled={generating || !selectedProject || !periodStart || !periodEnd || noTemplateWarning}
+            className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Generando...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-5 h-5 mr-2" />
+                Generar Contenido
+              </>
+            )}
+          </button>
+
+          {reportId && (
+            <Link
+              href={`/reports/biweekly/${reportId}/preview`}
+              className="inline-flex items-center px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            >
+              <Eye className="w-5 h-5 mr-2" />
+              Vista Previa PDF
+            </Link>
           )}
-        </button>
-        
-        {/* Debug button */}
-        <button
-          onClick={async () => {
-            try {
-              const response = await fetch('/api/reports/debug', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  projectId: selectedProject,
-                  periodStart,
-                  periodEnd
-                })
-              })
-              const result = await response.json()
-              console.log('DEBUG RESULT:', result)
-              alert('Debug result: ' + JSON.stringify(result, null, 2))
-            } catch (error) {
-              console.error('Debug error:', error)
-              alert('Debug error: ' + error)
-            }
-          }}
-          disabled={!selectedProject || !periodStart || !periodEnd}
-          className="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors disabled:opacity-50"
-        >
-          🔍 Debug
-        </button>
+        </div>
       </div>
 
       {/* Secciones del informe */}

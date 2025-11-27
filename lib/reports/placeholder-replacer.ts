@@ -31,10 +31,11 @@ export function replacePlaceholders(
   let result = content
 
   // Placeholders de proyecto
-  result = result.replace(/\{\{project_name\}\}/g, context.project?.name || '')
-  result = result.replace(/\{\{project_code\}\}/g, context.project?.project_code || '')
-  result = result.replace(/\{\{project_location\}\}/g, context.project?.location || '')
-  result = result.replace(/\{\{project_client\}\}/g, context.project?.client_name || '')
+  result = result.replace(/\{\{project_name\}\}/g, context.project?.name || 'N/A')
+  result = result.replace(/\{\{project_code\}\}/g, context.project?.project_code || 'N/A')
+  result = result.replace(/\{\{project_location\}\}/g, context.project?.location || 'N/A')
+  result = result.replace(/\{\{project_address\}\}/g, context.project?.address || context.project?.location || 'N/A')
+  result = result.replace(/\{\{project_client\}\}/g, context.project?.client_name || 'N/A')
 
   // Placeholders de período
   const startDate = new Date(context.periodStart).toLocaleDateString('es-CO', {
@@ -93,6 +94,20 @@ export function replacePlaceholders(
     </ul>
   `
   result = result.replace(/\{\{qc\.resultados\}\}/g, qcSummary)
+
+  // Porcentaje de aprobados
+  const totalTests = context.summary?.totalTests || 0
+  const passedTests = context.summary?.passedTests || 0
+  const porcentajeAprobados = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0
+  result = result.replace(/\{\{qc\.porcentaje_aprobados\}\}/g, String(porcentajeAprobados))
+
+  // Placeholders de summary con notación de punto
+  result = result.replace(/\{\{summary\.work_days\}\}/g, String(context.summary?.workDays || 0))
+  result = result.replace(/\{\{summary\.rain_days\}\}/g, String(context.summary?.rainDays || 0))
+  result = result.replace(/\{\{summary\.total_workers\}\}/g, String(context.summary?.totalWorkers || 0))
+  result = result.replace(/\{\{summary\.total_tests\}\}/g, String(context.summary?.totalTests || 0))
+  result = result.replace(/\{\{summary\.passed_tests\}\}/g, String(context.summary?.passedTests || 0))
+  result = result.replace(/\{\{summary\.failed_tests\}\}/g, String(context.summary?.failedTests || 0))
 
   // Placeholders de fotos
   result = result.replace(/\{\{fotos\}\}/g, formatPhotosGallery(context.photos))
