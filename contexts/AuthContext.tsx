@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { User as SupabaseUser, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { Database } from '@/types/database'
@@ -16,6 +16,15 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Cliente Supabase singleton para evitar recreaciones
+let supabaseClient: ReturnType<typeof createClient> | null = null
+function getSupabase() {
+  if (!supabaseClient) {
+    supabaseClient = createClient()
+  }
+  return supabaseClient
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<User | null>(null)
@@ -23,79 +32,79 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [permissions, setPermissions] = useState<any[]>([])
   const isLoggingOut = useRef(false)
   const profileLoadedRef = useRef<string | null>(null)
-  const supabase = createClient()
 
-  // Función para cargar perfil - memoizada para evitar recreaciones
-  const loadUserProfile = useCallback(async (userId: string) => {
-    // Evitar cargas duplicadas del mismo usuario
-    if (profileLoadedRef.current === userId) {
-      console.log('✅ Perfil ya cargado para este usuario, omitiendo recarga')
-      return
-    }
+  useEffect(() => {
+    const supabase = getSupabase()
+    let mounted = true
 
-    try {
-      console.log('🔄 Cargando perfil para usuario:', userId)
-
-      const { data: userProfile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      if (error) {
-        console.error('❌ Error loading user profile:', error)
+    // Función para cargar perfil
+    const loadUserProfile = async (userId: string) => {
+      if (profileLoadedRef.current === userId) {
+        console.log('✅ Perfil ya cargado, omitiendo')
         return
       }
 
-      console.log('✅ Perfil cargado:', userProfile.email, 'Rol:', userProfile.role)
-      
-      setProfile(userProfile)
-      profileLoadedRef.current = userId
+      try {
+        console.log('🔄 Cargando perfil para:', userId)
 
-      // Guardar en localStorage para carga rápida
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user_profile', JSON.stringify(userProfile))
-      }
-
-      // Cargar permisos
-      if (userProfile?.role) {
-        const { data: rolePermissions, error: permError } = await supabase
-          .from('role_permissions')
+        const { data: userProfile, error } = await supabase
+          .from('profiles')
           .select('*')
-          .eq('role', userProfile.role)
-          .eq('allowed', true)
+          .eq('id', userId)
+          .single()
 
-        if (!permError && rolePermissions) {
-          setPermissions(rolePermissions)
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('user_permissions', JSON.stringify(rolePermissions))
-          }
-        } else if (userProfile.role === 'super_admin' || userProfile.role === 'admin') {
-          // Permisos por defecto para admin
-          const defaultPermissions = [
-            { module: 'projects', action: 'create', allowed: true },
-            { module: 'projects', action: 'read', allowed: true },
-            { module: 'projects', action: 'update', allowed: true },
-            { module: 'projects', action: 'delete', allowed: true },
-            { module: 'reports', action: 'create', allowed: true },
-            { module: 'reports', action: 'read', allowed: true },
-            { module: 'companies', action: 'create', allowed: true },
-            { module: 'companies', action: 'read', allowed: true },
-            { module: 'users', action: 'create', allowed: true },
-            { module: 'users', action: 'read', allowed: true },
-          ]
-          setPermissions(defaultPermissions)
+        if (error) {
+          console.error('❌ Error loading profile:', error)
+          return
         }
+
+        if (!mounted) return
+
+        console.log('✅ Perfil cargado:', userProfile.email, 'Rol:', userProfile.role)
+        
+        setProfile(userProfile)
+        profileLoadedRef.current = userId
+
+        // Cache en localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user_profile', JSON.stringify(userProfile))
+        }
+
+        // Cargar permisos
+        if (userProfile?.role) {
+          const { data: rolePermissions, error: permError } = await supabase
+            .from('role_permissions')
+            .select('*')
+            .eq('role', userProfile.role)
+            .eq('allowed', true)
+
+          if (!permError && rolePermissions && mounted) {
+            setPermissions(rolePermissions)
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('user_permissions', JSON.stringify(rolePermissions))
+            }
+          } else if ((userProfile.role === 'super_admin' || userProfile.role === 'admin') && mounted) {
+            const defaultPermissions = [
+              { module: 'projects', action: 'create', allowed: true },
+              { module: 'projects', action: 'read', allowed: true },
+              { module: 'projects', action: 'update', allowed: true },
+              { module: 'projects', action: 'delete', allowed: true },
+              { module: 'reports', action: 'create', allowed: true },
+              { module: 'reports', action: 'read', allowed: true },
+              { module: 'companies', action: 'create', allowed: true },
+              { module: 'companies', action: 'read', allowed: true },
+              { module: 'users', action: 'create', allowed: true },
+              { module: 'users', action: 'read', allowed: true },
+            ]
+            setPermissions(defaultPermissions)
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error in loadUserProfile:', error)
       }
-    } catch (error) {
-      console.error('❌ Error in loadUserProfile:', error)
     }
-  }, [supabase])
 
-  useEffect(() => {
-    let mounted = true
-
-    // Función para manejar cambios de sesión
+    // Función para manejar sesión
     const handleSession = async (session: Session | null) => {
       if (!mounted) return
 
@@ -103,14 +112,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('👤 Sesión activa:', session.user.email)
         setUser(session.user)
 
-        // Cargar perfil desde cache primero para UI rápida
+        // Cargar desde cache primero
         if (typeof window !== 'undefined') {
           const cachedProfile = localStorage.getItem('user_profile')
           if (cachedProfile) {
             try {
               const parsed = JSON.parse(cachedProfile)
               if (parsed.id === session.user.id) {
+                console.log('📦 Usando perfil desde cache')
                 setProfile(parsed)
+                profileLoadedRef.current = session.user.id
                 const cachedPerms = localStorage.getItem('user_permissions')
                 if (cachedPerms) setPermissions(JSON.parse(cachedPerms))
               }
@@ -139,7 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Obtener sesión inicial
+    // Inicializar
     const initializeAuth = async () => {
       try {
         console.log('🚀 Inicializando autenticación...')
@@ -160,14 +171,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initializeAuth()
 
-    // Escuchar cambios de autenticación - Supabase maneja el refresh automáticamente
+    // Listener de cambios de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return
 
         console.log('🔄 Auth event:', event)
 
-        // Ignorar eventos durante logout manual
         if (isLoggingOut.current) {
           console.log('🚪 Ignorando evento durante logout')
           return
@@ -195,24 +205,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             break
 
           case 'TOKEN_REFRESHED':
-            // Supabase renovó el token automáticamente - actualizar user si cambió
-            console.log('🔄 Token renovado automáticamente')
+            console.log('🔄 Token renovado')
             if (session?.user) {
               setUser(session.user)
             }
             break
 
           case 'USER_UPDATED':
-            // Usuario actualizado - recargar perfil
             console.log('👤 Usuario actualizado')
             if (session?.user) {
               setUser(session.user)
-              profileLoadedRef.current = null // Forzar recarga
+              profileLoadedRef.current = null
               await loadUserProfile(session.user.id)
             }
             break
 
-          // INITIAL_SESSION se maneja en initializeAuth, no aquí
           default:
             break
         }
@@ -223,7 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [loadUserProfile, supabase.auth])
+  }, []) // Sin dependencias - solo se ejecuta una vez
 
   // Función de logout robusta
   const signOut = async () => {
@@ -235,6 +242,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     console.log('🚪 Iniciando logout...')
     isLoggingOut.current = true
+
+    const supabase = getSupabase()
 
     try {
       // 1. Primero hacer logout en Supabase
