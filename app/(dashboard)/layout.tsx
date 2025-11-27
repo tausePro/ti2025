@@ -37,8 +37,8 @@ export default function DashboardLayout({
   const router = useRouter()
   const { user, profile, hasPermission, signOut, loading } = useAuth()
 
-  // Protección del lado del cliente
-  if (!loading && !user) {
+  // Protección del lado del cliente - NO redirigir si estamos en proceso de logout
+  if (!loading && !user && !isLoggingOut.current) {
     if (typeof window !== 'undefined') {
       window.location.href = '/login'
     }
@@ -58,17 +58,9 @@ export default function DashboardLayout({
     }
   })
 
-  // Logout simplificado - delegar a AuthContext
+  // Logout - delegar completamente a AuthContext
   const handleLogoutClick = () => {
-    if (isLoggingOut.current) {
-      console.log('⚠️ Logout ya en progreso')
-      return
-    }
-    
-    console.log('🚪 Iniciando logout...')
     isLoggingOut.current = true
-    
-    // Delegar completamente al signOut del AuthContext
     signOut()
   }
 

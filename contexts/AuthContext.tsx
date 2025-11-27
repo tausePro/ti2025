@@ -225,36 +225,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loadUserProfile, supabase.auth])
 
-  // Función de logout simplificada - confiar en Supabase
+  // Función de logout robusta
   const signOut = async () => {
+    // Prevenir múltiples llamadas
+    if (isLoggingOut.current) {
+      console.log('⚠️ Logout ya en progreso, ignorando')
+      return
+    }
+
+    console.log('🚪 Iniciando logout...')
+    isLoggingOut.current = true
+
     try {
-      console.log('🚪 Iniciando logout...')
-      isLoggingOut.current = true
-
-      // Limpiar estado local primero
-      setUser(null)
-      setProfile(null)
-      setPermissions([])
-      profileLoadedRef.current = null
-
-      // Limpiar localStorage (solo datos de sesión, no todo)
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('user_profile')
-        localStorage.removeItem('user_permissions')
-      }
-
-      // Hacer logout en Supabase
+      // 1. Primero hacer logout en Supabase
       await supabase.auth.signOut()
-
-      console.log('✅ Logout exitoso')
-
-      // Redirigir a login
-      window.location.href = '/login'
-
+      console.log('✅ Supabase signOut completado')
     } catch (error) {
-      console.error('❌ Error during signOut:', error)
-      // Forzar redirección incluso si hay error
-      window.location.href = '/login'
+      console.error('❌ Error en Supabase signOut:', error)
+    }
+
+    // 2. Limpiar estado local (después del signOut de Supabase)
+    setUser(null)
+    setProfile(null)
+    setPermissions([])
+    profileLoadedRef.current = null
+
+    // 3. Limpiar localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user_profile')
+      localStorage.removeItem('user_permissions')
+    }
+
+    // 4. Redirigir a login (siempre, incluso si hubo error)
+    console.log('🔄 Redirigiendo a login...')
+    if (typeof window !== 'undefined') {
+      window.location.replace('/login')
     }
   }
 
