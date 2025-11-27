@@ -58,31 +58,18 @@ export default function DashboardLayout({
     }
   })
 
-  // Logout simplificado y directo
+  // Logout simplificado - delegar a AuthContext
   const handleLogoutClick = () => {
-    // Prevenir múltiples clicks
     if (isLoggingOut.current) {
-      console.log('⚠️ Logout ya en progreso, ignorando click')
+      console.log('⚠️ Logout ya en progreso')
       return
     }
     
-    console.log('🚪 Click en botón de logout')
+    console.log('🚪 Iniciando logout...')
     isLoggingOut.current = true
     
-    // Logout inmediato y forzado - sin esperar a nada
-    if (typeof window !== 'undefined') {
-      localStorage.clear()
-      sessionStorage.clear()
-      document.cookie.split(";").forEach(function(c) {
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
-      })
-    }
-    
-    // Llamar a signOut de Supabase pero NO esperar
-    signOut().catch(() => {})
-    
-    // Redirigir inmediatamente
-    window.location.href = '/login'
+    // Delegar completamente al signOut del AuthContext
+    signOut()
   }
 
   const visibleMenuItems = [
