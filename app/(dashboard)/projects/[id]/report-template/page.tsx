@@ -1,27 +1,21 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { 
   ArrowLeft, 
-  Save, 
-  Plus, 
-  Trash2, 
   FileText,
   AlertCircle,
   CheckCircle,
-  Copy
+  Trash2,
+  ExternalLink
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { RichTextEditor } from '@/components/reports/RichTextEditor'
 import Link from 'next/link'
 
 interface Project {
@@ -34,12 +28,11 @@ interface ProjectTemplate {
   id: string
   project_id: string
   template_name: string
-  description: string
   is_active: boolean
   is_default: boolean
   base_template_id: string | null
-  template_key?: string | null
   report_type?: string | null
+  sections_count?: number
 }
 
 interface GlobalTemplate {
@@ -47,38 +40,23 @@ interface GlobalTemplate {
   template_name: string
   template_type: string | null
   description: string | null
-}
-
-interface Section {
-  id: string
-  section_key: string
-  section_name: string
-  section_order: number
-  base_content: string
-  data_mappings: any
-  placeholder_help: string
-  use_ai: boolean
-  is_active: boolean
+  sections_count?: number
 }
 
 export default function ProjectReportTemplatePage() {
   const params = useParams()
-  const router = useRouter()
-  const { profile, hasPermission } = useAuth()
+  const { profile } = useAuth()
   const supabase = createClient()
   
   const projectId = params.id as string
   
   const [project, setProject] = useState<Project | null>(null)
-  const [templates, setTemplates] = useState<ProjectTemplate[]>([])
-  const [sections, setSections] = useState<Section[]>([])
+  const [assignedTemplates, setAssignedTemplates] = useState<ProjectTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
-  const [selectedSection, setSelectedSection] = useState<string | null>(null)
   const [globalTemplates, setGlobalTemplates] = useState<GlobalTemplate[]>([])
   const [selectedGlobalTemplateId, setSelectedGlobalTemplateId] = useState<string>('')
-  const [selectedProjectTemplateId, setSelectedProjectTemplateId] = useState<string | null>(null)
 
   useEffect(() => {
     loadData()
@@ -99,53 +77,49 @@ export default function ProjectReportTemplatePage() {
         setProject(projectData)
       }
 
-      // Cargar plantillas del proyecto (puede haber varias)
+      // Cargar plantillas asignadas al proyecto con conteo de secciones
       const { data: templatesData } = await supabase
         .from('project_report_templates')
-        .select('*')
+        .select('id, project_id, template_name, is_active, is_default, base_template_id, report_type')
         .eq('project_id', projectId)
         .eq('is_active', true)
         .order('created_at')
 
-      if (templatesData && templatesData.length > 0) {
-        const casted = templatesData as ProjectTemplate[]
-        setTemplates(casted)
-
-        // Determinar plantilla seleccionada
-        let activeId = selectedProjectTemplateId
-        if (!activeId || !casted.some(t => t.id === activeId)) {
-          activeId = casted[0].id
-        }
-        setSelectedProjectTemplateId(activeId)
-
-        // Cargar secciones de la plantilla seleccionada
-        const { data: sectionsData } = await supabase
-          .from('section_templates')
-          .select('*')
-          .eq('project_template_id', activeId)
-          .eq('is_active', true)
-          .order('section_order')
-
-        setSections(sectionsData || [])
-
-        if (sectionsData && sectionsData.length > 0) {
-          setSelectedSection(sectionsData[0].id)
-        }
-      } else {
-        setTemplates([])
-        setSections([])
-        setSelectedProjectTemplateId(null)
-        setSelectedSection(null)
+      if (templatesData) {
+        // Obtener conteo de secciones para cada plantilla
+        const templatesWithCount = await Promise.all(
+          templatesData.map(async (t) => {
+            const { count } = await supabase
+              .from('section_templates')
+              .select('*', { count: 'exact', head: true })
+              .eq('project_template_id', t.id)
+              .eq('is_active', true)
+            return { ...t, sections_count: count || 0 }
+          })
+        )
+        setAssignedTemplates(templatesWithCount)
       }
 
-      // Cargar plantillas globales activas para que Santiago pueda elegir
+      // Cargar plantillas globales con conteo de secciones
       const { data: globalTemplatesData } = await supabase
         .from('report_templates')
-        .select('id, template_name, template_type')
+        .select('id, template_name, template_type, description')
+        .eq('is_active', true)
         .order('template_name')
 
       if (globalTemplatesData) {
-        setGlobalTemplates(globalTemplatesData as GlobalTemplate[])
+        // Obtener conteo de secciones para cada plantilla global
+        const globalsWithCount = await Promise.all(
+          globalTemplatesData.map(async (t) => {
+            const { count } = await supabase
+              .from('section_templates')
+              .select('*', { count: 'exact', head: true })
+              .eq('report_template_id', t.id)
+              .eq('is_active', true)
+            return { ...t, sections_count: count || 0 }
+          })
+        )
+        setGlobalTemplates(globalsWithCount)
       }
 
     } catch (error) {
@@ -156,16 +130,16 @@ export default function ProjectReportTemplatePage() {
     }
   }
 
-  const handleCreateTemplate = async () => {
+  const handleAssignTemplate = async () => {
     try {
       setSaving(true)
       
       if (!selectedGlobalTemplateId) {
-        setMessage({ type: 'error', text: 'Selecciona una plantilla global para continuar.' })
+        setMessage({ type: 'error', text: 'Selecciona una plantilla para continuar.' })
         return
       }
 
-      // Clonar plantilla global seleccionada hacia el proyecto
+      // Clonar plantilla global al proyecto
       const { data: newTemplateId, error } = await supabase
         .rpc('clone_template_to_project', {
           p_template_id: selectedGlobalTemplateId,
@@ -175,98 +149,62 @@ export default function ProjectReportTemplatePage() {
 
       if (error) throw error
 
-      if (newTemplateId) {
-        setSelectedProjectTemplateId(newTemplateId as string)
-      }
-
-      setMessage({ type: 'success', text: 'Plantilla creada a partir de la plantilla global seleccionada.' })
+      setMessage({ type: 'success', text: 'Plantilla asignada correctamente al proyecto.' })
+      setSelectedGlobalTemplateId('')
       await loadData()
 
     } catch (error: any) {
-      console.error('Error creating template:', error)
+      console.error('Error assigning template:', error)
       setMessage({ type: 'error', text: error.message })
     } finally {
       setSaving(false)
     }
   }
 
-  const handleSaveSection = async (sectionId: string, content: string) => {
-    try {
-      const { error } = await supabase
-        .from('section_templates')
-        .update({ base_content: content })
-        .eq('id', sectionId)
-
-      if (error) throw error
-
-      setMessage({ type: 'success', text: 'Sección guardada' })
-      
-      // Actualizar estado local
-      setSections(sections.map(s => 
-        s.id === sectionId ? { ...s, base_content: content } : s
-      ))
-
-    } catch (error: any) {
-      console.error('Error saving section:', error)
-      setMessage({ type: 'error', text: error.message })
-    }
-  }
-
-  const handleAddSection = async () => {
-    const currentTemplate = templates.find(t => t.id === selectedProjectTemplateId)
-    if (!currentTemplate) return
-
-    try {
-      const maxOrder = Math.max(...sections.map(s => s.section_order), 0)
-
-      const { data, error } = await supabase
-        .from('section_templates')
-        .insert({
-          project_template_id: currentTemplate.id,
-          section_key: `seccion_${Date.now()}`,
-          section_name: 'Nueva Sección',
-          section_order: maxOrder + 1,
-          base_content: '<p>Escribe el contenido base aquí...</p>',
-          use_ai: true,
-          is_active: true
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-
-      setSections([...sections, data])
-      setSelectedSection(data.id)
-      setMessage({ type: 'success', text: 'Sección agregada' })
-
-    } catch (error: any) {
-      console.error('Error adding section:', error)
-      setMessage({ type: 'error', text: error.message })
-    }
-  }
-
-  const handleDeleteSection = async (sectionId: string) => {
-    if (!confirm('¿Eliminar esta sección?')) return
+  const handleRemoveTemplate = async (templateId: string) => {
+    if (!confirm('¿Desasignar esta plantilla del proyecto? Los informes existentes no se verán afectados.')) return
 
     try {
       const { error } = await supabase
-        .from('section_templates')
+        .from('project_report_templates')
         .update({ is_active: false })
-        .eq('id', sectionId)
+        .eq('id', templateId)
 
       if (error) throw error
 
-      setSections(sections.filter(s => s.id !== sectionId))
-      setMessage({ type: 'success', text: 'Sección eliminada' })
+      setMessage({ type: 'success', text: 'Plantilla desasignada del proyecto.' })
+      await loadData()
 
     } catch (error: any) {
-      console.error('Error deleting section:', error)
+      console.error('Error removing template:', error)
       setMessage({ type: 'error', text: error.message })
     }
   }
 
-  const currentSection = sections.find(s => s.id === selectedSection)
-  const currentTemplate = templates.find(t => t.id === selectedProjectTemplateId) || null
+  const handleSetDefault = async (templateId: string) => {
+    try {
+      // Quitar default de todas las plantillas del proyecto
+      await supabase
+        .from('project_report_templates')
+        .update({ is_default: false })
+        .eq('project_id', projectId)
+
+      // Establecer la nueva como default
+      const { error } = await supabase
+        .from('project_report_templates')
+        .update({ is_default: true })
+        .eq('id', templateId)
+
+      if (error) throw error
+
+      setMessage({ type: 'success', text: 'Plantilla establecida como predeterminada.' })
+      await loadData()
+
+    } catch (error: any) {
+      console.error('Error setting default:', error)
+      setMessage({ type: 'error', text: error.message })
+    }
+  }
 
   if (loading) {
     return (
@@ -290,34 +228,15 @@ export default function ProjectReportTemplatePage() {
           </Button>
         </Link>
 
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Plantilla de Informe Quincenal
-            </h1>
-            <p className="text-gray-600 mt-1">
-              {project?.name} ({project?.project_code})
-            </p>
-
-            {currentTemplate?.base_template_id && (
-              <p className="text-sm text-gray-500 mt-2">
-                Basada en plantilla global:{' '}
-                <Link
-                  href={`/admin/report-templates/${currentTemplate.base_template_id}`}
-                  className="text-blue-600 hover:underline"
-                >
-                  Ver plantilla global
-                </Link>
-              </p>
-            )}
-          </div>
-
-          {currentTemplate && (
-            <Badge variant={currentTemplate.is_active ? 'default' : 'secondary'}>
-              {currentTemplate.is_active ? 'Activa' : 'Inactiva'}
-            </Badge>
-          )}
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Plantillas de Informes
+        </h1>
+        <p className="text-gray-600 mt-1">
+          {project?.name} ({project?.project_code})
+        </p>
+        <p className="text-sm text-gray-500 mt-2">
+          Asigna las plantillas de informes que estarán disponibles para los residentes de este proyecto.
+        </p>
       </div>
 
       {/* Mensaje */}
@@ -334,24 +253,21 @@ export default function ProjectReportTemplatePage() {
         </Alert>
       )}
 
-      {/* Agregar plantillas globales al proyecto */}
+      {/* Asignar nueva plantilla */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>
-            {templates.length === 0
-              ? 'No hay plantillas configuradas para este proyecto'
-              : 'Agregar otra plantilla desde Plantillas PDF'}
-          </CardTitle>
+          <CardTitle>Asignar Plantilla</CardTitle>
           <CardDescription>
-            Selecciona una plantilla global y asígnala a este proyecto. Luego podrás editar sus secciones de forma independiente.
+            Selecciona una plantilla global para habilitarla en este proyecto.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="global-template">Plantilla global</Label>
+          <div className="flex gap-4 items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Plantilla disponible
+              </label>
               <select
-                id="global-template"
                 className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={selectedGlobalTemplateId}
                 onChange={(e) => setSelectedGlobalTemplateId(e.target.value)}
@@ -359,186 +275,102 @@ export default function ProjectReportTemplatePage() {
                 <option value="">Selecciona una plantilla...</option>
                 {globalTemplates.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.template_name} {t.template_type ? `(${t.template_type})` : ''}
+                    {t.template_name} ({t.sections_count} secciones)
                   </option>
                 ))}
               </select>
-              {globalTemplates.length === 0 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  No hay plantillas globales activas. Configúralas desde el panel de administración.
-                </p>
-              )}
             </div>
-
-            <div className="flex items-center justify-between">
-              <Button
-                onClick={handleCreateTemplate}
-                disabled={saving || !selectedGlobalTemplateId}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                {saving ? 'Creando...' : 'Agregar plantilla al proyecto'}
-              </Button>
-
-              <Link
-                href="/admin/report-templates"
-                className="text-xs text-blue-600 hover:underline"
-              >
-                Gestionar plantillas globales
-              </Link>
-            </div>
+            <Button
+              onClick={handleAssignTemplate}
+              disabled={saving || !selectedGlobalTemplateId}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              {saving ? 'Asignando...' : 'Asignar al Proyecto'}
+            </Button>
           </div>
+          
+          {globalTemplates.length === 0 && (
+            <p className="text-sm text-amber-600 mt-3">
+              No hay plantillas globales configuradas.{' '}
+              <Link href="/admin/report-templates" className="text-blue-600 hover:underline">
+                Crear plantilla
+              </Link>
+            </p>
+          )}
         </CardContent>
       </Card>
 
-      {/* Con plantilla(s) */}
-      {templates.length > 0 && currentTemplate && (
-        <div className="grid grid-cols-12 gap-6">
-          {/* Selector de plantilla del proyecto */}
-          <div className="col-span-12 mb-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Plantillas del Proyecto</CardTitle>
-                <CardDescription>
-                  Selecciona cuál plantilla quieres configurar para este proyecto.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    className="border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={selectedProjectTemplateId || ''}
-                    onChange={(e) => {
-                      setSelectedProjectTemplateId(e.target.value || null)
-                      // Forzar recarga de secciones para la nueva plantilla
-                      if (e.target.value) {
-                        supabase
-                          .from('section_templates')
-                          .select('*')
-                          .eq('project_template_id', e.target.value)
-                          .eq('is_active', true)
-                          .order('section_order')
-                          .then(({ data }) => {
-                            setSections(data || [])
-                            if (data && data.length > 0) {
-                              setSelectedSection(data[0].id)
-                            } else {
-                              setSelectedSection(null)
-                            }
-                          })
-                      }
-                    }}
-                  >
-                    {templates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.template_name} {t.report_type ? `(${t.report_type})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          {/* Lista de secciones */}
-          <div className="col-span-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Secciones</CardTitle>
-                <Button onClick={handleAddSection} size="sm" className="w-full mt-2">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar Sección
-                </Button>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y">
-                  {sections.map((section) => (
-                    <button
-                      key={section.id}
-                      onClick={() => setSelectedSection(section.id)}
-                      className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
-                        selectedSection === section.id ? 'bg-blue-50 border-l-4 border-blue-600' : ''
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{section.section_name}</p>
-                          <p className="text-xs text-gray-500">Orden: {section.section_order}</p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteSection(section.id)
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-600" />
-                        </Button>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Editor de sección */}
-          <div className="col-span-9">
-            {currentSection ? (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
+      {/* Plantillas asignadas */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Plantillas Asignadas ({assignedTemplates.length})</CardTitle>
+          <CardDescription>
+            Estas plantillas están disponibles para que los residentes generen informes.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {assignedTemplates.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+              <p>No hay plantillas asignadas a este proyecto.</p>
+              <p className="text-sm mt-1">Asigna una plantilla para que los residentes puedan generar informes.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {assignedTemplates.map((template) => (
+                <div
+                  key={template.id}
+                  className={`flex items-center justify-between p-4 border rounded-lg ${
+                    template.is_default ? 'border-blue-300 bg-blue-50' : 'border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText className={`h-8 w-8 ${template.is_default ? 'text-blue-600' : 'text-gray-400'}`} />
                     <div>
-                      <CardTitle>{currentSection.section_name}</CardTitle>
-                      <CardDescription>
-                        Escribe el contenido base e inserta placeholders
-                      </CardDescription>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{template.template_name}</span>
+                        {template.is_default && (
+                          <Badge variant="default" className="text-xs">Predeterminada</Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        {template.sections_count} secciones • {template.report_type || 'Sin tipo'}
+                      </p>
                     </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {template.base_template_id && (
+                      <Link href={`/admin/report-templates/${template.base_template_id}`}>
+                        <Button variant="ghost" size="sm" title="Ver plantilla base">
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    )}
+                    {!template.is_default && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSetDefault(template.id)}
+                      >
+                        Predeterminar
+                      </Button>
+                    )}
                     <Button
-                      onClick={() => handleSaveSection(currentSection.id, currentSection.base_content)}
-                      disabled={saving}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveTemplate(template.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      <Save className="h-4 w-4 mr-2" />
-                      Guardar
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {/* Ayuda de placeholders */}
-                  <Alert className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>Placeholders disponibles:</strong>
-                      <ul className="mt-2 text-sm space-y-1">
-                        <li><code className="bg-gray-100 px-1 rounded">{'{{project_name}}'}</code> - Nombre del proyecto</li>
-                        <li><code className="bg-gray-100 px-1 rounded">{'{{period_start}}'}</code> - Fecha inicio</li>
-                        <li><code className="bg-gray-100 px-1 rounded">{'{{bitacora.actividades}}'}</code> - Actividades de bitácoras</li>
-                        <li><code className="bg-gray-100 px-1 rounded">{'{{qc.ensayos}}'}</code> - Ensayos de control de calidad</li>
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-
-                  {/* Editor */}
-                  <RichTextEditor
-                    content={currentSection.base_content || ''}
-                    onChange={(content) => {
-                      setSections(sections.map(s =>
-                        s.id === currentSection.id ? { ...s, base_content: content } : s
-                      ))
-                    }}
-                    placeholder="Escribe el contenido base de esta sección..."
-                  />
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="py-12 text-center text-gray-500">
-                  Selecciona una sección para editar
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

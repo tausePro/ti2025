@@ -10,8 +10,6 @@ import {
   Save, 
   Send, 
   Loader2, 
-  Sparkles,
-  Calendar,
   FileText,
   Eye,
   AlertCircle
@@ -321,8 +319,8 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
           <ArrowLeft className="w-4 h-4 mr-1" />
           Volver a Informes
         </Link>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Crear Informe Quincenal</h1>
-        <p className="text-gray-600">Genera un informe profesional con ayuda de IA</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Nuevo Informe Quincenal</h1>
+        <p className="text-gray-600">Genera un borrador del informe con los datos recopilados del proyecto</p>
       </div>
 
       {/* Configuración inicial */}
@@ -433,7 +431,7 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
           <button
             onClick={handleGenerateContent}
             disabled={generating || !selectedProject || !periodStart || !periodEnd || noTemplateWarning}
-            className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {generating ? (
               <>
@@ -442,8 +440,8 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
               </>
             ) : (
               <>
-                <Sparkles className="w-5 h-5 mr-2" />
-                Generar Contenido
+                <FileText className="w-5 h-5 mr-2" />
+                Generar Borrador
               </>
             )}
           </button>
