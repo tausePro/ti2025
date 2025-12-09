@@ -98,6 +98,9 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
     }
   )
 
+  // Estado para el contenido de cada sección
+  const [sectionContents, setSectionContents] = useState<Record<string, { content: string; useAi: boolean }>>({})
+
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -158,7 +161,7 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
       setSaving(true)
       setError(null)
 
-      const data = {
+      const templateData = {
         template_name: templateName,
         template_type: templateType,
         company_id: isGlobal ? null : companyId,
@@ -170,24 +173,88 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
         created_by: userId
       }
 
-      if (template?.id) {
-        // Actualizar
+      let templateId = template?.id
+
+      if (templateId) {
+        // Actualizar plantilla existente
         const { error: updateError } = await supabase
           .from('report_templates')
-          .update(data)
-          .eq('id', template.id)
+          .update(templateData)
+          .eq('id', templateId)
 
         if (updateError) throw updateError
       } else {
-        // Crear
-        const { error: insertError } = await supabase
+        // Crear nueva plantilla
+        const { data: newTemplate, error: insertError } = await supabase
           .from('report_templates')
-          .insert(data)
+          .insert(templateData)
+          .select('id')
+          .single()
 
         if (insertError) throw insertError
+        templateId = newTemplate.id
       }
 
-      router.push('/dashboard/admin/report-templates')
+      // Guardar secciones en section_templates
+      // Primero eliminar secciones existentes si es una actualización
+      if (template?.id) {
+        await supabase
+          .from('section_templates')
+          .delete()
+          .eq('report_template_id', templateId)
+      }
+
+      // Mapeo de keys a nombres legibles
+      const sectionLabels: Record<string, string> = {
+        cover_page: 'Portada',
+        table_of_contents: 'Tabla de Contenido',
+        project_info: 'Información del Proyecto',
+        executive_summary: 'Resumen Ejecutivo',
+        progress_status: 'Estado de Avance de Obra',
+        technical_supervision: 'Supervisión Técnica',
+        administrative_control: 'Control Administrativo',
+        financial_status: 'Estado Financiero',
+        quality_control: 'Control de Calidad',
+        safety_compliance: 'Cumplimiento de Seguridad',
+        daily_activities: 'Actividades Diarias',
+        personnel_registry: 'Registro de Personal',
+        weather_conditions: 'Condiciones Climáticas',
+        materials_equipment: 'Materiales y Equipos',
+        photos: 'Registro Fotográfico',
+        observations: 'Observaciones',
+        issues_incidents: 'Novedades e Incidentes',
+        ai_insights: 'Análisis con IA',
+        recommendations: 'Recomendaciones',
+        signatures: 'Firmas y Aprobaciones',
+        appendix: 'Anexos'
+      }
+
+      // Crear registros de secciones para las secciones activas
+      const activeSections = Object.entries(sectionsConfig)
+        .filter(([_, isActive]) => isActive)
+        .map(([key], index) => ({
+          report_template_id: templateId,
+          section_key: key,
+          section_name: sectionLabels[key] || key,
+          section_order: index + 1,
+          content_template: sectionContents[key]?.content || `<p>Contenido de ${sectionLabels[key] || key}</p>`,
+          base_content: sectionContents[key]?.content || `<p>Contenido de ${sectionLabels[key] || key}</p>`,
+          use_ai: sectionContents[key]?.useAi ?? true,
+          is_active: true
+        }))
+
+      if (activeSections.length > 0) {
+        const { error: sectionsError } = await supabase
+          .from('section_templates')
+          .insert(activeSections)
+
+        if (sectionsError) {
+          console.error('Error guardando secciones:', sectionsError)
+          // No lanzar error, la plantilla ya se guardó
+        }
+      }
+
+      router.push('/admin/report-templates')
       router.refresh()
     } catch (err: any) {
       console.error('Error guardando plantilla:', err)
@@ -895,7 +962,15 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="font-medium text-gray-900">{sectionLabels[key] || key}</h4>
                           <label className="flex items-center gap-2">
-                            <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" defaultChecked />
+                            <input 
+                              type="checkbox" 
+                              className="w-4 h-4 text-blue-600 rounded" 
+                              checked={sectionContents[key]?.useAi ?? true}
+                              onChange={(e) => setSectionContents(prev => ({
+                                ...prev,
+                                [key]: { ...prev[key], content: prev[key]?.content || '', useAi: e.target.checked }
+                              }))}
+                            />
                             <span className="text-sm text-gray-600">Usar IA</span>
                           </label>
                         </div>
@@ -903,17 +978,15 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
                           rows={3}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm"
                           placeholder={`Contenido predeterminado para ${sectionLabels[key] || key}. Usa placeholders como {{project_name}}, {{date}}, etc.`}
+                          value={sectionContents[key]?.content || ''}
+                          onChange={(e) => setSectionContents(prev => ({
+                            ...prev,
+                            [key]: { ...prev[key], useAi: prev[key]?.useAi ?? true, content: e.target.value }
+                          }))}
                         />
-                        <div className="mt-2 flex gap-2">
-                          <label className="flex items-center gap-2 text-sm text-gray-600">
-                            <input type="checkbox" className="w-4 h-4 rounded" />
-                            Incluir gráficos
-                          </label>
-                          <label className="flex items-center gap-2 text-sm text-gray-600">
-                            <input type="checkbox" className="w-4 h-4 rounded" />
-                            Incluir fotos
-                          </label>
-                        </div>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Placeholders: {`{{project_name}}, {{period_start}}, {{period_end}}, {{summary.work_days}}`}
+                        </p>
                       </div>
                     )
                   })}
