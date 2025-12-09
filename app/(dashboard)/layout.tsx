@@ -76,7 +76,7 @@ export default function DashboardLayout({
       icon: Building2
     },
     {
-      name: 'Reportes',
+      name: 'Informes',
       href: '/reports',
       icon: FileText
     },

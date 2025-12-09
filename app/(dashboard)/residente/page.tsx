@@ -164,7 +164,7 @@ export default function ResidenteDashboardPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard del Residente</h1>
         <p className="text-gray-600 mt-1">
-          Gestiona tus bitácoras diarias y reportes de obra
+          Gestiona tus bitácoras diarias e informes de obra
         </p>
       </div>
 
@@ -211,7 +211,7 @@ export default function ResidenteDashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Reportes Pendientes</CardTitle>
+            <CardTitle className="text-sm font-medium">Informes Pendientes</CardTitle>
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -254,7 +254,7 @@ export default function ResidenteDashboardPage() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Tienes <strong>{stats.pendingReports}</strong> reportes con correcciones solicitadas.
+            Tienes <strong>{stats.pendingReports}</strong> informes con correcciones solicitadas.
           </AlertDescription>
         </Alert>
       )}

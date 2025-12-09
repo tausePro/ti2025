@@ -303,7 +303,7 @@ export default function ProjectDetailPage() {
             <TabsTrigger value="overview">Resumen</TabsTrigger>
             <TabsTrigger value="team">Equipo</TabsTrigger>
             <TabsTrigger value="bitacora">Bitácora</TabsTrigger>
-            <TabsTrigger value="reports">Reportes</TabsTrigger>
+            <TabsTrigger value="reports">Informes</TabsTrigger>
             {hasInterventoriaDesembolsos && (
               <TabsTrigger value="financial">Financiero</TabsTrigger>
             )}

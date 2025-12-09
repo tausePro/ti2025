@@ -38,7 +38,7 @@ const ROLES = [
   { value: 'admin', label: 'Administrador', description: 'Gestión completa excepto eliminaciones críticas' },
   { value: 'gerente', label: 'Gerente', description: 'Supervisión y aprobaciones' },
   { value: 'supervisor', label: 'Supervisor', description: 'Operaciones de campo y aprobaciones' },
-  { value: 'residente', label: 'Residente', description: 'Registro de bitácoras y reportes' },
+  { value: 'residente', label: 'Residente', description: 'Registro de bitácoras e informes' },
   { value: 'cliente', label: 'Cliente', description: 'Solo visualización de sus proyectos' }
 ]
 

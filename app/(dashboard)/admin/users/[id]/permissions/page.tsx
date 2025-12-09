@@ -66,7 +66,7 @@ interface PermissionMatrix {
 
 const MODULES = [
   { key: 'projects', label: 'Proyectos', description: 'Gestión de proyectos de construcción' },
-  { key: 'reports', label: 'Reportes', description: 'Informes y reportes técnicos' },
+  { key: 'reports', label: 'Informes', description: 'Informes técnicos y quincenales' },
   { key: 'financial', label: 'Financiero', description: 'Módulo financiero y presupuestos' },
   { key: 'users', label: 'Usuarios', description: 'Gestión de usuarios y perfiles' },
   { key: 'companies', label: 'Empresas', description: 'Gestión de empresas cliente' },

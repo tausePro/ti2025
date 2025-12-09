@@ -220,9 +220,9 @@ export default function SupervisorReportsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Revisión de Reportes</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Revisión de Informes</h1>
         <p className="text-gray-600 mt-1">
-          Revisa y aprueba los reportes de tus proyectos
+          Revisa y aprueba los informes de tus proyectos
         </p>
       </div>
 
@@ -251,7 +251,7 @@ export default function SupervisorReportsPage() {
           <CardContent>
             <div className="text-2xl font-bold">{reports.length}</div>
             <p className="text-xs text-muted-foreground">
-              Reportes esperando revisión
+              Informes esperando revisión
             </p>
           </CardContent>
         </Card>
@@ -290,9 +290,9 @@ export default function SupervisorReportsPage() {
       {/* Lista de Reportes */}
       <Card>
         <CardHeader>
-          <CardTitle>Reportes Pendientes</CardTitle>
+          <CardTitle>Informes Pendientes</CardTitle>
           <CardDescription>
-            Reportes que requieren tu revisión y aprobación
+            Informes que requieren tu revisión y aprobación
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -303,7 +303,7 @@ export default function SupervisorReportsPage() {
                 ¡Todo al día!
               </h3>
               <p className="text-gray-500">
-                No hay reportes pendientes de revisión
+                No hay informes pendientes de revisión
               </p>
             </div>
           ) : (

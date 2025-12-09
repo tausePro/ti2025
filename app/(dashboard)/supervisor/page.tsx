@@ -165,7 +165,7 @@ export default function SupervisorDashboardPage() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard de Supervisor</h1>
         <p className="text-gray-600 mt-1">
-          Gestiona tus proyectos, equipo y reportes
+          Gestiona tus proyectos, equipo e informes
         </p>
       </div>
 
@@ -186,7 +186,7 @@ export default function SupervisorDashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Reportes Pendientes</CardTitle>
+            <CardTitle className="text-sm font-medium">Informes Pendientes</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -310,10 +310,10 @@ export default function SupervisorDashboardPage() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <FileText className="h-5 w-5 text-talento-green" />
-                Revisar Reportes
+                Revisar Informes
               </CardTitle>
               <CardDescription>
-                {stats.pendingReports} reportes esperando tu revisión
+                {stats.pendingReports} informes esperando tu revisión
               </CardDescription>
             </CardHeader>
           </Link>
