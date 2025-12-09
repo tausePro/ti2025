@@ -88,41 +88,5 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 2. Crear vista para unificar informes (reports + biweekly_reports)
--- Esto permite que el supervisor vea todos los informes pendientes
-CREATE OR REPLACE VIEW all_pending_reports AS
-SELECT 
-  id,
-  project_id,
-  COALESCE(short_title, 'Informe Quincenal') as title,
-  'biweekly' as type,
-  period_start,
-  period_end,
-  status,
-  created_at,
-  created_by,
-  NULL::text as correction_notes,
-  NULL::text as rejection_reason
-FROM biweekly_reports
-WHERE status IN ('pending_review', 'rejected')
-
-UNION ALL
-
-SELECT 
-  id,
-  project_id,
-  title,
-  type,
-  period_start,
-  period_end,
-  status,
-  created_at,
-  created_by,
-  correction_notes,
-  rejection_reason
-FROM reports
-WHERE status IN ('pending_review', 'corrections');
-
--- 3. Comentarios
+-- 2. Comentarios
 COMMENT ON FUNCTION clone_template_to_project IS 'Clona una plantilla global a un proyecto específico, incluyendo todas sus secciones con base_content';
-COMMENT ON VIEW all_pending_reports IS 'Vista unificada de todos los informes pendientes de revisión';
