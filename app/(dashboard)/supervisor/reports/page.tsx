@@ -34,22 +34,19 @@ import Link from 'next/link'
 interface Report {
   id: string
   project_id: string
-  title: string
-  type: string
+  short_title?: string
+  long_title?: string
+  report_number?: string
   period_start: string
   period_end: string
   status: string
   created_at: string
   created_by: string
-  correction_notes?: string
-  rejection_reason?: string
+  content?: Record<string, string>
+  source_data?: any
   project: {
     name: string
     project_code: string
-  }
-  creator: {
-    full_name: string
-    email: string
   }
 }
 
@@ -101,16 +98,15 @@ export default function SupervisorReportsPage() {
         return
       }
 
-      // Cargar reportes pendientes de revisión
+      // Cargar informes quincenales pendientes de revisión
       const { data: reportsData, error: reportsError } = await supabase
-        .from('reports')
+        .from('biweekly_reports')
         .select(`
           *,
-          project:projects(name, project_code),
-          creator:profiles!created_by(full_name, email)
+          project:projects(name, project_code)
         `)
         .in('project_id', projectIds)
-        .in('status', ['pending_review', 'corrections'])
+        .in('status', ['pending_review', 'rejected'])
         .order('created_at', { ascending: false })
 
       if (reportsError) throw reportsError
@@ -133,17 +129,17 @@ export default function SupervisorReportsPage() {
       setError('')
 
       const { error } = await supabase
-        .from('reports')
+        .from('biweekly_reports')
         .update({
           status: 'approved',
           reviewed_by: profile!.id,
-          correction_notes: correctionNotes || null
+          reviewed_at: new Date().toISOString()
         })
         .eq('id', selectedReport.id)
 
       if (error) throw error
 
-      setSuccess('Reporte aprobado correctamente')
+      setSuccess('Informe aprobado correctamente')
       setShowApproveDialog(false)
       setCorrectionNotes('')
       loadReports()
@@ -166,18 +162,17 @@ export default function SupervisorReportsPage() {
       setError('')
 
       const { error } = await supabase
-        .from('reports')
+        .from('biweekly_reports')
         .update({
-          status: 'corrections',
+          status: 'rejected',
           reviewed_by: profile!.id,
-          rejection_reason: rejectionReason,
-          correction_notes: correctionNotes || null
+          reviewed_at: new Date().toISOString()
         })
         .eq('id', selectedReport.id)
 
       if (error) throw error
 
-      setSuccess('Reporte enviado a correcciones')
+      setSuccess('Informe devuelto para correcciones')
       setShowRejectDialog(false)
       setRejectionReason('')
       setCorrectionNotes('')
@@ -193,8 +188,9 @@ export default function SupervisorReportsPage() {
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive'; icon: any }> = {
       pending_review: { label: 'Pendiente Revisión', variant: 'secondary', icon: Clock },
-      corrections: { label: 'En Correcciones', variant: 'destructive', icon: AlertCircle },
-      approved: { label: 'Aprobado', variant: 'default', icon: CheckCircle }
+      rejected: { label: 'Rechazado', variant: 'destructive', icon: AlertCircle },
+      approved: { label: 'Aprobado', variant: 'default', icon: CheckCircle },
+      draft: { label: 'Borrador', variant: 'secondary', icon: FileText }
     }
 
     const config = statusConfig[status] || { label: status, variant: 'secondary', icon: FileText }
@@ -315,7 +311,7 @@ export default function SupervisorReportsPage() {
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">{report.title}</h3>
+                      <h3 className="font-semibold text-gray-900">{report.short_title || report.long_title || `Informe ${report.report_number || ''}`}</h3>
                       {getStatusBadge(report.status)}
                     </div>
                     
@@ -330,31 +326,17 @@ export default function SupervisorReportsPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4" />
-                        {report.creator?.full_name}
+                        N° {report.report_number || 'Sin número'}
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4" />
                         Creado {new Date(report.created_at).toLocaleDateString()}
                       </div>
                     </div>
-
-                    {report.correction_notes && (
-                      <div className="mt-2 p-2 bg-yellow-50 rounded text-sm">
-                        <MessageSquare className="h-3 w-3 inline mr-1" />
-                        <span className="font-medium">Notas:</span> {report.correction_notes}
-                      </div>
-                    )}
-
-                    {report.rejection_reason && (
-                      <div className="mt-2 p-2 bg-red-50 rounded text-sm">
-                        <AlertCircle className="h-3 w-3 inline mr-1" />
-                        <span className="font-medium">Motivo rechazo:</span> {report.rejection_reason}
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex gap-2 ml-4">
-                    <Link href={`/reports/${report.id}`}>
+                    <Link href={`/reports/biweekly/${report.id}/preview`}>
                       <Button variant="outline" size="sm">
                         <Eye className="h-4 w-4 mr-2" />
                         Ver
