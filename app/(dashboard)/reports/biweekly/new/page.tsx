@@ -58,24 +58,38 @@ export default function NewBiweeklyReportPage() {
   const [longTitle, setLongTitle] = useState('INFORME QUINCENAL DE INTERVENTORÍA Y SUPERVISIÓN TÉCNICA INDEPENDIENTE')
   const [content, setContent] = useState<Record<string, string>>({})
   const [reportId, setReportId] = useState<string | null>(null)
-  const [projectTemplate, setProjectTemplate] = useState<ProjectTemplate | null>(null)
+  
+  // Templates state
+  const [availableTemplates, setAvailableTemplates] = useState<ProjectTemplate[]>([])
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [noTemplateWarning, setNoTemplateWarning] = useState(false)
 
   useEffect(() => {
     loadProjects()
   }, [])
 
-  // Cargar plantilla cuando se selecciona proyecto
+  // Cargar plantillas disponibles cuando se selecciona proyecto
   useEffect(() => {
     if (selectedProject) {
-      loadProjectTemplate(selectedProject)
+      loadAvailableTemplates(selectedProject)
     } else {
-      setProjectTemplate(null)
+      setAvailableTemplates([])
+      setSelectedTemplateId('')
       setSections([])
       setContent({})
       setNoTemplateWarning(false)
     }
   }, [selectedProject])
+
+  // Cargar secciones cuando se selecciona plantilla
+  useEffect(() => {
+    if (selectedTemplateId) {
+      loadTemplateSections(selectedTemplateId)
+    } else {
+      setSections([])
+      setContent({})
+    }
+  }, [selectedTemplateId])
 
   const loadProjects = async () => {
     try {
@@ -96,37 +110,56 @@ export default function NewBiweeklyReportPage() {
     }
   }
 
-  const loadProjectTemplate = async (projectId: string) => {
+  const loadAvailableTemplates = async (projectId: string) => {
     try {
-      // Buscar plantilla activa del proyecto
-      const { data: templateData, error: templateError } = await supabase
+      // Buscar TODAS las plantillas activas del proyecto
+      const { data: templatesData, error: templatesError } = await supabase
         .from('project_report_templates')
-        .select('id, template_name, report_type')
+        .select('id, template_name, report_type, is_default')
         .eq('project_id', projectId)
         .eq('is_active', true)
         .order('is_default', { ascending: false })
-        .limit(1)
-        .single()
+        .order('template_name')
 
-      if (templateError || !templateData) {
-        console.log('⚠️ No hay plantilla configurada para este proyecto')
-        setProjectTemplate(null)
+      if (templatesError || !templatesData || templatesData.length === 0) {
+        console.log('⚠️ No hay plantillas configuradas para este proyecto')
+        setAvailableTemplates([])
+        setSelectedTemplateId('')
         setSections([])
         setContent({})
         setNoTemplateWarning(true)
         return
       }
 
-      setProjectTemplate(templateData)
+      setAvailableTemplates(templatesData)
       setNoTemplateWarning(false)
+      
+      // Auto-seleccionar la plantilla default o la primera
+      const defaultTemplate = templatesData.find((t: any) => t.is_default) || templatesData[0]
+      setSelectedTemplateId(defaultTemplate.id)
+      
+      console.log('✅ Plantillas disponibles:', templatesData.length)
 
-      // Cargar secciones de la plantilla del proyecto
-      const { data: sectionsData } = await supabase
+    } catch (error) {
+      console.error('Error loading templates:', error)
+      setNoTemplateWarning(true)
+    }
+  }
+
+  const loadTemplateSections = async (templateId: string) => {
+    try {
+      // Cargar secciones de la plantilla seleccionada
+      const { data: sectionsData, error: sectionsError } = await supabase
         .from('section_templates')
         .select('*')
-        .eq('project_template_id', templateData.id)
+        .eq('project_template_id', templateId)
         .eq('is_active', true)
         .order('section_order')
+
+      if (sectionsError) {
+        console.error('Error cargando secciones:', sectionsError)
+        return
+      }
 
       setSections(sectionsData || [])
 
@@ -137,18 +170,27 @@ export default function NewBiweeklyReportPage() {
           initialContent[section.section_key] = section.base_content || section.content_template || ''
         })
         setContent(initialContent)
-        console.log('✅ Plantilla cargada:', templateData.template_name, '-', sectionsData.length, 'secciones')
+        
+        const template = availableTemplates.find(t => t.id === templateId)
+        console.log('✅ Secciones cargadas:', sectionsData.length, 'para', template?.template_name)
+      } else {
+        setContent({})
+        console.log('⚠️ La plantilla no tiene secciones')
       }
 
     } catch (error) {
-      console.error('Error loading project template:', error)
-      setNoTemplateWarning(true)
+      console.error('Error loading template sections:', error)
     }
   }
 
   const handleGenerateContent = async () => {
-    if (!selectedProject || !periodStart || !periodEnd) {
+    if (!selectedProject || !periodStart || !periodEnd || !selectedTemplateId) {
       alert('Por favor completa todos los campos requeridos')
+      return
+    }
+
+    if (sections.length === 0) {
+      alert('La plantilla seleccionada no tiene secciones configuradas')
       return
     }
 
@@ -161,6 +203,7 @@ export default function NewBiweeklyReportPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId: selectedProject,
+          templateId: selectedTemplateId,
           periodStart,
           periodEnd
         })
@@ -417,12 +460,28 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
           </Alert>
         )}
 
-        {/* Info de plantilla activa */}
-        {projectTemplate && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-sm text-green-800">
-              <strong>Plantilla activa:</strong> {projectTemplate.template_name}
-              {projectTemplate.report_type && ` (${projectTemplate.report_type})`}
+        {/* Selector de plantilla */}
+        {availableTemplates.length > 0 && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Plantilla a usar *
+            </label>
+            <select
+              value={selectedTemplateId}
+              onChange={(e) => setSelectedTemplateId(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              {availableTemplates.map(template => (
+                <option key={template.id} value={template.id}>
+                  {template.template_name}
+                  {template.report_type && ` (${template.report_type})`}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {sections.length > 0 
+                ? `✓ ${sections.length} secciones disponibles`
+                : '⚠️ Esta plantilla no tiene secciones configuradas'}
             </p>
           </div>
         )}
@@ -430,7 +489,7 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
         <div className="flex gap-3">
           <button
             onClick={handleGenerateContent}
-            disabled={generating || !selectedProject || !periodStart || !periodEnd || noTemplateWarning}
+            disabled={generating || !selectedProject || !periodStart || !periodEnd || noTemplateWarning || sections.length === 0}
             className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {generating ? (

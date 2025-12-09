@@ -6,7 +6,7 @@ import { replacePlaceholders } from '@/lib/reports/placeholder-replacer'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { projectId, periodStart, periodEnd } = body
+    const { projectId, templateId, periodStart, periodEnd } = body
 
     if (!projectId || !periodStart || !periodEnd) {
       return NextResponse.json(
@@ -17,25 +17,47 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient()
 
-    // 1. Obtener plantilla activa del proyecto
-    //    Ahora puede haber varias, escogemos la default (o la más reciente)
-    const { data: templates, error: templateError } = await supabase
-      .from('project_report_templates')
-      .select('*')
-      .eq('project_id', projectId)
-      .eq('is_active', true)
-      .order('is_default', { ascending: false })
-      .order('created_at', { ascending: false })
+    // 1. Obtener plantilla - si se proporciona templateId, usar esa; sino buscar la default
+    let template = null
+    
+    if (templateId) {
+      // Usar la plantilla específica seleccionada por el usuario
+      const { data: templateData, error: templateError } = await supabase
+        .from('project_report_templates')
+        .select('*')
+        .eq('id', templateId)
+        .eq('project_id', projectId)
+        .eq('is_active', true)
+        .single()
 
-    if (templateError) {
-      console.error('Error obteniendo plantilla:', templateError)
-      return NextResponse.json(
-        { error: 'Error al obtener plantilla del proyecto' },
-        { status: 500 }
-      )
+      if (templateError || !templateData) {
+        console.error('Error obteniendo plantilla específica:', templateError)
+        return NextResponse.json(
+          { error: 'Plantilla no encontrada o no activa' },
+          { status: 404 }
+        )
+      }
+      template = templateData
+    } else {
+      // Buscar plantilla default del proyecto
+      const { data: templates, error: templateError } = await supabase
+        .from('project_report_templates')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('is_active', true)
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: false })
+
+      if (templateError) {
+        console.error('Error obteniendo plantilla:', templateError)
+        return NextResponse.json(
+          { error: 'Error al obtener plantilla del proyecto' },
+          { status: 500 }
+        )
+      }
+
+      template = templates?.[0]
     }
-
-    const template = templates?.[0]
 
     if (!template) {
       return NextResponse.json(
