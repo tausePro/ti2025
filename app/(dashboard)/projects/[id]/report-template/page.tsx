@@ -39,7 +39,6 @@ interface GlobalTemplate {
   id: string
   template_name: string
   template_type: string | null
-  description: string | null
   sections_count?: number
 }
 
@@ -103,7 +102,7 @@ export default function ProjectReportTemplatePage() {
       // Cargar plantillas globales con conteo de secciones
       const { data: globalTemplatesData } = await supabase
         .from('report_templates')
-        .select('id, template_name, template_type, description')
+        .select('id, template_name, template_type')
         .eq('is_active', true)
         .order('template_name')
 
