@@ -90,7 +90,7 @@ export default function DashboardLayout({
     ...(profile?.role && ['supervisor', 'residente'].includes(profile.role) ? [
       {
         name: 'Informes Quincenales',
-        href: '/reports/biweekly/new',
+        href: '/reports/biweekly',
         icon: FileBarChart
       }
     ] : []),
