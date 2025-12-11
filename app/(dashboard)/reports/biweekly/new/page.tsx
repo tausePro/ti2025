@@ -63,10 +63,30 @@ export default function NewBiweeklyReportPage() {
   const [availableTemplates, setAvailableTemplates] = useState<ProjectTemplate[]>([])
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [noTemplateWarning, setNoTemplateWarning] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingReportTemplateId, setEditingReportTemplateId] = useState<string | null>(null)
+  const [editingReportId, setEditingReportId] = useState<string | null>(null)
 
+  // Cargar proyectos
   useEffect(() => {
     loadProjects()
   }, [])
+
+  // Leer reportId desde la URL (modo edición)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get('reportId')
+    if (id) {
+      setEditingReportId(id)
+    }
+  }, [])
+
+  // Cargar informe existente en modo edición
+  useEffect(() => {
+    if (!editingReportId) return
+    loadExistingReport(editingReportId)
+  }, [editingReportId])
 
   // Cargar plantillas disponibles cuando se selecciona proyecto
   useEffect(() => {
@@ -90,6 +110,37 @@ export default function NewBiweeklyReportPage() {
       setContent({})
     }
   }, [selectedTemplateId])
+
+  const loadExistingReport = async (id: string) => {
+    try {
+      setLoading(true)
+      setIsEditing(true)
+
+      const { data, error } = await supabase
+        .from('biweekly_reports')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (error || !data) {
+        console.error('Error loading existing report:', error)
+        return
+      }
+
+      setReportId(data.id)
+      setSelectedProject(data.project_id)
+      setPeriodStart(data.period_start)
+      setPeriodEnd(data.period_end)
+      setShortTitle(data.short_title || '')
+      setLongTitle(data.long_title || longTitle)
+      setContent(data.content || {})
+      setEditingReportTemplateId(data.report_template_id || null)
+    } catch (error) {
+      console.error('Error in loadExistingReport:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const loadProjects = async () => {
     try {
@@ -134,8 +185,11 @@ export default function NewBiweeklyReportPage() {
       setAvailableTemplates(templatesData)
       setNoTemplateWarning(false)
       
-      // Auto-seleccionar la plantilla default o la primera
-      const defaultTemplate = templatesData.find((t: any) => t.is_default) || templatesData[0]
+      // Seleccionar plantilla según contexto (edición o creación)
+      const templateFromReport = editingReportTemplateId
+        ? templatesData.find((t: any) => t.id === editingReportTemplateId)
+        : null
+      const defaultTemplate = templateFromReport || templatesData.find((t: any) => t.is_default) || templatesData[0]
       setSelectedTemplateId(defaultTemplate.id)
       
       console.log('✅ Plantillas disponibles:', templatesData.length)
@@ -163,18 +217,24 @@ export default function NewBiweeklyReportPage() {
 
       setSections(sectionsData || [])
 
-      // Inicializar contenido con base_content o content_template
+      // Inicializar/combinar contenido según si estamos en edición o creación
       if (sectionsData && sectionsData.length > 0) {
-        const initialContent: Record<string, string> = {}
-        sectionsData.forEach((section: any) => {
-          initialContent[section.section_key] = section.base_content || section.content_template || ''
+        setContent((prev) => {
+          const nextContent: Record<string, string> = { ...prev }
+          sectionsData.forEach((section: any) => {
+            if (!isEditing || !nextContent[section.section_key]) {
+              nextContent[section.section_key] = section.base_content || section.content_template || ''
+            }
+          })
+          return nextContent
         })
-        setContent(initialContent)
         
         const template = availableTemplates.find(t => t.id === templateId)
         console.log('✅ Secciones cargadas:', sectionsData.length, 'para', template?.template_name)
       } else {
-        setContent({})
+        if (!isEditing) {
+          setContent({})
+        }
         console.log('⚠️ La plantilla no tiene secciones')
       }
 

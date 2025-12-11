@@ -273,7 +273,7 @@ export default function BiweeklyReportsPage() {
                       {(report.status === 'draft' || report.status === 'rejected') && 
                        report.created_by_profile?.full_name === profile?.full_name && (
                         <Link
-                          href={`/reports/biweekly/${report.id}/edit`}
+                          href={`/reports/biweekly/new?reportId=${report.id}`}
                           className="text-gray-600 hover:text-gray-900"
                           title="Editar"
                         >

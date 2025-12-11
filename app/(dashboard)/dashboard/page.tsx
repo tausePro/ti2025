@@ -24,6 +24,7 @@ export default function DashboardPage() {
     totalTeamMembers: 0
   })
   const [loading, setLoading] = useState(true)
+  const [userProjectIds, setUserProjectIds] = useState<string[]>([])
   const supabase = createClient()
   const { hasPermission } = usePermissions()
   const { profile } = useAuth()
@@ -42,8 +43,8 @@ export default function DashboardPage() {
             .from('projects')
             .select('id')
           projectIds = allProjects?.map(p => p.id) || []
-        } else if (profile.role === 'supervisor') {
-          // Supervisor ve sus proyectos asignados
+        } else if (profile.role === 'supervisor' || profile.role === 'residente') {
+          // Supervisor y residente ven sus proyectos asignados
           const { data: memberProjects } = await supabase
             .from('project_members')
             .select('project_id')
@@ -51,6 +52,8 @@ export default function DashboardPage() {
             .eq('is_active', true)
           projectIds = memberProjects?.map(m => m.project_id) || []
         }
+
+        setUserProjectIds(projectIds)
 
         // Contar proyectos totales
         const { count: totalCount } = await supabase
@@ -65,11 +68,11 @@ export default function DashboardPage() {
           .eq('status', 'activo')
           .in('id', projectIds.length > 0 ? projectIds : ['00000000-0000-0000-0000-000000000000'])
 
-        // Contar informes pendientes
+        // Contar informes quincenales pendientes (pendiente revisión o correcciones)
         const { count: reportsCount } = await supabase
-          .from('reports')
+          .from('biweekly_reports')
           .select('*', { count: 'exact', head: true })
-          .in('status', ['pending_review', 'corrections'])
+          .in('status', ['pending_review', 'rejected'])
           .in('project_id', projectIds.length > 0 ? projectIds : ['00000000-0000-0000-0000-000000000000'])
 
         // Contar miembros del equipo
@@ -99,13 +102,13 @@ export default function DashboardPage() {
   const getQuickActions = () => {
     const actions = []
 
-    // Generar Informe (Supervisor)
-    if (profile?.role === 'supervisor') {
+    // Nuevo Informe Quincenal (Supervisor y Residente)
+    if (profile?.role === 'supervisor' || profile?.role === 'residente') {
       actions.push({
-        title: 'Generar Informe',
-        description: 'Crear informe de supervisión',
+        title: 'Nuevo Informe Quincenal',
+        description: 'Crea un nuevo informe para tus proyectos',
         icon: FileText,
-        href: '/reports/new'
+        href: '/reports/biweekly/new'
       })
     }
 
@@ -116,6 +119,16 @@ export default function DashboardPage() {
       icon: Building2,
       href: '/projects'
     })
+
+    // Bitácoras diarias (Residente con al menos un proyecto)
+    if (profile?.role === 'residente' && userProjectIds.length > 0) {
+      actions.push({
+        title: 'Registrar Bitácora',
+        description: 'Diligencia la bitácora diaria de tu proyecto',
+        icon: FileText,
+        href: `/projects/${userProjectIds[0]}/daily-logs/new`
+      })
+    }
 
     return actions
   }

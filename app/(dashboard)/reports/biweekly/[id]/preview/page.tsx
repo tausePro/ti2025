@@ -31,8 +31,8 @@ interface Report {
   project?: {
     name: string
     project_code: string
-    location: string
-    client_name: string
+    address?: string
+    company_id?: string
   }
   creator?: {
     full_name: string
@@ -68,7 +68,7 @@ export default function ReportPreviewPage() {
         .from('biweekly_reports')
         .select(`
           *,
-          project:projects(name, project_code, location, client_name, company_id),
+          project:projects(name, project_code, address, company_id),
           creator:profiles!created_by(full_name)
         `)
         .eq('id', reportId)
@@ -264,7 +264,7 @@ export default function ReportPreviewPage() {
                       Ubicación
                     </td>
                     <td className="border border-gray-300 px-3 py-2">
-                      {report.project?.location || 'No especificada'}
+                      {report.project?.address || (report.source_data?.project_info?.address as string) || 'No especificada'}
                     </td>
                   </tr>
                   <tr>
@@ -272,7 +272,7 @@ export default function ReportPreviewPage() {
                       Cliente
                     </td>
                     <td className="border border-gray-300 px-3 py-2">
-                      {report.project?.client_name || 'No especificado'}
+                      {report.company?.name || 'No especificado'}
                     </td>
                   </tr>
                   <tr>
