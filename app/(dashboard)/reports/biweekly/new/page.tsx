@@ -327,13 +327,18 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
           p_period_end: periodEnd
         })
 
+      // Regenerar short_title con las fechas actuales del formulario
+      const startDate = new Date(periodStart + 'T00:00:00')
+      const endDate = new Date(periodEnd + 'T00:00:00')
+      const generatedShortTitle = shortTitle || `Informe Quincenal ${startDate.toLocaleDateString('es-CO')} - ${endDate.toLocaleDateString('es-CO')}`
+
       const reportData = {
         project_id: selectedProject,
         report_number: reportNumber,
         period_start: periodStart,
         period_end: periodEnd,
-        short_title: shortTitle,
-        long_title: longTitle,
+        short_title: generatedShortTitle,
+        long_title: longTitle || 'INFORME QUINCENAL DE INTERVENTORÍA Y SUPERVISIÓN TÉCNICA INDEPENDIENTE',
         content: content,
         source_data: sourceData,
         status: 'draft',

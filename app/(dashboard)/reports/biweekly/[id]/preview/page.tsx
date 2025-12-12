@@ -12,9 +12,30 @@ import {
   FileText,
   Calendar,
   Building2,
-  User
+  User,
+  Phone,
+  Mail,
+  Globe,
+  MapPin
 } from 'lucide-react'
 import Link from 'next/link'
+
+// Configuración de marca de Talento Inmobiliario
+const BRAND = {
+  colors: {
+    primary: '#8BC34A',
+    primaryDark: '#689F38',
+  },
+  contact: {
+    phone: '(604) 3288739',
+    email: 'gerencia@talentoinmobiliario.com',
+    website: 'talentoinmobiliario.com',
+    address: 'Calle 71 Sur # 43B - 52 Of. 203, Sabaneta'
+  },
+  assets: {
+    logo: '/brand/logo-footer.png'
+  }
+}
 
 interface Report {
   id: string
@@ -32,10 +53,13 @@ interface Report {
     name: string
     project_code: string
     address?: string
-    company_id?: string
+    client_company_id?: string
   }
   creator?: {
     full_name: string
+    signature_url?: string
+    professional_license?: string
+    phone?: string
   }
   company?: {
     name: string
@@ -68,8 +92,8 @@ export default function ReportPreviewPage() {
         .from('biweekly_reports')
         .select(`
           *,
-          project:projects(name, project_code, address, company_id),
-          creator:profiles!created_by(full_name)
+          project:projects(name, project_code, address, client_company_id),
+          creator:profiles!created_by(full_name, signature_url, professional_license, phone)
         `)
         .eq('id', reportId)
         .single()
@@ -82,11 +106,11 @@ export default function ReportPreviewPage() {
       }
 
       // Cargar datos de la empresa si existe
-      if (reportData.project?.company_id) {
+      if (reportData.project?.client_company_id) {
         const { data: companyData } = await supabase
           .from('companies')
           .select('name, logo_url')
-          .eq('id', reportData.project.company_id)
+          .eq('id', reportData.project.client_company_id)
           .single()
         
         if (companyData) {
@@ -104,13 +128,13 @@ export default function ReportPreviewPage() {
   }
 
   const handlePrint = () => {
-    window.print()
+    // Abrir la página de impresión dedicada (sin layout del dashboard)
+    window.open(`/print/report/${reportId}`, '_blank')
   }
 
   const handleDownloadPDF = async () => {
-    // Por ahora usamos la función de impresión del navegador
-    // En el futuro se puede integrar una librería como jsPDF o html2pdf
-    window.print()
+    // Abrir la página de impresión dedicada (sin layout del dashboard)
+    window.open(`/print/report/${reportId}`, '_blank')
   }
 
   const formatDate = (dateString: string) => {
@@ -167,6 +191,9 @@ export default function ReportPreviewPage() {
           </div>
           
           <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400 mr-2" title="En el diálogo de impresión, desactiva 'Encabezados y pies de página' para quitar fecha/hora">
+              💡 Tip: Desactiva encabezados en opciones de impresión
+            </span>
             <Button variant="outline" size="sm" onClick={handlePrint}>
               <Printer className="h-4 w-4 mr-2" />
               Imprimir
@@ -186,65 +213,61 @@ export default function ReportPreviewPage() {
           className="bg-white max-w-[210mm] mx-auto shadow-lg print:shadow-none print:max-w-none"
           style={{ minHeight: '297mm' }}
         >
-          {/* Encabezado del documento */}
-          <div className="border-b-2 border-gray-300 p-8">
-            <div className="flex items-start justify-between">
-              {/* Logo de la empresa */}
+          {/* ===== ENCABEZADO CON LOGO CIRCULAR GRANDE ===== */}
+          <div className="px-12 pt-8 pb-6">
+            <div className="flex items-center justify-between">
+              {/* Logo circular grande */}
               <div className="flex-shrink-0">
-                {report.company?.logo_url ? (
-                  <img 
-                    src={report.company.logo_url} 
-                    alt={report.company.name}
-                    className="h-16 w-auto object-contain"
-                  />
-                ) : (
-                  <div className="h-16 w-32 bg-gray-100 flex items-center justify-center rounded">
-                    <Building2 className="h-8 w-8 text-gray-400" />
-                  </div>
-                )}
+                <img 
+                  src={BRAND.assets.logo} 
+                  alt="Talento Inmobiliario"
+                  style={{ width: '100px', height: '100px' }}
+                  className="object-contain"
+                />
               </div>
 
               {/* Información del documento */}
-              <div className="text-right">
-                <p className="text-sm text-gray-600">
-                  <strong>Informe N°:</strong> {report.report_number || 'Sin número'}
+              <div className="text-right text-sm space-y-1">
+                <p className="text-gray-700">
+                  <span className="font-semibold">Informe N°:</span> {report.report_number || 'Sin número'}
                 </p>
-                <p className="text-sm text-gray-600">
-                  <strong>Fecha:</strong> {formatDate(report.created_at)}
+                <p className="text-gray-700">
+                  <span className="font-semibold">Fecha:</span> {formatDate(report.created_at)}
                 </p>
-                <p className="text-sm text-gray-600">
-                  <strong>Código:</strong> {report.project?.project_code}
+                <p className="text-gray-700">
+                  <span className="font-semibold">Código:</span> {report.project?.project_code}
                 </p>
               </div>
             </div>
 
             {/* Título del informe */}
             <div className="mt-6 text-center">
-              <h1 className="text-xl font-bold text-gray-900 uppercase">
-                {report.long_title || 'INFORME QUINCENAL DE INTERVENTORÍA'}
+              <h1 className="text-lg font-bold text-gray-900 uppercase tracking-wide">
+                {report.long_title || 'INFORME QUINCENAL DE INTERVENTORÍA Y SUPERVISIÓN TÉCNICA INDEPENDIENTE'}
               </h1>
-              <p className="text-lg text-gray-700 mt-2">
+              <p className="text-base font-medium mt-2" style={{ color: BRAND.colors.primaryDark }}>
                 {report.project?.name}
               </p>
-            </div>
-
-            {/* Período */}
-            <div className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-600">
-              <Calendar className="h-4 w-4" />
-              <span>
+              <p className="text-sm text-gray-600 mt-1">
                 Período: {formatDate(report.period_start)} al {formatDate(report.period_end)}
-              </span>
+              </p>
             </div>
           </div>
 
+          {/* Línea separadora verde */}
+          <div className="mx-12 h-0.5" style={{ backgroundColor: BRAND.colors.primary }}></div>
+
           {/* Contenido del informe */}
-          <div className="p-8">
+          <div className="px-12 py-6">
             {/* Información general */}
             <div className="mb-8">
+              <h2 className="text-base font-bold text-gray-800 mb-3 pb-1 border-b-2" style={{ borderColor: BRAND.colors.primary }}>
+                INFORMACIÓN GENERAL
+              </h2>
               <table className="w-full border-collapse text-sm">
                 <tbody>
                   <tr>
-                    <td className="border border-gray-300 px-3 py-2 bg-gray-50 font-medium w-1/4">
+                    <td className="border border-gray-300 px-3 py-2 font-medium w-1/4" style={{ backgroundColor: '#f0f7e6' }}>
                       Proyecto
                     </td>
                     <td className="border border-gray-300 px-3 py-2">
@@ -252,7 +275,7 @@ export default function ReportPreviewPage() {
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-300 px-3 py-2 bg-gray-50 font-medium">
+                    <td className="border border-gray-300 px-3 py-2 font-medium" style={{ backgroundColor: '#f0f7e6' }}>
                       Código
                     </td>
                     <td className="border border-gray-300 px-3 py-2">
@@ -260,7 +283,15 @@ export default function ReportPreviewPage() {
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-300 px-3 py-2 bg-gray-50 font-medium">
+                    <td className="border border-gray-300 px-3 py-2 font-medium" style={{ backgroundColor: '#f0f7e6' }}>
+                      Período
+                    </td>
+                    <td className="border border-gray-300 px-3 py-2">
+                      {formatDate(report.period_start)} al {formatDate(report.period_end)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="border border-gray-300 px-3 py-2 font-medium" style={{ backgroundColor: '#f0f7e6' }}>
                       Ubicación
                     </td>
                     <td className="border border-gray-300 px-3 py-2">
@@ -268,7 +299,7 @@ export default function ReportPreviewPage() {
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-300 px-3 py-2 bg-gray-50 font-medium">
+                    <td className="border border-gray-300 px-3 py-2 font-medium" style={{ backgroundColor: '#f0f7e6' }}>
                       Cliente
                     </td>
                     <td className="border border-gray-300 px-3 py-2">
@@ -276,7 +307,7 @@ export default function ReportPreviewPage() {
                     </td>
                   </tr>
                   <tr>
-                    <td className="border border-gray-300 px-3 py-2 bg-gray-50 font-medium">
+                    <td className="border border-gray-300 px-3 py-2 font-medium" style={{ backgroundColor: '#f0f7e6' }}>
                       Elaborado por
                     </td>
                     <td className="border border-gray-300 px-3 py-2">
@@ -331,32 +362,64 @@ export default function ReportPreviewPage() {
             )}
           </div>
 
-          {/* Pie de página */}
-          <div className="border-t-2 border-gray-300 p-8 mt-auto">
-            <div className="grid grid-cols-2 gap-8">
+          {/* Sección de firmas */}
+          <div className="px-12 mt-8">
+            <div className="grid grid-cols-2 gap-16">
               {/* Firma del residente */}
               <div className="text-center">
-                <div className="border-t border-gray-400 pt-2 mt-16">
-                  <p className="font-medium text-sm">Elaborado por</p>
-                  <p className="text-sm text-gray-600">{report.creator?.full_name}</p>
-                  <p className="text-xs text-gray-500">Residente de Interventoría</p>
+                <div className="h-20 flex items-end justify-center">
+                  {report.creator?.signature_url ? (
+                    <img 
+                      src={report.creator.signature_url} 
+                      alt="Firma del residente"
+                      className="max-h-16 max-w-[150px] object-contain"
+                    />
+                  ) : null}
+                </div>
+                <div className="border-t border-gray-400 pt-2">
+                  <p className="font-semibold text-sm text-gray-800">{report.creator?.full_name}</p>
+                  <p className="text-xs text-gray-600">Residente de Interventoría</p>
+                  {report.creator?.professional_license && (
+                    <p className="text-xs text-gray-500">Lic. Prof. {report.creator.professional_license}</p>
+                  )}
                 </div>
               </div>
 
               {/* Firma del supervisor */}
               <div className="text-center">
-                <div className="border-t border-gray-400 pt-2 mt-16">
-                  <p className="font-medium text-sm">Revisado por</p>
-                  <p className="text-sm text-gray-600">_________________________</p>
-                  <p className="text-xs text-gray-500">Supervisor de Interventoría</p>
+                <div className="h-20"></div>
+                <div className="border-t border-gray-400 pt-2">
+                  <p className="font-semibold text-sm text-gray-800">_________________________</p>
+                  <p className="text-xs text-gray-600">Supervisor de Interventoría</p>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Información de la empresa */}
-            <div className="mt-8 text-center text-xs text-gray-500">
-              <p>{report.company?.name || 'TALENTO INMOBILIARIO S.A.S.'}</p>
-              <p>Documento generado el {formatDate(new Date().toISOString())}</p>
+          {/* Pie de página - 2 líneas, ancho completo */}
+          <div className="absolute bottom-0 left-0 right-0 pb-3">
+            <div className="h-0.5 w-full" style={{ backgroundColor: BRAND.colors.primary }}></div>
+            <div className="py-2 px-4 text-center">
+              <div className="flex items-center justify-center gap-3 text-xs text-gray-600">
+                <span className="flex items-center gap-1">
+                  <Phone className="h-3 w-3" style={{ color: BRAND.colors.primary }} />
+                  {BRAND.contact.phone}
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <Mail className="h-3 w-3" style={{ color: BRAND.colors.primary }} />
+                  {BRAND.contact.email}
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <Globe className="h-3 w-3" style={{ color: BRAND.colors.primary }} />
+                  {BRAND.contact.website}
+                </span>
+              </div>
+              <div className="flex items-center justify-center gap-1 text-xs text-gray-600 mt-1">
+                <MapPin className="h-3 w-3" style={{ color: BRAND.colors.primary }} />
+                <span>{BRAND.contact.address}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -367,16 +430,62 @@ export default function ReportPreviewPage() {
         @media print {
           @page {
             size: A4;
-            margin: 10mm;
+            margin: 15mm;
           }
           
-          body {
+          * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
           
+          html, body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          
+          /* Ocultar TODO el layout del dashboard */
+          aside,
+          nav,
+          header,
+          .sidebar,
+          [data-sidebar],
           .print\\:hidden {
             display: none !important;
+          }
+          
+          /* Quitar fondos grises */
+          .bg-gray-50,
+          .bg-gray-100 {
+            background: white !important;
+          }
+          
+          /* Hacer que el contenido principal ocupe todo */
+          main {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+          
+          /* Resetear el layout flex/grid del dashboard */
+          body > div,
+          #__next,
+          #__next > div,
+          .min-h-screen {
+            display: block !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: white !important;
+          }
+          
+          /* El contenedor del PDF */
+          .bg-white.max-w-\\[210mm\\] {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            box-shadow: none !important;
           }
         }
       `}</style>

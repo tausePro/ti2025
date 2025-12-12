@@ -198,9 +198,12 @@ export default function ProfilePage() {
 
       setSuccess('Perfil actualizado exitosamente')
       
+      // Limpiar cache del perfil para que se recargue fresco
+      localStorage.removeItem('user_profile')
+      
       setTimeout(() => {
         window.location.reload()
-      }, 2000)
+      }, 1500)
 
     } catch (err: any) {
       console.error('Error updating profile:', err)

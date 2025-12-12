@@ -80,6 +80,7 @@ export default function BiweeklyReportsPage() {
           created_at,
           submitted_at,
           approved_at,
+          created_by,
           project:projects(id, name, project_code),
           created_by_profile:profiles!biweekly_reports_created_by_fkey(full_name)
         `)
@@ -212,7 +213,7 @@ export default function BiweeklyReportsPage() {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -271,7 +272,7 @@ export default function BiweeklyReportsPage() {
 
                       {/* Editar (solo borradores o rechazados del creador) */}
                       {(report.status === 'draft' || report.status === 'rejected') && 
-                       report.created_by_profile?.full_name === profile?.full_name && (
+                       (report as any).created_by === profile?.id && (
                         <Link
                           href={`/reports/biweekly/new?reportId=${report.id}`}
                           className="text-gray-600 hover:text-gray-900"

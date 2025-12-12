@@ -1,0 +1,24 @@
+{
+  "companyName": "TALENTO INMOBILIARIO",
+  "tagline": "Supervisión Técnica",
+  "colors": {
+    "primary": "#8BC34A",
+    "primaryDark": "#689F38",
+    "secondary": "#4A4A4A",
+    "accent": "#FFFFFF",
+    "text": "#333333",
+    "textLight": "#666666"
+  },
+  "contact": {
+    "phone": "(604) 3288739",
+    "email": "gerencia@talentoinmobiliario.com",
+    "website": "https://talentoinmobiliario.com/",
+    "address": "Calle 71 Sur # 43B - 52 Oficina 203, Sabaneta, Antioquia"
+  },
+  "assets": {
+    "logoHeader": "/brand/logo-header.png",
+    "logoFooter": "/brand/logo-footer.png",
+    "logoHeaderSvg": "/brand/logo-header.svg",
+    "logoFooterSvg": "/brand/logo-footer.svg"
+  }
+}

@@ -38,8 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true
 
     // Función para cargar perfil
-    const loadUserProfile = async (userId: string) => {
-      if (profileLoadedRef.current === userId) {
+    const loadUserProfile = async (userId: string, forceReload = false) => {
+      // Solo omitir si ya está cargado Y hay cache válido
+      const hasCache = typeof window !== 'undefined' && localStorage.getItem('user_profile')
+      if (profileLoadedRef.current === userId && hasCache && !forceReload) {
         console.log('✅ Perfil ya cargado, omitiendo')
         return
       }
