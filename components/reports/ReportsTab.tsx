@@ -149,7 +149,7 @@ export function ReportsTab({ projectId }: ReportsTabProps) {
         </div>
         {hasPermission('reports', 'create') && (
           <Button asChild className="mt-4 sm:mt-0">
-            <Link href={`/dashboard/projects/${projectId}/reports/new`}>
+            <Link href={`/reports/biweekly/new?project=${projectId}`}>
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Reporte
             </Link>
@@ -192,14 +192,14 @@ export function ReportsTab({ projectId }: ReportsTabProps) {
                     </Badge>
                     <div className="flex space-x-1">
                       <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/dashboard/projects/${projectId}/reports/${report.id}`}>
+                        <Link href={`/reports/biweekly/${report.id}/preview`}>
                           <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
                       {(hasPermission('reports', 'update') || report.created_by === profile?.id) && 
                        report.status === 'draft' && (
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/projects/${projectId}/reports/${report.id}/edit`}>
+                          <Link href={`/reports/biweekly/${report.id}`}>
                             <Edit className="h-4 w-4" />
                           </Link>
                         </Button>
@@ -302,7 +302,7 @@ export function ReportsTab({ projectId }: ReportsTabProps) {
             </p>
             {hasPermission('reports', 'create') && (
               <Button asChild>
-                <Link href={`/dashboard/projects/${projectId}/reports/new`}>
+                <Link href={`/reports/biweekly/new?project=${projectId}`}>
                   <Plus className="h-4 w-4 mr-2" />
                   Generar Primer Reporte
                 </Link>

@@ -123,7 +123,7 @@ export default function EditProjectPage() {
           </AlertDescription>
         </Alert>
         <Button asChild>
-          <Link href="/dashboard/projects">
+          <Link href="/projects">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver a Proyectos
           </Link>
@@ -149,7 +149,7 @@ export default function EditProjectPage() {
           </AlertDescription>
         </Alert>
         <Button asChild>
-          <Link href="/dashboard/projects">
+          <Link href="/projects">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver a Proyectos
           </Link>

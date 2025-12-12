@@ -294,9 +294,9 @@ export default function DashboardPage() {
                   Personaliza colores, logos y branding de la aplicación
                 </p>
                 <Button asChild className="bg-purple-600 hover:bg-purple-700">
-                  <Link href="/admin/config">
+                  <Link href="/admin/ai-settings">
                     <Settings className="h-4 w-4 mr-2" />
-                    Configurar Estilos
+                    Configuración IA
                   </Link>
                 </Button>
               </CardContent>

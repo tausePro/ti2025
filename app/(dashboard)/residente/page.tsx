@@ -329,7 +329,7 @@ export default function ResidenteDashboardPage() {
       {/* Acciones Rápidas */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-          <Link href="/reports/new">
+          <Link href="/reports/biweekly/new">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <FileText className="h-5 w-5 text-talento-green" />
@@ -343,14 +343,14 @@ export default function ResidenteDashboardPage() {
         </Card>
 
         <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-          <Link href="/reports?status=corrections">
+          <Link href="/reports/biweekly">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-orange-500" />
-                Ver Correcciones
+                Ver Informes
               </CardTitle>
               <CardDescription>
-                Revisa informes con correcciones solicitadas
+                Revisa todos tus informes quincenales
               </CardDescription>
             </CardHeader>
           </Link>
