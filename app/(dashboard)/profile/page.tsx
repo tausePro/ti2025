@@ -32,7 +32,7 @@ interface ProfileFormData {
 }
 
 export default function ProfilePage() {
-  const { profile } = useAuth()
+  const { profile, refreshProfile } = useAuth()
   const supabase = createClient()
   
   const [formData, setFormData] = useState<ProfileFormData>({
@@ -198,12 +198,8 @@ export default function ProfilePage() {
 
       setSuccess('Perfil actualizado exitosamente')
       
-      // Limpiar cache del perfil para que se recargue fresco
-      localStorage.removeItem('user_profile')
-      
-      setTimeout(() => {
-        window.location.reload()
-      }, 1500)
+      // Refrescar el perfil en el contexto sin recargar la página
+      await refreshProfile()
 
     } catch (err: any) {
       console.error('Error updating profile:', err)

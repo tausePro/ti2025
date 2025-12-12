@@ -34,6 +34,7 @@ interface User {
   is_active: boolean
   created_at: string
   updated_at: string
+  avatar_url?: string
   signature_url?: string
   professional_license?: string
 }
@@ -310,7 +311,7 @@ export default function UsersManagementPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Avatar>
-                    <AvatarImage src={user.signature_url} />
+                    <AvatarImage src={user.avatar_url} />
                     <AvatarFallback>
                       {user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
                     </AvatarFallback>

@@ -12,6 +12,7 @@ interface AuthContextType {
   loading: boolean
   signOut: () => Promise<void>
   hasPermission: (module: string, action: string) => boolean
+  refreshProfile: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -274,6 +275,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Función para refrescar el perfil sin recargar la página
+  const refreshProfile = async () => {
+    const supabase = getSupabase()
+    if (!user?.id) return
+    
+    try {
+      console.log('🔄 Refrescando perfil...')
+      profileLoadedRef.current = null // Reset para forzar recarga
+      
+      const { data: userProfile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (error) {
+        console.error('❌ Error refreshing profile:', error)
+        return
+      }
+
+      console.log('✅ Perfil refrescado:', userProfile.email)
+      setProfile(userProfile)
+      profileLoadedRef.current = user.id
+      
+      // Actualizar cache
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user_profile', JSON.stringify(userProfile))
+      }
+    } catch (error) {
+      console.error('❌ Error in refreshProfile:', error)
+    }
+  }
+
   const hasPermission = (module: string, action: string): boolean => {
     console.log('🔍 hasPermission llamado:', { 
       module, 
@@ -310,7 +344,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signOut, hasPermission }}>
+    <AuthContext.Provider value={{ user, profile, loading, signOut, hasPermission, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   )
