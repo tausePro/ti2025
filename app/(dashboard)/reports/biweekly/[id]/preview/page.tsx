@@ -210,7 +210,7 @@ export default function ReportPreviewPage() {
       <div className="bg-gray-100 min-h-screen py-8 print:bg-white print:py-0">
         <div 
           ref={printRef}
-          className="bg-white max-w-[210mm] mx-auto shadow-lg print:shadow-none print:max-w-none"
+          className="bg-white max-w-[210mm] mx-auto shadow-lg print:shadow-none print:max-w-none relative"
           style={{ minHeight: '297mm' }}
         >
           {/* ===== ENCABEZADO CON LOGO CIRCULAR GRANDE ===== */}
