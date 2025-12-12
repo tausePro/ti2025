@@ -71,7 +71,7 @@ export default function ProjectsPage() {
   }
 
   const handleGenerateReport = (project: Project) => {
-    router.push(`/projects/${project.id}/reports`)
+    router.push(`/reports/biweekly/new?project=${project.id}`)
   }
 
   const handleViewFinancial = (project: Project) => {

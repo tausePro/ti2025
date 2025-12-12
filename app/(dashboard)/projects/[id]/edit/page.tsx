@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowLeft, Loader2 } from 'lucide-react'
-import { ProjectForm } from '@/components/projects/ProjectForm'
+import { ProjectFormWithFinancial } from '@/components/projects/ProjectFormWithFinancial'
 import { Project } from '@/types'
 import Link from 'next/link'
 
@@ -99,7 +99,7 @@ export default function EditProjectPage() {
       if (updateError) throw updateError
 
       // Redirigir al detalle del proyecto
-      router.push(`/dashboard/projects/${params.id}`)
+      router.push(`/projects/${params.id}`)
     } catch (error: any) {
       console.error('Error updating project:', error)
       setError(error.message || 'Error al actualizar el proyecto')
@@ -110,7 +110,7 @@ export default function EditProjectPage() {
   }
 
   const handleCancel = () => {
-    router.push(`/dashboard/projects/${params.id}`)
+    router.push(`/projects/${params.id}`)
   }
 
   // Verificar permisos
@@ -164,7 +164,7 @@ export default function EditProjectPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="sm" asChild>
-            <Link href={`/dashboard/projects/${project.id}`}>
+            <Link href={`/projects/${project.id}`}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver al Proyecto
             </Link>
@@ -180,12 +180,23 @@ export default function EditProjectPage() {
 
       {/* Form */}
       <div className="max-w-4xl">
-        <ProjectForm
-          project={project}
+        <ProjectFormWithFinancial
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           loading={submitting}
-          submitButtonText={submitting ? 'Actualizando...' : 'Actualizar Proyecto'}
+          isEditMode={true}
+          initialData={{
+            name: project.name,
+            client_company_id: project.client_company_id,
+            address: project.address || '',
+            city: project.city || '',
+            start_date: project.start_date || '',
+            end_date: project.end_date || '',
+            intervention_types: project.intervention_types || [],
+            intervention_types_other: project.intervention_types_other || '',
+            budget: project.budget || undefined,
+            description: project.description || ''
+          }}
         />
         
         {/* Error Alert */}

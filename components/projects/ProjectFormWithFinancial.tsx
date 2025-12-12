@@ -73,12 +73,29 @@ interface ProjectFormWithFinancialProps {
   onSubmit: (data: ProjectFormData & { fiduciary_data?: any }) => Promise<void>
   onCancel: () => void
   loading?: boolean
+  initialData?: {
+    name?: string
+    client_company_id?: string
+    address?: string
+    city?: string
+    start_date?: string
+    end_date?: string
+    intervention_types?: string[]
+    intervention_types_other?: string
+    budget?: number
+    description?: string
+  }
+  submitButtonText?: string
+  isEditMode?: boolean
 }
 
 export function ProjectFormWithFinancial({ 
   onSubmit, 
   onCancel, 
-  loading = false
+  loading = false,
+  initialData,
+  submitButtonText,
+  isEditMode = false
 }: ProjectFormWithFinancialProps) {
   const [companies, setCompanies] = useState<Company[]>([])
   const [loadingCompanies, setLoadingCompanies] = useState(true)
@@ -99,7 +116,16 @@ export function ProjectFormWithFinancial({
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
-      intervention_types: [],
+      name: initialData?.name || '',
+      client_company_id: initialData?.client_company_id || '',
+      address: initialData?.address || '',
+      city: initialData?.city || '',
+      start_date: initialData?.start_date || '',
+      end_date: initialData?.end_date || '',
+      intervention_types: (initialData?.intervention_types as any) || [],
+      intervention_types_other: initialData?.intervention_types_other || '',
+      budget: initialData?.budget || undefined,
+      description: initialData?.description || '',
       enable_financial_intervention: false
     }
   })
@@ -517,7 +543,7 @@ export function ProjectFormWithFinancial({
           Cancelar
         </Button>
         <Button type="submit" disabled={loading || (watchedEnableFinancial && !fiduciaryData)}>
-          {loading ? 'Creando...' : 'Crear Proyecto'}
+          {loading ? (isEditMode ? 'Actualizando...' : 'Creando...') : (submitButtonText || (isEditMode ? 'Actualizar Proyecto' : 'Crear Proyecto'))}
         </Button>
       </div>
     </form>
