@@ -53,6 +53,10 @@ export function useProjects(options: UseProjectsOptions = {}) {
           *,
           company:companies!client_company_id(
             id, name, logo_url, company_type
+          ),
+          project_members(
+            id, user_id, role_in_project,
+            user:profiles!user_id(id, full_name, avatar_url)
           )
         `)
       
