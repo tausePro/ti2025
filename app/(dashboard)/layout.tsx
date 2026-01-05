@@ -149,8 +149,8 @@ export default function DashboardLayout({
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden print:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 flex w-72 flex-col bg-white">
-          <div className="relative flex h-24 items-center justify-center px-8 py-4 border-b">
+        <div className="fixed inset-y-0 left-0 flex w-72 flex-col bg-white max-h-screen">
+          <div className="relative flex-shrink-0 flex h-24 items-center justify-center px-8 py-4 border-b">
             <img 
               src="/logo-ti.png" 
               alt="Talento Inmobiliario" 
@@ -161,7 +161,7 @@ export default function DashboardLayout({
             </Button>
           </div>
 
-          <nav className="flex-1 px-6 py-6 space-y-1">
+          <nav className="flex-1 px-6 py-6 space-y-1 overflow-y-auto">
             {visibleMenuItems.map((item) => {
               const Icon = item.icon
               return (
@@ -177,14 +177,14 @@ export default function DashboardLayout({
             })}
           </nav>
 
-          <div className="px-6 py-3 border-t">
+          <div className="flex-shrink-0 px-6 py-3 border-t">
             <div className="flex items-center space-x-2 text-sm text-green-600">
               <Wifi className="h-4 w-4" />
               <span>Conectado</span>
             </div>
           </div>
 
-          <div className="px-6 py-4 border-t bg-gray-50">
+          <div className="flex-shrink-0 px-6 py-4 border-t bg-gray-50">
             <div className="flex items-center space-x-3">
               <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-talento-green/20 flex-shrink-0">
                 {(profile as any)?.avatar_url ? (
@@ -217,9 +217,9 @@ export default function DashboardLayout({
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col print:!hidden">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
-          <div className="flex h-24 items-center justify-center px-8 py-4 border-b">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col lg:max-h-screen print:!hidden">
+        <div className="flex flex-col flex-grow bg-white border-r border-gray-200 max-h-screen">
+          <div className="flex-shrink-0 flex h-24 items-center justify-center px-8 py-4 border-b">
             <img 
               src="/logo-ti.png" 
               alt="Talento Inmobiliario" 
@@ -227,7 +227,7 @@ export default function DashboardLayout({
             />
           </div>
 
-          <nav className="flex-1 px-6 py-6 space-y-1">
+          <nav className="flex-1 px-6 py-6 space-y-1 overflow-y-auto">
             {visibleMenuItems.map((item) => {
               const Icon = item.icon
               return (
@@ -243,14 +243,14 @@ export default function DashboardLayout({
             })}
           </nav>
 
-          <div className="px-6 py-3 border-t">
+          <div className="flex-shrink-0 px-6 py-3 border-t">
             <div className="flex items-center space-x-2 text-sm text-green-600">
               <Wifi className="h-4 w-4" />
               <span>Conectado</span>
             </div>
           </div>
 
-          <div className="px-6 py-4 border-t bg-gray-50">
+          <div className="flex-shrink-0 px-6 py-4 border-t bg-gray-50">
             <div className="flex items-center space-x-3">
               <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-talento-green/20 flex-shrink-0">
                 {(profile as any)?.avatar_url ? (
