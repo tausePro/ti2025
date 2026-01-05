@@ -256,47 +256,47 @@ export default function UsersManagementPage() {
       </Card>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center">
-              <Users className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Usuarios</p>
-                <p className="text-2xl font-bold">{users.length}</p>
+              <Users className="h-6 w-6 md:h-8 md:w-8 text-blue-600 flex-shrink-0" />
+              <div className="ml-3 md:ml-4 min-w-0">
+                <p className="text-xs md:text-sm font-medium text-gray-600">Total Usuarios</p>
+                <p className="text-xl md:text-2xl font-bold">{users.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center">
-              <UserCheck className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Activos</p>
-                <p className="text-2xl font-bold">{users.filter(u => u.is_active).length}</p>
+              <UserCheck className="h-6 w-6 md:h-8 md:w-8 text-green-600 flex-shrink-0" />
+              <div className="ml-3 md:ml-4 min-w-0">
+                <p className="text-xs md:text-sm font-medium text-gray-600">Activos</p>
+                <p className="text-xl md:text-2xl font-bold">{users.filter(u => u.is_active).length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center">
-              <UserX className="h-8 w-8 text-red-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Inactivos</p>
-                <p className="text-2xl font-bold">{users.filter(u => !u.is_active).length}</p>
+              <UserX className="h-6 w-6 md:h-8 md:w-8 text-red-600 flex-shrink-0" />
+              <div className="ml-3 md:ml-4 min-w-0">
+                <p className="text-xs md:text-sm font-medium text-gray-600">Inactivos</p>
+                <p className="text-xl md:text-2xl font-bold">{users.filter(u => !u.is_active).length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center">
-              <Shield className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Administradores</p>
-                <p className="text-2xl font-bold">{users.filter(u => ['super_admin', 'admin'].includes(u.role)).length}</p>
+              <Shield className="h-6 w-6 md:h-8 md:w-8 text-purple-600 flex-shrink-0" />
+              <div className="ml-3 md:ml-4 min-w-0">
+                <p className="text-xs md:text-sm font-medium text-gray-600 truncate">Administradores</p>
+                <p className="text-xl md:text-2xl font-bold">{users.filter(u => ['super_admin', 'admin'].includes(u.role)).length}</p>
               </div>
             </div>
           </CardContent>
@@ -304,7 +304,7 @@ export default function UsersManagementPage() {
       </div>
 
       {/* Lista de usuarios */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
         {filteredUsers.map((user) => (
           <Card key={user.id} className={`${!user.is_active ? 'opacity-60' : ''}`}>
             <CardHeader className="pb-3">
@@ -316,14 +316,14 @@ export default function UsersManagementPage() {
                       {user.full_name.split(' ').map(n => n[0]).join('').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <CardTitle className="text-lg">{user.full_name}</CardTitle>
-                    <p className="text-sm text-gray-500">{user.email}</p>
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-base truncate">{user.full_name}</CardTitle>
+                    <p className="text-sm text-gray-500 truncate">{user.email}</p>
                   </div>
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="outline" size="sm" className="h-8 w-8 p-0">
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
