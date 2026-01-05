@@ -82,6 +82,7 @@ export default function NewProjectPage() {
       if (data.start_date) projectData.start_date = data.start_date
       if (data.end_date) projectData.end_date = data.end_date
       if (data.intervention_types_other) projectData.intervention_types_other = data.intervention_types_other
+      if ((data as any).logo_url) projectData.logo_url = (data as any).logo_url
 
       const { data: project, error: projectError } = await supabase
         .from('projects')

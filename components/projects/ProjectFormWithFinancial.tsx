@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Building2, Calendar, DollarSign, Shield, AlertTriangle } from 'lucide-react'
+import { Building2, Calendar, DollarSign, Shield, AlertTriangle, Upload, X, ImageIcon } from 'lucide-react'
+import { toast } from 'sonner'
 import { Company } from '@/types'
 import { FiduciaryInfoForm } from './FiduciaryInfoForm'
 
@@ -84,6 +85,7 @@ interface ProjectFormWithFinancialProps {
     intervention_types_other?: string
     budget?: number
     description?: string
+    logo_url?: string
   }
   submitButtonText?: string
   isEditMode?: boolean
@@ -101,6 +103,8 @@ export function ProjectFormWithFinancial({
   const [loadingCompanies, setLoadingCompanies] = useState(true)
   const [fiduciaryData, setFiduciaryData] = useState<any>(null)
   const [showFiduciaryForm, setShowFiduciaryForm] = useState(false)
+  const [logoUrl, setLogoUrl] = useState<string | null>(initialData?.logo_url || null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
   const supabase = createClient()
   const { profile } = useAuth()
 
@@ -192,10 +196,50 @@ export function ProjectFormWithFinancial({
     setFiduciaryData(data)
   }
 
+  // Upload de logo del proyecto
+  const handleLogoUpload = async (file: File) => {
+    try {
+      setUploadingLogo(true)
+      
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('configId', 'project-logo')
+      formData.append('assetType', 'logo')
+
+      const response = await fetch('/api/storage/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        // Si falla el upload a Supabase, usar base64 como fallback
+        console.warn('Supabase Storage not available, using base64')
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const result = e.target?.result as string
+          setLogoUrl(result)
+          toast.success('Logo cargado correctamente (modo local)')
+        }
+        reader.readAsDataURL(file)
+        return
+      }
+
+      const uploadResult = await response.json()
+      setLogoUrl(uploadResult.publicUrl)
+      toast.success('Logo del proyecto subido correctamente')
+    } catch (error) {
+      console.error('Error uploading logo:', error)
+      toast.error('Error al subir el logo')
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
+
   const onFormSubmit = async (data: ProjectFormData) => {
     try {
       const submitData = {
         ...data,
+        logo_url: logoUrl,
         fiduciary_data: data.enable_financial_intervention ? fiduciaryData : undefined
       }
       await onSubmit(submitData)
@@ -297,6 +341,57 @@ export function ProjectFormWithFinancial({
               rows={3}
               disabled={loading}
             />
+          </div>
+
+          {/* Logo del proyecto */}
+          <div className="space-y-2">
+            <Label>Logo del Proyecto</Label>
+            <div className="flex items-start gap-4">
+              {logoUrl ? (
+                <div className="relative">
+                  <img 
+                    src={logoUrl} 
+                    alt="Logo del proyecto" 
+                    className="w-24 h-24 object-contain border rounded-lg bg-gray-50"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6"
+                    onClick={() => setLogoUrl(null)}
+                    disabled={loading}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="w-24 h-24 border-2 border-dashed rounded-lg flex items-center justify-center bg-gray-50">
+                  <ImageIcon className="h-8 w-8 text-gray-400" />
+                </div>
+              )}
+              <div className="flex-1">
+                <label className="cursor-pointer">
+                  <div className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors w-fit">
+                    <Upload className="h-4 w-4" />
+                    <span className="text-sm">{uploadingLogo ? 'Subiendo...' : 'Subir logo'}</span>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleLogoUpload(file)
+                    }}
+                    disabled={loading || uploadingLogo}
+                  />
+                </label>
+                <p className="text-xs text-gray-500 mt-2">
+                  PNG, JPG o SVG. Máximo 2MB.
+                </p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

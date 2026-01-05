@@ -137,17 +137,17 @@ export function ProjectCard({
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              {/* Logo del cliente */}
-              {project.company?.logo_url && !imageError ? (
+              {/* Logo del proyecto o del cliente */}
+              {(project.logo_url || project.company?.logo_url) && !imageError ? (
                 <img
-                  src={project.company.logo_url}
-                  alt={project.company.name}
-                  className="w-8 h-8 rounded object-cover"
+                  src={project.logo_url || project.company?.logo_url || ''}
+                  alt={project.name}
+                  className="w-12 h-12 rounded-lg object-contain bg-gray-50 border"
                   onError={() => setImageError(true)}
                 />
               ) : (
-                <div className="w-8 h-8 rounded bg-gray-200 flex items-center justify-center">
-                  <Building2 className="h-4 w-4 text-gray-500" />
+                <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center border">
+                  <Building2 className="h-6 w-6 text-gray-500" />
                 </div>
               )}
               

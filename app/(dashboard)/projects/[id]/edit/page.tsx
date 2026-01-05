@@ -92,7 +92,8 @@ export default function EditProjectPage() {
           end_date: data.end_date || null,
           intervention_types: data.intervention_types,
           budget: data.budget || null,
-          description: data.description || null
+          description: data.description || null,
+          logo_url: (data as any).logo_url || null
         })
         .eq('id', params.id)
 
@@ -195,7 +196,8 @@ export default function EditProjectPage() {
             intervention_types: project.intervention_types || [],
             intervention_types_other: project.intervention_types_other || '',
             budget: project.budget || undefined,
-            description: project.description || ''
+            description: project.description || '',
+            logo_url: project.logo_url || undefined
           }}
         />
         
