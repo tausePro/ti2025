@@ -225,7 +225,7 @@ export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTe
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <Users className="h-5 w-5 mr-2" />
@@ -236,7 +236,7 @@ export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTe
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 overflow-y-auto flex-1">
           {/* Alertas */}
           {error && (
             <Alert variant="destructive">
@@ -373,7 +373,7 @@ export function AddTeamMemberDialog({ projectId, onClose, onMemberAdded }: AddTe
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0 border-t pt-4">
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
