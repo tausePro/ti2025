@@ -41,7 +41,7 @@ interface Company {
   id: string
   name: string
   nit: string
-  company_type: 'cliente' | 'constructora' | 'interventora' | 'supervisora' | null
+  company_type: 'cliente' | 'constructora' | 'gerencia' | 'otra' | null
   logo_url: string | null
   email: string | null
   phone: string | null
@@ -247,8 +247,8 @@ export default function CompaniesPage() {
                             • <Badge variant="outline" className="text-xs">
                               {company.company_type === 'cliente' && 'Cliente'}
                               {company.company_type === 'constructora' && 'Constructora'}
-                              {company.company_type === 'interventora' && 'Interventora'}
-                              {company.company_type === 'supervisora' && 'Supervisora'}
+                              {company.company_type === 'gerencia' && 'Gerencia'}
+                              {company.company_type === 'otra' && 'Otra'}
                             </Badge>
                           </span>
                         )}

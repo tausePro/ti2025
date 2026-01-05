@@ -69,7 +69,7 @@ export interface CompanyExtended {
   id: string
   name: string
   nit: string
-  company_type: 'cliente' | 'constructora' | 'interventora' | 'supervisora'
+  company_type: 'cliente' | 'constructora' | 'gerencia' | 'otra'
   custom_roles_enabled: boolean
   max_users: number
   branding_enabled: boolean

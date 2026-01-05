@@ -46,7 +46,7 @@ const companySchema = z.object({
   nit: z.string()
     .min(1, 'El NIT es requerido')
     .regex(/^\d{8,9}-\d$/, 'Formato de NIT inválido (ej: 900123456-7)'),
-  company_type: z.enum(['cliente', 'constructora', 'interventora', 'supervisora'], {
+  company_type: z.enum(['cliente', 'constructora', 'gerencia', 'otra'], {
     required_error: 'El tipo de empresa es requerido'
   }),
   logo_url: z.string().optional(),
@@ -348,8 +348,8 @@ export function CompanyForm({
                   <SelectContent>
                     <SelectItem value="cliente">Cliente (empresa que contrata)</SelectItem>
                     <SelectItem value="constructora">Constructora</SelectItem>
-                    <SelectItem value="interventora">Interventora</SelectItem>
-                    <SelectItem value="supervisora">Supervisora técnica</SelectItem>
+                    <SelectItem value="gerencia">Gerencia</SelectItem>
+                    <SelectItem value="otra">Otra</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.company_type && (

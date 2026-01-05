@@ -87,7 +87,7 @@ export interface Database {
           id: string
           name: string
           nit: string
-          company_type?: 'cliente' | 'constructora' | 'interventora' | 'supervisora'
+          company_type?: 'cliente' | 'constructora' | 'gerencia' | 'otra'
           logo_url?: string
           address?: string
           city?: string
@@ -106,7 +106,7 @@ export interface Database {
         Insert: {
           name: string
           nit: string
-          company_type?: 'cliente' | 'constructora' | 'interventora' | 'supervisora'
+          company_type?: 'cliente' | 'constructora' | 'gerencia' | 'otra'
           logo_url?: string
           address?: string
           city?: string
@@ -123,7 +123,7 @@ export interface Database {
         Update: {
           name?: string
           nit?: string
-          company_type?: 'cliente' | 'constructora' | 'interventora' | 'supervisora'
+          company_type?: 'cliente' | 'constructora' | 'gerencia' | 'otra'
           logo_url?: string
           address?: string
           city?: string
