@@ -199,7 +199,7 @@ export default function ProjectDetailPage() {
                 </Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/dashboard/projects/${project.id}/edit`}>
+                <Link href={`/projects/${project.id}/edit`}>
                   <Edit className="h-4 w-4 mr-2" />
                   Editar
                 </Link>
