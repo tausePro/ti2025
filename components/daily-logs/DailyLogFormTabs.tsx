@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { MapPin, Clock, User, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { CustomField, DailyLogConfig } from '@/types/daily-log-config'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface DailyLogFormTabsProps {
   projectId: string
@@ -33,11 +34,13 @@ interface DailyLogFormTabsProps {
 export default function DailyLogFormTabs({ projectId, templateId, logId, onSuccess }: DailyLogFormTabsProps) {
   const router = useRouter()
   const supabase = createClient()
+  const { profile } = useAuth()
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [config, setConfig] = useState<DailyLogConfig | null>(null)
   const [customFields, setCustomFields] = useState<CustomField[]>([])
+  const [userRoleInProject, setUserRoleInProject] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('basica')
   
   // Estado del formulario
@@ -102,14 +105,28 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
         setCustomFields(configData.custom_fields || [])
       }
       
-      // Cargar usuarios
+      // Cargar usuarios del proyecto y rol del usuario actual
       const { data: usersData } = await supabase
         .from('project_members')
-        .select('user_id, profiles(id, full_name, email)')
+        .select('user_id, role_in_project, user:profiles!user_id(id, full_name, email)')
         .eq('project_id', projectId)
       
       if (usersData) {
-        setProjectUsers(usersData.map(d => d.profiles).filter(Boolean))
+        setProjectUsers(usersData.map(d => (d as any).user).filter(Boolean))
+        
+        // Obtener el rol del usuario actual en este proyecto
+        const currentUserMember = usersData.find(m => m.user_id === profile?.id)
+        if (currentUserMember) {
+          setUserRoleInProject(currentUserMember.role_in_project)
+          
+          // Si es residente, auto-asignar la bitácora a sí mismo
+          if (currentUserMember.role_in_project === 'residente' && !logId) {
+            setFormData(prev => ({
+              ...prev,
+              assigned_to: profile?.id
+            }))
+          }
+        }
       }
       
       // Si es modo edición, cargar datos existentes
@@ -454,26 +471,33 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
                 </div>
               </div>
 
-              {/* Asignado a */}
-              <div>
-                <Label htmlFor="assigned_to">Asignado a</Label>
-                <Select 
-                  value={formData.assigned_to || 'unassigned'} 
-                  onValueChange={(value) => updateField('assigned_to', value === 'unassigned' ? undefined : value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar usuario..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">Sin asignar</SelectItem>
-                    {projectUsers.map((user: any) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.full_name || user.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Asignado a - Solo visible para admin/supervisor, oculto para residentes */}
+              {userRoleInProject !== 'residente' && profile?.role !== 'residente' ? (
+                <div>
+                  <Label htmlFor="assigned_to">Asignado a</Label>
+                  <Select 
+                    value={formData.assigned_to || 'unassigned'} 
+                    onValueChange={(value) => updateField('assigned_to', value === 'unassigned' ? undefined : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar usuario..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Sin asignar</SelectItem>
+                      {projectUsers.map((user: any) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.full_name || user.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <Label className="text-gray-600">Registrado por</Label>
+                  <p className="font-medium text-gray-900">{profile?.full_name || profile?.email}</p>
+                </div>
+              )}
 
               {/* GPS */}
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { DailyLogsTimeline } from '@/components/daily-logs/DailyLogsTimeline'
 import { Loader2, Settings } from 'lucide-react'
@@ -13,6 +14,10 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
+  const { profile } = useAuth()
+  
+  // Solo admin, super_admin, gerente y supervisor pueden configurar bitácoras
+  const canConfigureDailyLogs = profile?.role && ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role)
 
   const loadData = useCallback(async () => {
     try {
@@ -116,13 +121,15 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
           </p>
         </div>
         <div className="flex gap-3">
-          <Link
-            href={`/projects/${params.id}/daily-logs/settings`}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center gap-2"
-          >
-            <Settings className="h-4 w-4" />
-            Configurar
-          </Link>
+          {canConfigureDailyLogs && (
+            <Link
+              href={`/projects/${params.id}/daily-logs/settings`}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Configurar
+            </Link>
+          )}
           <Link
             href={`/projects/${params.id}/daily-logs/new`}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"

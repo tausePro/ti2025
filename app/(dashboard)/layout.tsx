@@ -23,7 +23,8 @@ import {
   FileType,
   ClipboardCheck,
   Sparkles,
-  FileBarChart
+  FileBarChart,
+  ClipboardList
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -88,6 +89,11 @@ export default function DashboardLayout({
       }
     ] : []),
     ...(profile?.role && ['supervisor', 'residente'].includes(profile.role) ? [
+      {
+        name: 'Registro Diario',
+        href: '/daily-logs',
+        icon: ClipboardList
+      },
       {
         name: 'Informes Quincenales',
         href: '/reports/biweekly',
