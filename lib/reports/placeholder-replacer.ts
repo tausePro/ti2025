@@ -69,7 +69,7 @@ export function replacePlaceholders(
   
   // Resumen de actividades (lista)
   const activitiesList = context.dailyLogs
-    .map(log => log.activities_summary)
+    .map(log => log.activities)
     .filter(Boolean)
     .join(', ')
   result = result.replace(/\{\{bitacora\.resumen\}\}/g, activitiesList || 'No se registraron actividades')

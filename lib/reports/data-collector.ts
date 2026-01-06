@@ -46,9 +46,9 @@ export async function collectReportData(
       created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)
     `)
     .eq('project_id', projectId)
-    .gte('log_date', periodStart)
-    .lte('log_date', periodEnd)
-    .order('log_date', { ascending: true })
+    .gte('date', periodStart)
+    .lte('date', periodEnd)
+    .order('date', { ascending: true })
 
   // 3. Control de calidad del período
   const { data: qualityControl } = await supabase
@@ -74,11 +74,11 @@ export async function collectReportData(
     .order('uploaded_at', { ascending: true })
 
   // 5. Calcular resumen
-  const workDays = dailyLogs?.filter(log => log.weather_condition !== 'lluvia_intensa').length || 0
-  const rainDays = dailyLogs?.filter(log => log.weather_condition === 'lluvia_intensa').length || 0
+  const workDays = dailyLogs?.filter(log => log.weather !== 'lluvia_intensa' && log.weather !== 'lluvioso').length || 0
+  const rainDays = dailyLogs?.filter(log => log.weather === 'lluvia_intensa' || log.weather === 'lluvioso').length || 0
   
   const totalWorkers = dailyLogs?.reduce((sum, log) => {
-    return sum + (log.workers_count || 0)
+    return sum + (log.personnel_count || 0)
   }, 0) || 0
 
   const totalTests = qualityControl?.length || 0
@@ -120,10 +120,10 @@ export function formatDailyLogsData(dailyLogs: any[]): string {
 
   dailyLogs.forEach(log => {
     html += '<tr>'
-    html += `<td class="border border-gray-300 px-4 py-2">${new Date(log.log_date).toLocaleDateString('es-CO')}</td>`
-    html += `<td class="border border-gray-300 px-4 py-2">${log.activities_summary || 'N/A'}</td>`
-    html += `<td class="border border-gray-300 px-4 py-2">${log.workers_count || 0}</td>`
-    html += `<td class="border border-gray-300 px-4 py-2">${log.weather_condition || 'N/A'}</td>`
+    html += `<td class="border border-gray-300 px-4 py-2">${new Date(log.date).toLocaleDateString('es-CO')}</td>`
+    html += `<td class="border border-gray-300 px-4 py-2">${log.activities || 'N/A'}</td>`
+    html += `<td class="border border-gray-300 px-4 py-2">${log.personnel_count || 0}</td>`
+    html += `<td class="border border-gray-300 px-4 py-2">${log.weather || 'N/A'}</td>`
     html += '</tr>'
   })
 
