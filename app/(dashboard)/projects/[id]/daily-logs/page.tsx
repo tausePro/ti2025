@@ -11,6 +11,7 @@ import { Loader2, Settings } from 'lucide-react'
 export default function DailyLogsPage({ params }: { params: { id: string } }) {
   const [project, setProject] = useState<any>(null)
   const [dailyLogs, setDailyLogs] = useState<any[]>([])
+  const [customFieldLabels, setCustomFieldLabels] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -81,6 +82,25 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
       }) || []
 
       setDailyLogs(logsWithPublicUrls)
+
+      // Obtener labels de campos personalizados
+      const { data: configData } = await supabase
+        .from('daily_log_configs')
+        .select('custom_fields')
+        .eq('project_id', params.id)
+        .single()
+
+      if (configData?.custom_fields) {
+        const labels = (configData.custom_fields as any[]).reduce((acc: Record<string, string>, field: any) => {
+          if (field?.id && field?.label) {
+            acc[field.id] = field.label
+          }
+          return acc
+        }, {})
+        setCustomFieldLabels(labels)
+      } else {
+        setCustomFieldLabels({})
+      }
     } catch (error) {
       console.error('Error in loadData:', error)
     } finally {
@@ -151,7 +171,7 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
           </Link>
         </div>
       ) : (
-        <DailyLogsTimeline logs={dailyLogs} projectId={params.id} />
+        <DailyLogsTimeline logs={dailyLogs} projectId={params.id} customFieldLabels={customFieldLabels} />
       )}
 
       {/* Botón volver */}

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { PhotoGallery } from '@/components/daily-logs/PhotoGallery'
-import { ArrowLeft, Calendar, Cloud, Users, Wrench, Package, FileText, Camera, Edit } from 'lucide-react'
+import { ArrowLeft, Calendar, Cloud, Users, Wrench, Package, FileText, Camera, Edit, Printer } from 'lucide-react'
 
 export default async function DailyLogDetailPage({ 
   params 
@@ -37,6 +37,39 @@ export default async function DailyLogDetailPage({
     .select('name')
     .eq('id', params.id)
     .single()
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, role, full_name, email')
+    .eq('id', user.id)
+    .single()
+
+  const { data: assignedProfile } = await supabase
+    .from('profiles')
+    .select('full_name, email')
+    .eq('id', log.assigned_to)
+    .maybeSingle()
+
+  const { data: configData } = await supabase
+    .from('daily_log_configs')
+    .select('custom_fields')
+    .eq('project_id', params.id)
+    .single()
+
+  const customFieldLabels = (configData?.custom_fields || []).reduce(
+    (acc: Record<string, string>, field: any) => {
+      if (field?.id && field?.label) {
+        acc[field.id] = field.label
+      }
+      return acc
+    },
+    {}
+  )
+
+  const canEdit = user.id === log.created_by || ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile?.role || '')
+
+  const checklistSections = log.custom_fields?.checklists || []
+  const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => key !== 'checklists')
 
   const getWeatherLabel = (weather: string) => {
     switch (weather) {
@@ -76,7 +109,7 @@ export default async function DailyLogDetailPage({
             </p>
           </div>
           
-          {user.id === log.created_by && (
+          {canEdit && (
             <Link
               href={`/projects/${params.id}/daily-logs/${params.logId}/edit`}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
@@ -85,6 +118,15 @@ export default async function DailyLogDetailPage({
               Editar
             </Link>
           )}
+          <Link
+            href={`/print/daily-log/${params.logId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 flex items-center"
+          >
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimir
+          </Link>
         </div>
       </div>
 
@@ -94,19 +136,26 @@ export default async function DailyLogDetailPage({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-6 border-b">
           <div>
             <p className="text-sm text-gray-500">Clima</p>
-            <p className="text-lg font-medium">{getWeatherLabel(log.data?.weather || log.weather)}</p>
+            <p className="text-lg font-medium">{getWeatherLabel(log.weather)}</p>
           </div>
           
-          {log.data?.temperature && (
+          {log.temperature && (
             <div>
               <p className="text-sm text-gray-500">Temperatura</p>
-              <p className="text-lg font-medium">{log.data.temperature}°C</p>
+              <p className="text-lg font-medium">{log.temperature}°C</p>
             </div>
           )}
           
           <div>
             <p className="text-sm text-gray-500">Personal</p>
-            <p className="text-lg font-medium">{log.data?.personnel_count || 0} personas</p>
+            <p className="text-lg font-medium">{log.personnel_count ?? 0} personas</p>
+          </div>
+
+          <div>
+            <p className="text-sm text-gray-500">Elaborado por</p>
+            <p className="text-lg font-medium">
+              {assignedProfile?.full_name || assignedProfile?.email || log.created_by_profile?.full_name || 'Usuario'}
+            </p>
           </div>
           
           <div>
@@ -122,76 +171,138 @@ export default async function DailyLogDetailPage({
         </div>
 
         {/* Actividades */}
-        {log.data?.activities && (
+        {log.activities && (
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
               <FileText className="h-5 w-5 mr-2 text-blue-600" />
               Actividades Realizadas
             </h2>
             <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.data.activities}</p>
+              <p className="text-gray-700 whitespace-pre-wrap">{log.activities}</p>
             </div>
           </div>
         )}
 
         {/* Materiales */}
-        {log.data?.materials && (
+        {log.materials && (
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
               <Package className="h-5 w-5 mr-2 text-blue-600" />
               Materiales Utilizados
             </h2>
             <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.data.materials}</p>
+              <p className="text-gray-700 whitespace-pre-wrap">{log.materials}</p>
             </div>
           </div>
         )}
 
         {/* Equipos */}
-        {log.data?.equipment && (
+        {log.equipment && (
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
               <Wrench className="h-5 w-5 mr-2 text-blue-600" />
               Equipos Utilizados
             </h2>
             <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.data.equipment}</p>
+              <p className="text-gray-700 whitespace-pre-wrap">{log.equipment}</p>
             </div>
           </div>
         )}
 
         {/* Observaciones */}
-        {log.data?.observations && (
+        {log.observations && (
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-3">
               Observaciones
             </h2>
             <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.data.observations}</p>
+              <p className="text-gray-700 whitespace-pre-wrap">{log.observations}</p>
             </div>
           </div>
         )}
 
         {/* Problemas */}
-        {log.data?.issues && (
+        {log.issues && (
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-3">
               Problemas Encontrados
             </h2>
             <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.data.issues}</p>
+              <p className="text-gray-700 whitespace-pre-wrap">{log.issues}</p>
             </div>
           </div>
         )}
 
         {/* Recomendaciones */}
-        {log.data?.recommendations && (
+        {log.recommendations && (
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-3">
               Recomendaciones
             </h2>
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.data.recommendations}</p>
+              <p className="text-gray-700 whitespace-pre-wrap">{log.recommendations}</p>
+            </div>
+          </div>
+        )}
+
+        {customFields.length > 0 && (
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-3">Campos Personalizados</h2>
+            <div className="bg-blue-50 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+              {customFields.map(([key, value]) => (
+                <div key={key} className="flex gap-2 text-sm">
+                  <span className="text-gray-600">{customFieldLabels[key] || key}:</span>
+                  <span className="font-medium text-gray-900">
+                    {Array.isArray(value) ? value.join(', ') : String(value)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {checklistSections.length > 0 && (
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-3">Checklist</h2>
+            <div className="space-y-4">
+              {checklistSections.map((section: any) => (
+                <div key={section.id} className="border rounded-lg">
+                  <div className="bg-gray-50 px-4 py-3 font-semibold text-gray-800">
+                    {section.title}
+                  </div>
+                  <div className="divide-y">
+                    {section.items?.map((item: any) => (
+                      <div key={item.id} className="px-4 py-3 text-sm">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="font-medium text-gray-900">{item.description}</p>
+                            {item.observations && (
+                              <p className="text-gray-500 mt-1">{item.observations}</p>
+                            )}
+                          </div>
+                          <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
+                            item.status === 'compliant'
+                              ? 'bg-green-100 text-green-700'
+                              : item.status === 'non_compliant'
+                                ? 'bg-red-100 text-red-700'
+                                : item.status === 'not_applicable'
+                                  ? 'bg-gray-100 text-gray-600'
+                                  : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {item.status === 'compliant'
+                              ? 'Cumple'
+                              : item.status === 'non_compliant'
+                                ? 'No cumple'
+                                : item.status === 'not_applicable'
+                                  ? 'No aplica'
+                                  : 'Pendiente'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

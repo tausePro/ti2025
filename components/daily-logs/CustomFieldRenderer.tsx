@@ -88,7 +88,11 @@ export function CustomFieldRenderer({ field, value, onChange }: CustomFieldRende
         )
 
       case 'multiselect':
-        const selectedValues = Array.isArray(value) ? value : []
+        const selectedValues = Array.isArray(value)
+          ? value
+          : typeof value === 'string'
+            ? value.split(',').map((item) => item.trim()).filter(Boolean)
+            : []
         return (
           <div className="space-y-2">
             {field.options?.map((option) => (

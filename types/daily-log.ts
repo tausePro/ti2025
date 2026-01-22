@@ -312,7 +312,7 @@ export interface DailyLogBaseFields {
   time?: string // Hora específica (HH:MM)
   weather: 'soleado' | 'nublado' | 'lluvioso' | 'tormentoso'
   temperature?: number
-  personnel_count: number
+  personnel_count?: number
   activities: string
   materials?: string
   equipment?: string

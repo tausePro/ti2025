@@ -38,10 +38,12 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [config, setConfig] = useState<DailyLogConfig | null>(null)
   const [customFields, setCustomFields] = useState<CustomField[]>([])
   const [userRoleInProject, setUserRoleInProject] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('basica')
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
   
   // Estado del formulario
   const [formData, setFormData] = useState<DailyLogFormData>({
@@ -49,7 +51,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
     time: new Date().toTimeString().slice(0, 5),
     weather: 'soleado',
     temperature: undefined,
-    personnel_count: 0,
+    personnel_count: undefined,
     activities: '',
     materials: '',
     equipment: '',
@@ -195,6 +197,38 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
     }))
   }
 
+  const updateChecklistSectionTitle = (sectionId: string, title: string) => {
+    setFormData(prev => ({
+      ...prev,
+      checklists: prev.checklists.map(section =>
+        section.id === sectionId ? { ...section, title } : section
+      )
+    }))
+  }
+
+  const toggleChecklistSection = (sectionId: string) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [sectionId]: !prev[sectionId]
+    }))
+  }
+
+  const markSectionNotApplicable = (sectionId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      checklists: prev.checklists.map(section => {
+        if (section.id !== sectionId) return section
+        return {
+          ...section,
+          items: section.items.map(item => ({
+            ...item,
+            status: 'not_applicable'
+          }))
+        }
+      })
+    }))
+  }
+
   // Actualizar checklist
   const updateChecklistItem = (
     sectionId: string, 
@@ -226,6 +260,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setSuccess(null)
 
     try {
       console.log('🔄 Iniciando guardado de bitácora...')
@@ -350,6 +385,8 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
 
       console.log('✅ Bitácora guardada exitosamente')
       
+      setSuccess('✅ Bitácora guardada exitosamente')
+
       if (onSuccess) {
         onSuccess()
       } else {
@@ -459,14 +496,13 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
 
                 {/* Personal */}
                 <div>
-                  <Label htmlFor="personnel">Cantidad de Personal *</Label>
+                  <Label htmlFor="personnel">Cantidad de Personal</Label>
                   <Input
                     id="personnel"
                     type="number"
                     min="0"
-                    value={formData.personnel_count}
-                    onChange={(e) => updateField('personnel_count', parseInt(e.target.value) || 0)}
-                    required
+                    value={formData.personnel_count ?? ''}
+                    onChange={(e) => updateField('personnel_count', e.target.value ? parseInt(e.target.value) : undefined)}
                   />
                 </div>
               </div>
@@ -474,7 +510,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
               {/* Asignado a - Solo visible para admin/supervisor, oculto para residentes */}
               {userRoleInProject !== 'residente' && profile?.role !== 'residente' ? (
                 <div>
-                  <Label htmlFor="assigned_to">Asignado a</Label>
+                  <Label htmlFor="assigned_to">Elaborado por</Label>
                   <Select 
                     value={formData.assigned_to || 'unassigned'} 
                     onValueChange={(value) => updateField('assigned_to', value === 'unassigned' ? undefined : value)}
@@ -494,7 +530,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
                 </div>
               ) : (
                 <div className="p-3 bg-gray-50 rounded-lg">
-                  <Label className="text-gray-600">Registrado por</Label>
+                  <Label className="text-gray-600">Elaborado por</Label>
                   <p className="font-medium text-gray-900">{profile?.full_name || profile?.email}</p>
                 </div>
               )}
@@ -537,14 +573,13 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="activities">Actividades Realizadas *</Label>
+                <Label htmlFor="activities">Actividades Realizadas</Label>
                 <Textarea
                   id="activities"
                   value={formData.activities}
                   onChange={(e) => updateField('activities', e.target.value)}
                   placeholder="Describe las actividades realizadas durante el día..."
                   rows={4}
-                  required
                 />
               </div>
 
@@ -640,13 +675,35 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
 
           {formData.checklists.map((section) => (
             <Card key={section.id}>
-              <CardHeader>
-                <CardTitle>{section.title}</CardTitle>
-                {/* Descripción opcional */}
+              <CardHeader className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <Input
+                    value={section.title}
+                    onChange={(e) => updateChecklistSectionTitle(section.id, e.target.value)}
+                    className="text-base font-semibold"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => markSectionNotApplicable(section.id)}
+                      className="text-xs px-3 py-1 rounded bg-gray-100 hover:bg-gray-200"
+                    >
+                      Marcar todo No aplica
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleChecklistSection(section.id)}
+                      className="text-xs px-3 py-1 rounded border border-gray-200 hover:bg-gray-50"
+                    >
+                      {collapsedSections[section.id] ? 'Expandir' : 'Contraer'}
+                    </button>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {section.items.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-4 space-y-3">
+              {!collapsedSections[section.id] && (
+                <CardContent className="space-y-4">
+                  {section.items.map((item) => (
+                    <div key={item.id} className="border rounded-lg p-4 space-y-3">
                     <div className="flex items-start gap-3">
                       <div className="flex-1">
                         <p className="font-medium">{item.description}</p>
@@ -688,9 +745,10 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
                       rows={2}
                       className="text-sm"
                     />
-                  </div>
-                ))}
+                    </div>
+                  ))}
               </CardContent>
+              )}
             </Card>
           ))}
         </TabsContent>
@@ -742,6 +800,11 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
       </Tabs>
 
       {/* Error */}
+      {success && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+          {success}
+        </div>
+      )}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
           {error}

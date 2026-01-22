@@ -7,9 +7,10 @@ import { Camera, Clock, MapPin, User, FileText, CheckCircle2, XCircle, AlertCirc
 interface DailyLogsTimelineProps {
   logs: any[]
   projectId: string
+  customFieldLabels?: Record<string, string>
 }
 
-export function DailyLogsTimeline({ logs, projectId }: DailyLogsTimelineProps) {
+export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: DailyLogsTimelineProps) {
   // Función para obtener resumen de checklists
   const getChecklistSummary = (log: any) => {
     if (!log.custom_fields?.checklists) return null
@@ -278,7 +279,9 @@ export function DailyLogsTimeline({ logs, projectId }: DailyLogsTimelineProps) {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                           {entries.map(([key, value]) => (
                             <div key={key} className="flex gap-2">
-                              <span className="text-gray-600 capitalize">{key.replace(/_/g, ' ')}:</span>
+                              <span className="text-gray-600">
+                                {customFieldLabels[key] || key.replace(/_/g, ' ')}:
+                              </span>
                               <span className="font-medium text-gray-900">
                                 {Array.isArray(value) ? value.join(', ') : String(value)}
                               </span>
