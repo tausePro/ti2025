@@ -38,6 +38,8 @@ interface PaymentOrder {
   beneficiary: string
   construction_act?: string
   status: string
+  is_legalized?: boolean
+  legalized_at?: string | null
 }
 
 interface Project {
@@ -60,6 +62,33 @@ export default function SimpleFinancialPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  const handleToggleLegalized = async (orderId: string, isLegalized: boolean) => {
+    const nextValue = !isLegalized
+    if (!confirm(nextValue ? '¿Marcar esta orden como legalizada?' : '¿Quitar legalización de la orden?')) return
+
+    setActionLoading(orderId)
+    try {
+      const { error } = await supabase
+        .from('payment_orders')
+        .update({
+          is_legalized: nextValue,
+          legalized_at: nextValue ? new Date().toISOString() : null,
+          legalized_by: nextValue ? profile?.id : null
+        })
+        .eq('id', orderId)
+
+      if (error) throw error
+
+      await loadData()
+      alert(nextValue ? '✅ Orden legalizada' : '✅ Legalización removida')
+    } catch (error: any) {
+      console.error('Error updating legalization:', error)
+      alert('❌ Error al actualizar la legalización: ' + error.message)
+    } finally {
+      setActionLoading(null)
+    }
+  }
 
   useEffect(() => {
     if (profile && !['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role)) {
@@ -160,7 +189,7 @@ export default function SimpleFinancialPage() {
   }
 
   const handleMarkAsPaid = async (orderId: string) => {
-    if (!confirm('¿Marcar esta orden como pagada (legalizada)?')) return
+    if (!confirm('¿Marcar esta orden como pagada?')) return
     
     setActionLoading(orderId)
     try {
@@ -249,8 +278,8 @@ export default function SimpleFinancialPage() {
   const stats = {
     // Total Autorizado: suma de órdenes aprobadas o pagadas (no rechazadas ni pendientes)
     authorized: orders.filter(o => ['aprobado', 'pagado'].includes(o.status)).reduce((sum, o) => sum + o.amount, 0),
-    // Legalizado: suma de órdenes pagadas (pagos ejecutados por el cliente)
-    legalized: orders.filter(o => o.status === 'pagado').reduce((sum, o) => sum + o.amount, 0),
+    // Legalizado: suma de órdenes marcadas como legalizadas
+    legalized: orders.filter(o => o.is_legalized).reduce((sum, o) => sum + o.amount, 0),
     count: orders.length
   }
 
@@ -406,6 +435,7 @@ export default function SimpleFinancialPage() {
                     <th className="text-right p-3">Valor</th>
                     <th className="text-center p-3">Acta</th>
                     <th className="text-center p-3">Estado</th>
+                    <th className="text-center p-3">Legalización</th>
                     <th className="text-center p-3">Acciones</th>
                   </tr>
                 </thead>
@@ -427,6 +457,13 @@ export default function SimpleFinancialPage() {
                       </td>
                       <td className="p-3 text-center">
                         {getStatusBadge(order.status)}
+                      </td>
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Badge variant={order.is_legalized ? 'default' : 'secondary'}>
+                            {order.is_legalized ? 'Legalizado' : 'No legalizado'}
+                          </Badge>
+                        </div>
                       </td>
                       <td className="p-3">
                         <div className="flex items-center justify-center gap-2">
@@ -475,20 +512,43 @@ export default function SimpleFinancialPage() {
                             </>
                           )}
                           {order.status === 'aprobado' && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleMarkAsPaid(order.id)}
+                                disabled={actionLoading === order.id}
+                                title="Marcar como Pagado"
+                                className="h-8 px-3"
+                              >
+                                <Check className="h-4 w-4 mr-1 text-blue-600" />
+                                <span className="text-xs">Pagado</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleToggleLegalized(order.id, !!order.is_legalized)}
+                                disabled={actionLoading === order.id}
+                                title={order.is_legalized ? 'Quitar legalización' : 'Marcar legalizado'}
+                                className="h-8 px-3"
+                              >
+                                <Check className="h-4 w-4 mr-1 text-green-600" />
+                                <span className="text-xs">Legalizar</span>
+                              </Button>
+                            </>
+                          )}
+                          {(order.status === 'pagado' || order.status === 'rechazado') && (
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => handleMarkAsPaid(order.id)}
+                              onClick={() => handleToggleLegalized(order.id, !!order.is_legalized)}
                               disabled={actionLoading === order.id}
-                              title="Marcar como Pagado"
+                              title={order.is_legalized ? 'Quitar legalización' : 'Marcar legalizado'}
                               className="h-8 px-3"
                             >
-                              <Check className="h-4 w-4 mr-1 text-blue-600" />
-                              <span className="text-xs">Pagado</span>
+                              <Check className="h-4 w-4 mr-1 text-green-600" />
+                              <span className="text-xs">Legalizar</span>
                             </Button>
-                          )}
-                          {(order.status === 'pagado' || order.status === 'rechazado') && (
-                            <span className="text-xs text-gray-400">-</span>
                           )}
                         </div>
                       </td>
