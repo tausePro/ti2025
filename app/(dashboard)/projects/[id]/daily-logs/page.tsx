@@ -1,16 +1,18 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { DailyLogsTimeline } from '@/components/daily-logs/DailyLogsTimeline'
+import { DailyLogsCalendar } from '@/components/daily-logs/DailyLogsCalendar'
 import { Loader2, Settings } from 'lucide-react'
 
 export default function DailyLogsPage({ params }: { params: { id: string } }) {
   const [project, setProject] = useState<any>(null)
   const [dailyLogs, setDailyLogs] = useState<any[]>([])
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [customFieldLabels, setCustomFieldLabels] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const router = useRouter()
@@ -112,6 +114,16 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
     loadData()
   }, [loadData])
 
+  const datesWithLogs = useMemo(
+    () => Array.from(new Set(dailyLogs.map(log => log.date).filter(Boolean))),
+    [dailyLogs]
+  )
+
+  const filteredLogs = useMemo(() => {
+    if (!selectedDate) return dailyLogs
+    return dailyLogs.filter(log => log.date === selectedDate)
+  }, [dailyLogs, selectedDate])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -159,8 +171,36 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Lista de bitácoras */}
-      {!dailyLogs || dailyLogs.length === 0 ? (
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
+        <DailyLogsCalendar
+          datesWithLogs={datesWithLogs}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+        />
+
+        <div>
+          {selectedDate && (
+            <div className="mb-4 flex items-center justify-between bg-blue-50 border border-blue-100 text-blue-700 text-sm rounded-lg px-4 py-3">
+              <span>
+                Mostrando registros del {new Date(`${selectedDate}T00:00:00`).toLocaleDateString('es-CO', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedDate(null)}
+                className="text-blue-700 font-medium hover:underline"
+              >
+                Ver todos
+              </button>
+            </div>
+          )}
+
+          {/* Lista de bitácoras */}
+          {!filteredLogs || filteredLogs.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <p className="text-gray-500 mb-4">No hay bitácoras registradas</p>
           <Link
@@ -170,9 +210,11 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
             Crear Primera Bitácora
           </Link>
         </div>
-      ) : (
-        <DailyLogsTimeline logs={dailyLogs} projectId={params.id} customFieldLabels={customFieldLabels} />
-      )}
+          ) : (
+            <DailyLogsTimeline logs={filteredLogs} projectId={params.id} customFieldLabels={customFieldLabels} />
+          )}
+        </div>
+      </div>
 
       {/* Botón volver */}
       <div className="mt-6">

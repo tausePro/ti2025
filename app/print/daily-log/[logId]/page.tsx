@@ -55,7 +55,14 @@ export default async function DailyLogPrintPage({
     {}
   )
 
-  const checklistSections = log.custom_fields?.checklists || []
+  const checklistSections = (log.custom_fields?.checklists || [])
+    .map((section: any) => ({
+      ...section,
+      items: (section.items || []).filter((item: any) =>
+        item.status === 'compliant' || item.status === 'non_compliant'
+      )
+    }))
+    .filter((section: any) => section.items?.length)
   const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => key !== 'checklists')
 
   const getWeatherLabel = (weather: string) => {
@@ -200,9 +207,7 @@ export default async function DailyLogPrintPage({
                               ? 'Cumple'
                               : item.status === 'non_compliant'
                                 ? 'No cumple'
-                                : item.status === 'not_applicable'
-                                  ? 'No aplica'
-                                  : 'Pendiente'}
+                                : 'Pendiente'}
                           </span>
                         </div>
                       </div>

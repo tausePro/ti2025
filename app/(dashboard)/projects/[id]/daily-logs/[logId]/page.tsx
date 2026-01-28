@@ -68,7 +68,14 @@ export default async function DailyLogDetailPage({
 
   const canEdit = user.id === log.created_by || ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile?.role || '')
 
-  const checklistSections = log.custom_fields?.checklists || []
+  const checklistSections = (log.custom_fields?.checklists || [])
+    .map((section: any) => ({
+      ...section,
+      items: (section.items || []).filter((item: any) =>
+        item.status === 'compliant' || item.status === 'non_compliant'
+      )
+    }))
+    .filter((section: any) => section.items?.length)
   const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => key !== 'checklists')
 
   const getWeatherLabel = (weather: string) => {
@@ -285,17 +292,13 @@ export default async function DailyLogDetailPage({
                               ? 'bg-green-100 text-green-700'
                               : item.status === 'non_compliant'
                                 ? 'bg-red-100 text-red-700'
-                                : item.status === 'not_applicable'
-                                  ? 'bg-gray-100 text-gray-600'
-                                  : 'bg-yellow-100 text-yellow-700'
+                                : 'bg-yellow-100 text-yellow-700'
                           }`}>
                             {item.status === 'compliant'
                               ? 'Cumple'
                               : item.status === 'non_compliant'
                                 ? 'No cumple'
-                                : item.status === 'not_applicable'
-                                  ? 'No aplica'
-                                  : 'Pendiente'}
+                                : 'Pendiente'}
                           </span>
                         </div>
                       </div>

@@ -18,10 +18,11 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
     const allItems = log.custom_fields.checklists.flatMap((section: any) => section.items)
     const compliant = allItems.filter((item: any) => item.status === 'compliant').length
     const nonCompliant = allItems.filter((item: any) => item.status === 'non_compliant').length
-    const notApplicable = allItems.filter((item: any) => item.status === 'not_applicable').length
-    const pending = allItems.filter((item: any) => !item.status).length
+    const totalReviewed = compliant + nonCompliant
+
+    if (totalReviewed === 0) return null
     
-    return { compliant, nonCompliant, notApplicable, pending, total: allItems.length }
+    return { compliant, nonCompliant, total: totalReviewed }
   }
 
   // Función para obtener campos personalizados (excluyendo checklists)
@@ -242,18 +243,6 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                             <div className="flex items-center gap-1 text-red-700">
                               <XCircle className="h-4 w-4" />
                               <span>{summary.nonCompliant} No Cumple{summary.nonCompliant > 1 ? 'n' : ''}</span>
-                            </div>
-                          )}
-                          {summary.notApplicable > 0 && (
-                            <div className="flex items-center gap-1 text-gray-600">
-                              <AlertCircle className="h-4 w-4" />
-                              <span>{summary.notApplicable} No Aplica{summary.notApplicable > 1 ? 'n' : ''}</span>
-                            </div>
-                          )}
-                          {summary.pending > 0 && (
-                            <div className="flex items-center gap-1 text-yellow-700">
-                              <AlertCircle className="h-4 w-4" />
-                              <span>{summary.pending} Pendiente{summary.pending > 1 ? 's' : ''}</span>
                             </div>
                           )}
                         </div>

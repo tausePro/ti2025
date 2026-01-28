@@ -32,7 +32,10 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadDashboardStats() {
       try {
-        if (!profile) return
+        if (!profile) {
+          setLoading(false)
+          return
+        }
 
         let projectIds: string[] = []
 

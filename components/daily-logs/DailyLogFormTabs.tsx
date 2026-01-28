@@ -140,6 +140,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
           .single()
         
         if (logData) {
+          const loadedChecklists = logData.custom_fields?.checklists || CHECKLIST_SECTIONS
           setFormData({
             date: logData.date || new Date().toISOString().split('T')[0],
             time: logData.time || new Date().toTimeString().slice(0, 5),
@@ -155,10 +156,17 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
             assigned_to: logData.assigned_to || undefined,
             location: logData.location || undefined,
             signatures: logData.signatures || [],
-            checklists: logData.custom_fields?.checklists || CHECKLIST_SECTIONS,
+            checklists: loadedChecklists,
             photos: [],
             custom_fields: logData.custom_fields || {}
           })
+
+          setCollapsedSections(
+            (loadedChecklists as ChecklistSection[]).reduce((acc, section) => {
+              acc[section.id] = true
+              return acc
+            }, {} as Record<string, boolean>)
+          )
         }
       } else {
         // Modo creación: inicializar campos custom con defaults
@@ -172,6 +180,13 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
             custom_fields: customFieldsData
           }))
         }
+
+        setCollapsedSections(
+          CHECKLIST_SECTIONS.reduce((acc, section) => {
+            acc[section.id] = true
+            return acc
+          }, {} as Record<string, boolean>)
+        )
       }
       
       setLoading(false)
@@ -229,11 +244,55 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
     }))
   }
 
+  const addChecklistSection = () => {
+    const nextIndex = formData.checklists.length + 1
+    const newSectionId = `section_${Date.now()}`
+    const newSection: ChecklistSection = {
+      id: newSectionId,
+      title: `${nextIndex}. Nueva categoria`,
+      items: [
+        {
+          id: `${newSectionId}_item_1`,
+          description: 'Nuevo item',
+          status: null,
+          observations: ''
+        }
+      ]
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      checklists: [...prev.checklists, newSection]
+    }))
+  }
+
+  const addChecklistItem = (sectionId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      checklists: prev.checklists.map(section => {
+        if (section.id !== sectionId) return section
+        const nextIndex = section.items.length + 1
+        return {
+          ...section,
+          items: [
+            ...section.items,
+            {
+              id: `${sectionId}_item_${Date.now()}`,
+              description: `Item ${nextIndex}`,
+              status: null,
+              observations: ''
+            }
+          ]
+        }
+      })
+    }))
+  }
+
   // Actualizar checklist
   const updateChecklistItem = (
-    sectionId: string, 
-    itemId: string, 
-    field: 'status' | 'observations', 
+    sectionId: string,
+    itemId: string,
+    field: 'status' | 'observations' | 'description',
     value: ChecklistItemStatus | string
   ) => {
     setFormData(prev => ({
@@ -291,6 +350,14 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
       }
 
       // Preparar datos
+      const normalizedChecklists = formData.checklists.map(section => ({
+        ...section,
+        items: section.items.map(item => ({
+          ...item,
+          status: item.status ?? 'not_applicable'
+        }))
+      }))
+
       const dailyLogData = {
         project_id: projectId,
         template_id: templateId,
@@ -311,7 +378,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
         signatures: logId ? formData.signatures : [autoSignature], // Mantener firmas existentes en edición
         custom_fields: {
           ...formData.custom_fields,
-          checklists: formData.checklists
+          checklists: normalizedChecklists
         },
         sync_status: 'synced',
         ...(logId ? { updated_at: new Date().toISOString() } : {})
@@ -673,6 +740,16 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
             </div>
           </div>
 
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={addChecklistSection}
+              className="text-xs px-3 py-2 rounded border border-gray-200 hover:bg-gray-50"
+            >
+              + Agregar categoria
+            </button>
+          </div>
+
           {formData.checklists.map((section) => (
             <Card key={section.id}>
               <CardHeader className="flex flex-col gap-3">
@@ -706,7 +783,11 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
                     <div key={item.id} className="border rounded-lg p-4 space-y-3">
                     <div className="flex items-start gap-3">
                       <div className="flex-1">
-                        <p className="font-medium">{item.description}</p>
+                        <Input
+                          value={item.description}
+                          onChange={(e) => updateChecklistItem(section.id, item.id, 'description', e.target.value)}
+                          className="font-medium"
+                        />
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -747,6 +828,15 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
                     />
                     </div>
                   ))}
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => addChecklistItem(section.id)}
+                      className="text-xs px-3 py-2 rounded border border-gray-200 hover:bg-gray-50"
+                    >
+                      + Agregar item
+                    </button>
+                  </div>
               </CardContent>
               )}
             </Card>
