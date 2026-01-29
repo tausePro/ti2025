@@ -317,16 +317,16 @@ export default function SupervisorDailyLogsPage() {
         </Button>
       </div>
 
-      <div className="space-y-4">
-        {logs.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center text-gray-500">
-              No hay bitácoras con esos filtros.
-            </CardContent>
-          </Card>
-        ) : (
-          logs.map(log => (
-            <Card key={log.id}>
+      {logs.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center text-gray-500">
+            No hay bitácoras con esos filtros.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {logs.map(log => (
+            <Card key={log.id} className="h-full">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">
                   {log.project?.name || 'Proyecto'} • {log.date}
@@ -350,9 +350,9 @@ export default function SupervisorDailyLogsPage() {
                 </Link>
               </CardContent>
             </Card>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
