@@ -44,6 +44,7 @@ export default function ProjectDetailPage() {
   const router = useRouter()
   const { hasPermission } = useAuth()
   const [project, setProject] = useState<ProjectWithCompany | null>(null)
+  const [teamMembersCount, setTeamMembersCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const supabase = createClient()
@@ -74,6 +75,18 @@ export default function ProjectDetailPage() {
       if (error) throw error
 
       setProject(data as any)
+
+      const { count: membersCount, error: membersError } = await supabase
+        .from('project_members')
+        .select('id', { count: 'exact', head: true })
+        .eq('project_id', projectId)
+        .eq('is_active', true)
+
+      if (membersError) {
+        console.error('❌ Error loading team members count:', membersError)
+      }
+
+      setTeamMembersCount(membersCount || 0)
     } catch (error: any) {
       console.error('❌ Error loading project:', error)
       setError(error.message || 'Error al cargar el proyecto')
@@ -242,7 +255,7 @@ export default function ProjectDetailPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{project.team_members?.length || 0}</div>
+            <div className="text-2xl font-bold">{teamMembersCount}</div>
             <p className="text-xs text-muted-foreground">
               miembros asignados
             </p>
