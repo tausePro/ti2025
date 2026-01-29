@@ -78,18 +78,20 @@ export default function DashboardPage() {
           .in('status', ['pending_review', 'rejected'])
           .in('project_id', projectIds.length > 0 ? projectIds : ['00000000-0000-0000-0000-000000000000'])
 
-        // Contar miembros del equipo
-        const { count: membersCount } = await supabase
+        // Contar miembros del equipo (usuarios únicos)
+        const { data: membersData } = await supabase
           .from('project_members')
-          .select('*', { count: 'exact', head: true })
+          .select('user_id')
           .eq('is_active', true)
           .in('project_id', projectIds.length > 0 ? projectIds : ['00000000-0000-0000-0000-000000000000'])
+
+        const uniqueMembersCount = new Set((membersData || []).map(m => m.user_id)).size
 
         setStats({
           totalProjects: totalCount || 0,
           activeProjects: activeCount || 0,
           pendingReports: reportsCount || 0,
-          totalTeamMembers: membersCount || 0
+          totalTeamMembers: uniqueMembersCount
         })
       } catch (error) {
         console.error('Error loading dashboard stats:', error)
@@ -122,6 +124,16 @@ export default function DashboardPage() {
       icon: Building2,
       href: '/projects'
     })
+
+    // Bitácoras diarias (Supervisor)
+    if (profile?.role === 'supervisor') {
+      actions.push({
+        title: 'Ver Bitácoras',
+        description: 'Filtra y exporta bitácoras de tus proyectos',
+        icon: FileText,
+        href: '/supervisor/daily-logs'
+      })
+    }
 
     // Bitácoras diarias (Residente con al menos un proyecto)
     if (profile?.role === 'residente' && userProjectIds.length > 0) {

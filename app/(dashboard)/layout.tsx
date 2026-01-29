@@ -91,7 +91,7 @@ export default function DashboardLayout({
     ...(profile?.role && ['supervisor', 'residente'].includes(profile.role) ? [
       {
         name: 'Registro Diario',
-        href: '/daily-logs',
+        href: profile?.role === 'supervisor' ? '/supervisor/daily-logs' : '/daily-logs',
         icon: ClipboardList
       },
       {

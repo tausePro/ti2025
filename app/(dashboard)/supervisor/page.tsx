@@ -16,7 +16,8 @@ import {
   Clock,
   TrendingUp,
   Calendar,
-  Settings
+  Settings,
+  ClipboardList
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -314,6 +315,20 @@ export default function SupervisorDashboardPage() {
               </CardTitle>
               <CardDescription>
                 {stats.pendingReports} informes esperando tu revisión
+              </CardDescription>
+            </CardHeader>
+          </Link>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <Link href="/supervisor/daily-logs">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-talento-green" />
+                Ver Bitácoras
+              </CardTitle>
+              <CardDescription>
+                Filtra y exporta bitácoras de proyectos
               </CardDescription>
             </CardHeader>
           </Link>
