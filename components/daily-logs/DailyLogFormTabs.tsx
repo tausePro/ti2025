@@ -454,6 +454,8 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
       
       setSuccess('✅ Bitácora guardada exitosamente')
 
+      await new Promise(resolve => setTimeout(resolve, 800))
+
       if (onSuccess) {
         onSuccess()
       } else {
