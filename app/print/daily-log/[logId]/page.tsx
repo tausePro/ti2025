@@ -45,6 +45,7 @@ export default async function DailyLogPrintPage({
     .eq('project_id', log.project_id)
     .single()
 
+  const storedLabels = (log.custom_fields as any)?._field_labels || {}
   const customFieldLabels = (configData?.custom_fields || []).reduce(
     (acc: Record<string, string>, field: any) => {
       if (field?.id && field?.label) {
@@ -52,7 +53,7 @@ export default async function DailyLogPrintPage({
       }
       return acc
     },
-    {}
+    { ...storedLabels }
   )
 
   const checklistSections = (log.custom_fields?.checklists || [])
@@ -124,6 +125,32 @@ export default async function DailyLogPrintPage({
             </p>
           </div>
         </section>
+
+        {Array.isArray(log.signatures) && log.signatures.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Firmas</h2>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              {log.signatures.map((signature: any) => (
+                <div key={signature.user_id} className="border rounded p-3">
+                  {signature.signature_url && (
+                    <img
+                      src={signature.signature_url}
+                      alt={`Firma de ${signature.user_name}`}
+                      className="h-16 w-32 object-contain border rounded bg-white"
+                    />
+                  )}
+                  <p className="mt-2 font-medium text-gray-900">{signature.user_name}</p>
+                  <p className="text-xs text-gray-500 capitalize">{signature.user_role}</p>
+                  {signature.signed_at && (
+                    <p className="text-xs text-gray-400">
+                      {new Date(signature.signed_at).toLocaleDateString('es-CO')}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {log.activities && (
           <section className="mb-5">

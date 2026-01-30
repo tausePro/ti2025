@@ -358,6 +358,13 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
         }))
       }))
 
+      const customFieldLabels = customFields.reduce((acc: Record<string, string>, field) => {
+        if (field?.id && field?.label) {
+          acc[field.id] = field.label
+        }
+        return acc
+      }, {})
+
       const dailyLogData = {
         project_id: projectId,
         template_id: templateId,
@@ -378,7 +385,8 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
         signatures: logId ? formData.signatures : [autoSignature], // Mantener firmas existentes en edición
         custom_fields: {
           ...formData.custom_fields,
-          checklists: normalizedChecklists
+          checklists: normalizedChecklists,
+          _field_labels: customFieldLabels
         },
         sync_status: 'synced',
         ...(logId ? { updated_at: new Date().toISOString() } : {})

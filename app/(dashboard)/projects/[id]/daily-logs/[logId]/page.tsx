@@ -56,6 +56,7 @@ export default async function DailyLogDetailPage({
     .eq('project_id', params.id)
     .single()
 
+  const storedLabels = (log.custom_fields as any)?._field_labels || {}
   const customFieldLabels = (configData?.custom_fields || []).reduce(
     (acc: Record<string, string>, field: any) => {
       if (field?.id && field?.label) {
@@ -63,7 +64,7 @@ export default async function DailyLogDetailPage({
       }
       return acc
     },
-    {}
+    { ...storedLabels }
   )
 
   const canEdit = user.id === log.created_by || ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile?.role || '')
@@ -253,15 +254,43 @@ export default async function DailyLogDetailPage({
         )}
 
         {customFields.length > 0 && (
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-3">Campos Personalizados</h2>
-            <div className="bg-blue-50 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="border-t pt-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-3">Campos personalizados</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {customFields.map(([key, value]) => (
-                <div key={key} className="flex gap-2 text-sm">
-                  <span className="text-gray-600">{customFieldLabels[key] || key}:</span>
-                  <span className="font-medium text-gray-900">
+                <div key={key} className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-sm text-gray-500">{customFieldLabels[key] || key}</p>
+                  <p className="text-base font-medium text-gray-900">
                     {Array.isArray(value) ? value.join(', ') : String(value)}
-                  </span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {Array.isArray(log.signatures) && log.signatures.length > 0 && (
+          <div className="border-t pt-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-3">Firmas</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {log.signatures.map((signature: any) => (
+                <div key={signature.user_id} className="border rounded-lg p-4">
+                  {signature.signature_url && (
+                    <img
+                      src={signature.signature_url}
+                      alt={`Firma de ${signature.user_name}`}
+                      className="h-16 w-32 object-contain border rounded bg-white"
+                    />
+                  )}
+                  <p className="mt-2 text-sm font-medium text-gray-900">
+                    {signature.user_name}
+                  </p>
+                  <p className="text-xs text-gray-500 capitalize">{signature.user_role}</p>
+                  {signature.signed_at && (
+                    <p className="text-xs text-gray-400">
+                      {new Date(signature.signed_at).toLocaleDateString('es-CO')}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

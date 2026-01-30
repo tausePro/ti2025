@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, Download } from 'lucide-react'
+import { Building2, Calendar, ClipboardList, Download, Loader2, User } from 'lucide-react'
 import Link from 'next/link'
 
 interface ProjectOption {
@@ -34,6 +34,10 @@ interface DailyLogItem {
   project?: {
     name: string
     project_code: string
+    status?: string | null
+    company?: {
+      name: string
+    } | null
   }
   created_by_profile?: {
     full_name: string | null
@@ -164,7 +168,12 @@ export default function SupervisorDailyLogsPage() {
           activities,
           assigned_to,
           created_at,
-          project:projects!daily_logs_project_id_fkey(name, project_code),
+          project:projects!daily_logs_project_id_fkey(
+            name,
+            project_code,
+            status,
+            company:companies!client_company_id(name)
+          ),
           created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email),
           assigned_to_profile:profiles!daily_logs_assigned_to_fkey(full_name, email)
         `)
@@ -232,7 +241,7 @@ export default function SupervisorDailyLogsPage() {
       csvRows.push(values.join(','))
     })
 
-    const csvContent = csvRows.join('\n')
+    const csvContent = `\uFEFF${csvRows.join('\n')}`
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -324,30 +333,57 @@ export default function SupervisorDailyLogsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {logs.map(log => (
-            <Card key={log.id} className="h-full">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">
-                  {log.project?.name || 'Proyecto'} • {log.date}
-                </CardTitle>
-                <CardDescription>
-                  {log.assigned_to_profile?.full_name || log.assigned_to_profile?.email || 'Residente'}
-                </CardDescription>
+            <Card key={log.id} className="h-full hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-lg truncate">
+                      {log.project?.name || 'Proyecto'}
+                    </CardTitle>
+                    <CardDescription className="truncate">
+                      {log.project?.project_code || 'Sin código'}
+                    </CardDescription>
+                  </div>
+                  <div className="text-xs font-medium text-gray-500 flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {log.date}
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="text-sm text-gray-600">
-                  {log.time ? `Hora: ${log.time}` : 'Hora no registrada'}
-                </p>
-                {log.activities && (
-                  <p className="text-sm text-gray-700 line-clamp-2">{log.activities}</p>
+              <CardContent>
+                {log.project?.company?.name && (
+                  <p className="text-sm text-gray-600 mb-3 flex items-center gap-1">
+                    <Building2 className="h-4 w-4" />
+                    {log.project.company.name}
+                  </p>
                 )}
-                <Link
-                  href={`/projects/${log.project_id}/daily-logs/${log.id}`}
-                  className="text-sm text-blue-600 hover:text-blue-700"
-                >
-                  Ver detalle
-                </Link>
+
+                <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                  <span className="flex items-center gap-1">
+                    <ClipboardList className="h-4 w-4" />
+                    {log.time ? `Hora: ${log.time}` : 'Hora no registrada'}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <User className="h-4 w-4" />
+                    <span className="truncate max-w-[140px]">
+                      {log.assigned_to_profile?.full_name || log.assigned_to_profile?.email || 'Residente'}
+                    </span>
+                  </span>
+                </div>
+
+                {log.activities && (
+                  <p className="text-sm text-gray-700 line-clamp-2 mb-4">{log.activities}</p>
+                )}
+
+                <div className="flex gap-2">
+                  <Button asChild className="flex-1" variant="outline">
+                    <Link href={`/projects/${log.project_id}/daily-logs/${log.id}`}>
+                      Ver detalle
+                    </Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
