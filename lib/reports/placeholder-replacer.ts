@@ -17,6 +17,9 @@ interface ReplacementContext {
   qualityControl: any[]
   photos: any[]
   summary: any
+  dailyLog?: any
+  resident?: any
+  assigned?: any
 }
 
 /**
@@ -29,6 +32,9 @@ export function replacePlaceholders(
   if (!content) return ''
 
   let result = content
+  const dailyLog = context.dailyLog
+  const resident = context.resident
+  const assigned = context.assigned
 
   // Placeholders de proyecto
   result = result.replace(/\{\{project_name\}\}/g, context.project?.name || 'N/A')
@@ -79,6 +85,35 @@ export function replacePlaceholders(
     ? Math.round(context.summary.totalWorkers / context.summary.totalDays)
     : 0
   result = result.replace(/\{\{bitacora\.personal\}\}/g, String(avgWorkers))
+
+  // Placeholders de bitacora diaria (registro puntual)
+  result = result.replace(/\{\{bitacora\.fecha\}\}/g, dailyLog?.date ? new Date(dailyLog.date).toLocaleDateString('es-CO') : 'N/A')
+  result = result.replace(/\{\{bitacora\.clima\}\}/g, dailyLog?.weather || 'N/A')
+  result = result.replace(/\{\{bitacora\.personal_dia\}\}/g, String(dailyLog?.personnel_count ?? 0))
+  result = result.replace(/\{\{bitacora\.actividades_dia\}\}/g, dailyLog?.activities || '')
+  result = result.replace(/\{\{bitacora\.materiales\}\}/g, dailyLog?.materials || '')
+  result = result.replace(/\{\{bitacora\.equipos\}\}/g, dailyLog?.equipment || '')
+  result = result.replace(/\{\{bitacora\.observaciones\}\}/g, dailyLog?.observations || '')
+  result = result.replace(/\{\{bitacora\.novedades\}\}/g, dailyLog?.issues || '')
+  result = result.replace(/\{\{bitacora\.recomendaciones\}\}/g, dailyLog?.recommendations || '')
+  result = result.replace(/\{\{bitacora\.elaborado_por\}\}/g, assigned?.full_name || assigned?.email || dailyLog?.created_by_profile?.full_name || 'Usuario')
+
+  const residentSignature = resident?.signature_url
+    ? `<img src="${resident.signature_url}" alt="Firma" class="h-16 w-32 object-contain" />`
+    : ''
+  const residentInfo = resident
+    ? `
+      <div class="text-sm">
+        ${residentSignature}
+        <p class="mt-2 font-medium text-gray-900">${resident.full_name || resident.email || ''}</p>
+        ${resident.role ? `<p class="text-xs text-gray-500 capitalize">${resident.role}</p>` : ''}
+        ${resident.professional_license ? `<p class="text-xs text-gray-500">Licencia: ${resident.professional_license}</p>` : ''}
+        ${resident.phone ? `<p class="text-xs text-gray-500">Telefono: ${resident.phone}</p>` : ''}
+        ${resident.email ? `<p class="text-xs text-gray-500">Correo: ${resident.email}</p>` : ''}
+      </div>
+    `.trim()
+    : '<p>No hay firma registrada.</p>'
+  result = result.replace(/\{\{bitacora\.realizada_por\}\}/g, residentInfo)
 
   // Placeholders de control de calidad
   result = result.replace(/\{\{qc\.ensayos\}\}/g, formatQualityControlData(context.qualityControl))

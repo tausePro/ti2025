@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Save, X, Upload, Image as ImageIcon } from 'lucide-react'
@@ -17,11 +17,80 @@ type TabType = 'basic' | 'header' | 'footer' | 'styles' | 'sections' | 'ai_confi
 export function TemplateForm({ template, companyId, userId }: TemplateFormProps) {
   const router = useRouter()
   const supabase = createClient()
+
+  const defaultBitacoraSectionContents: Record<string, { content: string; useAi: boolean }> = {
+    project_info: {
+      useAi: false,
+      content: `
+        <h3>Información del Proyecto</h3>
+        <p><strong>Proyecto:</strong> {{project_name}}</p>
+        <p><strong>Código:</strong> {{project_code}}</p>
+        <p><strong>Ubicación:</strong> {{project_location}}</p>
+        <p><strong>Dirección:</strong> {{project_address}}</p>
+        <p><strong>Cliente:</strong> {{project_client}}</p>
+        <p><strong>Fecha del Registro:</strong> {{bitacora.fecha}}</p>
+        <p><strong>Clima:</strong> {{bitacora.clima}}</p>
+        <p><strong>Personal en obra:</strong> {{bitacora.personal_dia}}</p>
+      `.trim()
+    },
+    daily_activities: {
+      useAi: false,
+      content: `
+        <h3>Actividades Realizadas</h3>
+        <p>{{bitacora.actividades_dia}}</p>
+      `.trim()
+    },
+    materials_equipment: {
+      useAi: false,
+      content: `
+        <h3>Materiales Utilizados</h3>
+        <p>{{bitacora.materiales}}</p>
+        <h3>Equipos Utilizados</h3>
+        <p>{{bitacora.equipos}}</p>
+      `.trim()
+    },
+    observations: {
+      useAi: false,
+      content: `
+        <h3>Observaciones</h3>
+        <p>{{bitacora.observaciones}}</p>
+      `.trim()
+    },
+    issues_incidents: {
+      useAi: false,
+      content: `
+        <h3>Novedades e Incidentes</h3>
+        <p>{{bitacora.novedades}}</p>
+      `.trim()
+    },
+    recommendations: {
+      useAi: false,
+      content: `
+        <h3>Recomendaciones</h3>
+        <p>{{bitacora.recomendaciones}}</p>
+      `.trim()
+    },
+    photos: {
+      useAi: false,
+      content: `
+        <h3>Registro Fotográfico</h3>
+        {{fotos.galeria}}
+      `.trim()
+    },
+    signatures: {
+      useAi: false,
+      content: `
+        <h3>Realizada por</h3>
+        {{bitacora.realizada_por}}
+      `.trim()
+    }
+  }
   
   const [activeTab, setActiveTab] = useState<TabType>('basic')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [autoFillNotice, setAutoFillNotice] = useState<string | null>(null)
 
   // Estados del formulario
   const [templateName, setTemplateName] = useState(template?.template_name || '')
@@ -100,6 +169,19 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
 
   // Estado para el contenido de cada sección
   const [sectionContents, setSectionContents] = useState<Record<string, { content: string; useAi: boolean }>>({})
+
+  useEffect(() => {
+    if (template?.template_type !== 'bitacora_diaria') return
+
+    const hasContent = Object.values(sectionContents).some((section) =>
+      section?.content?.trim()
+    )
+
+    if (!hasContent) {
+      setSectionContents(defaultBitacoraSectionContents)
+      setAutoFillNotice('Se cargó el contenido base de la bitácora diaria. Puedes ajustarlo antes de guardar.')
+    }
+  }, [template?.template_type, sectionContents, defaultBitacoraSectionContents])
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -299,6 +381,12 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
 
       {/* Contenido */}
       <div className="p-6">
+        {autoFillNotice && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-900">
+            {autoFillNotice}
+          </div>
+        )}
+
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
             {error}
@@ -916,7 +1004,7 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
               <h3 className="text-sm font-semibold text-green-900 mb-2">Preconfiguración de Secciones</h3>
               <p className="text-sm text-green-700">
-                Define el contenido predeterminado para cada sección. Usa placeholders como {`{{project_name}}`} o {`{{date}}`}
+                Define el contenido predeterminado para cada sección. Usa placeholders como {`{{project_name}}`} o {`{{bitacora.actividades_dia}}`}.
               </p>
             </div>
 
@@ -985,7 +1073,7 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
                           }))}
                         />
                         <p className="text-xs text-gray-400 mt-1">
-                          Placeholders: {`{{project_name}}, {{period_start}}, {{period_end}}, {{summary.work_days}}`}
+                          Placeholders: {`{{project_name}}, {{project_code}}, {{bitacora.fecha}}, {{bitacora.clima}}, {{bitacora.actividades_dia}}, {{bitacora.realizada_por}}, {{fotos.galeria}}`}
                         </p>
                       </div>
                     )
@@ -995,7 +1083,7 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
 
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <p className="text-sm text-gray-600">
-                💡 <strong>Placeholders disponibles:</strong> {`{{project_name}} {{date}} {{progress}} {{client_name}} {{supervisor_name}}`}
+                💡 <strong>Placeholders disponibles:</strong> {`{{project_name}} {{project_code}} {{project_location}} {{project_client}} {{bitacora.fecha}} {{bitacora.clima}} {{bitacora.personal_dia}} {{bitacora.actividades_dia}} {{bitacora.materiales}} {{bitacora.equipos}} {{bitacora.observaciones}} {{bitacora.novedades}} {{bitacora.recomendaciones}} {{bitacora.realizada_por}} {{fotos.galeria}}`}
               </p>
             </div>
           </div>
