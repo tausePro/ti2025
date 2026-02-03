@@ -24,7 +24,8 @@ import {
   ClipboardCheck,
   Sparkles,
   FileBarChart,
-  ClipboardList
+  ClipboardList,
+  Mail
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -119,6 +120,13 @@ export default function DashboardLayout({
         name: 'Plantillas PDF',
         href: '/admin/report-templates',
         icon: FileType
+      }
+    ] : []),
+    ...(hasPermission('plantillas_email', 'read') ? [
+      {
+        name: 'Plantillas Email',
+        href: '/admin/email-templates',
+        icon: Mail
       }
     ] : []),
     ...(profile?.role && ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role) ? [

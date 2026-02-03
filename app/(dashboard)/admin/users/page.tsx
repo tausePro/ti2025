@@ -17,7 +17,8 @@ import {
   Filter,
   UserCheck,
   UserX,
-  Settings
+  Settings,
+  Mail
 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -85,6 +86,37 @@ export default function UsersManagementPage() {
       setError('Error inesperado al cargar usuarios')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const sendWelcomeEmail = async (user: User) => {
+    try {
+      const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://beta.talentoinmobiliario.com'}/login`
+      const response = await fetch('/api/emails/send-template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateType: 'welcome_user',
+          to: user.email,
+          variables: {
+            full_name: user.full_name,
+            email: user.email,
+            company_name: 'Talento Inmobiliario',
+            project_name: '',
+            login_url: loginUrl
+          }
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'No se pudo enviar el correo')
+      }
+
+      alert('✅ Correo de bienvenida enviado')
+    } catch (error: any) {
+      console.error('Error enviando correo de bienvenida:', error)
+      alert('Error enviando correo: ' + (error?.message || 'desconocido'))
     }
   }
 
@@ -339,6 +371,10 @@ export default function UsersManagementPage() {
                         <Shield className="h-4 w-4 mr-2" />
                         Permisos
                       </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => sendWelcomeEmail(user)}>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Enviar bienvenida
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => toggleUserStatus(user.id, user.is_active)}

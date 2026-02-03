@@ -28,6 +28,7 @@ interface Project {
   project_code: string
   intervention_types: string[]
   status: string
+  client_company_id: string
 }
 
 export default function ProjectConfigPage() {
@@ -51,7 +52,7 @@ export default function ProjectConfigPage() {
       
       const { data, error } = await supabase
         .from('projects')
-        .select('id, name, project_code, intervention_types, status')
+        .select('id, name, project_code, intervention_types, status, client_company_id')
         .eq('id', projectId)
         .single()
 
@@ -71,6 +72,7 @@ export default function ProjectConfigPage() {
 
   const handleStatusChange = async (newStatus: string) => {
     try {
+      const previousStatus = project?.status
       const { error } = await supabase
         .from('projects')
         .update({ status: newStatus })
@@ -79,6 +81,35 @@ export default function ProjectConfigPage() {
       if (error) throw error
 
       setProject(prev => prev ? { ...prev, status: newStatus } : null)
+      if (previousStatus !== 'activo' && newStatus === 'activo') {
+        try {
+          const { data: companyData } = await supabase
+            .from('companies')
+            .select('name, email, contact_email')
+            .eq('id', project?.client_company_id)
+            .single()
+
+          const targetEmail = companyData?.email || companyData?.contact_email
+          if (targetEmail) {
+            const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://beta.talentoinmobiliario.com'}/login`
+            await fetch('/api/emails/send-template', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                templateType: 'project_activated',
+                to: targetEmail,
+                variables: {
+                  company_name: companyData?.name || '',
+                  project_name: project?.name || '',
+                  login_url: loginUrl
+                }
+              })
+            })
+          }
+        } catch (emailError) {
+          console.error('Error enviando correo de activación de proyecto:', emailError)
+        }
+      }
       alert('✅ Estado del proyecto actualizado exitosamente')
       logger.info('Project status updated', { projectId, newStatus })
     } catch (error) {

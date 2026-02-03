@@ -260,6 +260,9 @@ export function CompanyForm({
       console.log('Conectando con Supabase...')
       console.log('Usuario ID para created_by:', user.id)
 
+      const wasInactive = company?.is_active === false
+      const isNowActive = submitData.is_active === true
+
       if (company) {
         // Actualizar empresa existente
         console.log('Actualizando empresa existente...')
@@ -275,6 +278,28 @@ export function CompanyForm({
         }
         
         console.log('Empresa actualizada:', result)
+        if (wasInactive && isNowActive) {
+          const targetEmail = submitData.email || submitData.contact_email
+          if (targetEmail) {
+            try {
+              const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://beta.talentoinmobiliario.com'}/login`
+              await fetch('/api/emails/send-template', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  templateType: 'company_activated',
+                  to: targetEmail,
+                  variables: {
+                    company_name: submitData.name,
+                    login_url: loginUrl
+                  }
+                })
+              })
+            } catch (emailError) {
+              console.error('Error enviando correo de activación:', emailError)
+            }
+          }
+        }
         toast.success('Empresa actualizada correctamente')
       } else {
         // Crear nueva empresa
@@ -290,6 +315,28 @@ export function CompanyForm({
         }
         
         console.log('Empresa creada:', result)
+        if (isNowActive) {
+          const targetEmail = submitData.email || submitData.contact_email
+          if (targetEmail) {
+            try {
+              const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://beta.talentoinmobiliario.com'}/login`
+              await fetch('/api/emails/send-template', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  templateType: 'company_activated',
+                  to: targetEmail,
+                  variables: {
+                    company_name: submitData.name,
+                    login_url: loginUrl
+                  }
+                })
+              })
+            } catch (emailError) {
+              console.error('Error enviando correo de activación:', emailError)
+            }
+          }
+        }
         toast.success('Empresa creada correctamente')
       }
 

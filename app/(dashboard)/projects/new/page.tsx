@@ -92,6 +92,36 @@ export default function NewProjectPage() {
 
       if (projectError) throw projectError
 
+      if (project.status === 'activo') {
+        try {
+          const { data: companyData } = await supabase
+            .from('companies')
+            .select('name, email, contact_email')
+            .eq('id', project.client_company_id)
+            .single()
+
+          const targetEmail = companyData?.email || companyData?.contact_email
+          if (targetEmail) {
+            const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://beta.talentoinmobiliario.com'}/login`
+            await fetch('/api/emails/send-template', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                templateType: 'project_activated',
+                to: targetEmail,
+                variables: {
+                  company_name: companyData?.name || '',
+                  project_name: project.name,
+                  login_url: loginUrl
+                }
+              })
+            })
+          }
+        } catch (emailError) {
+          console.error('Error enviando correo de activación de proyecto:', emailError)
+        }
+      }
+
       // Asignar automáticamente al usuario creador como miembro del equipo
       const { error: teamError } = await supabase
         .from('project_members')

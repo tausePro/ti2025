@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { sendTemplateEmail } from '@/lib/emails/sendTemplateEmail'
 
 export async function POST(request: NextRequest) {
   try {
@@ -108,6 +109,23 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Perfil creado exitosamente')
+
+    try {
+      const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://beta.talentoinmobiliario.com'}/login`
+      await sendTemplateEmail({
+        templateType: 'welcome_user',
+        to: email,
+        variables: {
+          full_name,
+          email,
+          company_name: 'Talento Inmobiliario',
+          project_name: '',
+          login_url: loginUrl
+        }
+      })
+    } catch (emailError) {
+      console.error('Error enviando correo de bienvenida:', emailError)
+    }
 
     return NextResponse.json({
       success: true,
