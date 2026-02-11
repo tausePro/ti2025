@@ -91,20 +91,11 @@ export default function UsersManagementPage() {
 
   const sendWelcomeEmail = async (user: User) => {
     try {
-      const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://beta.talentoinmobiliario.com'}/login`
-      const response = await fetch('/api/emails/send-template', {
+      const response = await fetch('/api/emails/send-welcome', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          templateType: 'welcome_user',
-          to: user.email,
-          variables: {
-            full_name: user.full_name,
-            email: user.email,
-            company_name: 'Talento Inmobiliario',
-            project_name: '',
-            login_url: loginUrl
-          }
+          userId: user.id
         })
       })
 

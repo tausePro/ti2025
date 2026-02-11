@@ -112,6 +112,19 @@ export async function POST(request: NextRequest) {
 
     try {
       const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://beta.talentoinmobiliario.com'}/login`
+      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+        type: 'invite',
+        email,
+        options: {
+          redirectTo: loginUrl
+        }
+      })
+
+      if (linkError) {
+        console.error('Error generando link de contraseña:', linkError)
+      }
+
+      const setPasswordUrl = linkData?.properties?.action_link || loginUrl
       await sendTemplateEmail({
         templateType: 'welcome_user',
         to: email,
@@ -120,7 +133,9 @@ export async function POST(request: NextRequest) {
           email,
           company_name: 'Talento Inmobiliario',
           project_name: '',
-          login_url: loginUrl
+          login_url: loginUrl,
+          role,
+          set_password_url: setPasswordUrl
         }
       })
     } catch (emailError) {

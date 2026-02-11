@@ -54,7 +54,9 @@ export function EmailTemplateForm({ template, onSuccess, redirectTo }: EmailTemp
     company_name: 'Constructora Atlas',
     project_name: 'Torre Central',
     login_url: 'https://beta.talentoinmobiliario.com/login',
-    report_number: 'Informe #3'
+    report_number: 'Informe #3',
+    role: 'supervisor',
+    set_password_url: 'https://beta.talentoinmobiliario.com/auth/confirm'
   }
 
   const getPreviewHtml = () => {
