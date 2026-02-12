@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     try {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://beta.talentoinmobiliario.com'
       const loginUrl = `${appUrl}/login`
-      const redirectTo = `${appUrl}/api/auth/callback?next=/auth/confirm`
+      const redirectTo = `${appUrl}/api/auth/callback?next=/confirm`
       const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
         type: 'invite',
         email,
