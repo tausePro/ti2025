@@ -56,7 +56,7 @@ export function EmailTemplateForm({ template, onSuccess, redirectTo }: EmailTemp
     login_url: 'https://beta.talentoinmobiliario.com/login',
     report_number: 'Informe #3',
     role: 'supervisor',
-    set_password_url: 'https://beta.talentoinmobiliario.com/auth/confirm'
+    set_password_url: 'https://beta.talentoinmobiliario.com/confirm'
   }
 
   const getPreviewHtml = () => {
