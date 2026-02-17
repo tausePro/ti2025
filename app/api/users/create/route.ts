@@ -110,12 +110,15 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Perfil creado exitosamente')
 
+    let welcomeEmailSent = false
+    let welcomeEmailError: string | null = null
+
     try {
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://beta.talentoinmobiliario.com'
       const loginUrl = `${appUrl}/login`
       const redirectTo = `${appUrl}/api/auth/callback?next=/confirm`
       const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-        type: 'invite',
+        type: 'recovery',
         email,
         options: {
           redirectTo
@@ -123,10 +126,14 @@ export async function POST(request: NextRequest) {
       })
 
       if (linkError) {
-        console.error('Error generando link de contraseña:', linkError)
+        throw new Error(`No se pudo generar el enlace de contraseña: ${linkError.message}`)
       }
 
-      const setPasswordUrl = linkData?.properties?.action_link || loginUrl
+      const setPasswordUrl = linkData?.properties?.action_link
+      if (!setPasswordUrl) {
+        throw new Error('No se recibió action_link para crear contraseña')
+      }
+
       await sendTemplateEmail({
         templateType: 'welcome_user',
         to: email,
@@ -140,8 +147,10 @@ export async function POST(request: NextRequest) {
           set_password_url: setPasswordUrl
         }
       })
+      welcomeEmailSent = true
     } catch (emailError) {
       console.error('Error enviando correo de bienvenida:', emailError)
+      welcomeEmailError = emailError instanceof Error ? emailError.message : 'Error desconocido enviando bienvenida'
     }
 
     return NextResponse.json({
@@ -153,7 +162,11 @@ export async function POST(request: NextRequest) {
         role,
         is_active: is_active !== false
       },
-      message: 'Usuario creado exitosamente'
+      message: welcomeEmailSent
+        ? 'Usuario creado y correo de bienvenida enviado exitosamente'
+        : 'Usuario creado, pero no se pudo enviar el correo de bienvenida. Reintenta desde la lista de usuarios.',
+      email_sent: welcomeEmailSent,
+      email_error: welcomeEmailError
     })
 
   } catch (error) {

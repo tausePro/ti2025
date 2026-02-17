@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     const loginUrl = `${appUrl}/login`
     const redirectTo = `${appUrl}/api/auth/callback?next=/confirm`
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-      type: 'invite',
+      type: 'recovery',
       email: targetProfile.email,
       options: {
         redirectTo
@@ -58,10 +58,13 @@ export async function POST(request: NextRequest) {
     })
 
     if (linkError) {
-      console.error('Error generando link de contraseña:', linkError)
+      throw new Error(`No se pudo generar el enlace de contraseña: ${linkError.message}`)
     }
 
-    const setPasswordUrl = linkData?.properties?.action_link || loginUrl
+    const setPasswordUrl = linkData?.properties?.action_link
+    if (!setPasswordUrl) {
+      throw new Error('No se recibió action_link para crear contraseña')
+    }
 
     await sendTemplateEmail({
       templateType: 'welcome_user',
