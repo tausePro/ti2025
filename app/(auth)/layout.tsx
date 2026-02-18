@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function AuthLayout({
@@ -10,18 +10,19 @@ export default function AuthLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
 
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
+      if (user && pathname !== '/confirm') {
         router.push('/dashboard')
       }
     }
     
     checkUser()
-  }, [router, supabase])
+  }, [router, supabase, pathname])
 
   return (
     <>
