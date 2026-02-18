@@ -100,6 +100,15 @@ function ConfirmPasswordContent() {
       }
 
       console.log('✅ Contraseña creada exitosamente')
+
+      // Cerrar la sesión de recovery que creó verifyOtp para que no interfiera con el login normal
+      try {
+        const supabase = createClient()
+        await supabase.auth.signOut()
+      } catch (e) {
+        // Ignorar errores de signOut, no es crítico
+      }
+
       setSuccess('Contraseña creada correctamente. Redirigiendo al login...')
       setTimeout(() => {
         window.location.href = '/login'
