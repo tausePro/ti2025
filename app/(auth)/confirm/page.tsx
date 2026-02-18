@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { Session } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,10 +21,12 @@ function ConfirmPasswordContent() {
   const [success, setSuccess] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
+  const supabaseRef = useRef(createClient())
+  const sessionRef = useRef<Session | null>(null)
 
   useEffect(() => {
     const verifyToken = async () => {
-      const supabase = createClient()
+      const supabase = supabaseRef.current
       const tokenHash = searchParams.get('token_hash')
       const type = searchParams.get('type')
 
@@ -43,16 +46,18 @@ function ConfirmPasswordContent() {
 
         if (data?.session) {
           console.log('✅ Sesión establecida vía token_hash')
+          sessionRef.current = data.session
           setSessionReady(true)
           setVerifying(false)
           return
         }
       }
 
-      // Fallback: verificar si ya hay sesión activa (por hash fragment de Supabase)
+      // Fallback: verificar si ya hay sesión activa
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         console.log('✅ Sesión ya activa')
+        sessionRef.current = session
         setSessionReady(true)
       } else {
         console.log('❌ Sin sesión ni token válido')
@@ -81,21 +86,34 @@ function ConfirmPasswordContent() {
 
     setLoading(true)
     try {
-      const supabase = createClient()
+      const supabase = supabaseRef.current
+
+      // Restaurar sesión guardada para garantizar que esté activa
+      if (sessionRef.current) {
+        console.log('🔄 Restaurando sesión antes de actualizar contraseña...')
+        await supabase.auth.setSession({
+          access_token: sessionRef.current.access_token,
+          refresh_token: sessionRef.current.refresh_token
+        })
+      }
+
       const { error: updateError } = await supabase.auth.updateUser({ password })
 
       if (updateError) {
+        console.error('❌ Error actualizando contraseña:', updateError)
         setError(updateError.message || 'No se pudo actualizar la contraseña')
         return
       }
 
-      // Cerrar sesión después de actualizar para forzar login con nueva contraseña
+      console.log('✅ Contraseña actualizada exitosamente')
+      // Cerrar sesión para forzar login con nueva contraseña
       await supabase.auth.signOut()
       setSuccess('Contraseña creada correctamente. Redirigiendo al login...')
       setTimeout(() => {
         window.location.href = '/login'
       }, 1500)
     } catch (err: any) {
+      console.error('❌ Error inesperado:', err)
       setError(err?.message || 'Error inesperado al crear contraseña')
     } finally {
       setLoading(false)
