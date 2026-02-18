@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Session } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,51 +15,42 @@ function ConfirmPasswordContent() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [verifying, setVerifying] = useState(true)
-  const [sessionReady, setSessionReady] = useState(false)
+  const [verified, setVerified] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const router = useRouter()
   const searchParams = useSearchParams()
-  const supabaseRef = useRef(createClient())
-  const sessionRef = useRef<Session | null>(null)
+  const userIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     const verifyToken = async () => {
-      const supabase = supabaseRef.current
+      const supabase = createClient()
       const tokenHash = searchParams.get('token_hash')
       const type = searchParams.get('type')
 
-      if (tokenHash && type) {
-        console.log('🔑 Verificando token_hash...')
-        const { data, error: verifyError } = await supabase.auth.verifyOtp({
-          token_hash: tokenHash,
-          type: type as 'recovery' | 'email'
-        })
-
-        if (verifyError) {
-          console.error('❌ Error verificando token:', verifyError)
-          setError('El enlace ha expirado o no es válido. Solicita uno nuevo al administrador.')
-          setVerifying(false)
-          return
-        }
-
-        if (data?.session) {
-          console.log('✅ Sesión establecida vía token_hash')
-          sessionRef.current = data.session
-          setSessionReady(true)
-          setVerifying(false)
-          return
-        }
+      if (!tokenHash || !type) {
+        setError('Enlace inválido. Solicita uno nuevo al administrador.')
+        setVerifying(false)
+        return
       }
 
-      // Fallback: verificar si ya hay sesión activa
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        console.log('✅ Sesión ya activa')
-        sessionRef.current = session
-        setSessionReady(true)
+      console.log('🔑 Verificando token_hash...')
+      const { data, error: verifyError } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: type as 'recovery' | 'email'
+      })
+
+      if (verifyError) {
+        console.error('❌ Error verificando token:', verifyError)
+        setError('El enlace ha expirado o no es válido. Solicita uno nuevo al administrador.')
+        setVerifying(false)
+        return
+      }
+
+      if (data?.user?.id) {
+        console.log('✅ Token verificado, userId:', data.user.id)
+        userIdRef.current = data.user.id
+        setVerified(true)
       } else {
-        console.log('❌ Sin sesión ni token válido')
         setError('No se pudo verificar tu identidad. Solicita un nuevo enlace al administrador.')
       }
       setVerifying(false)
@@ -84,30 +74,32 @@ function ConfirmPasswordContent() {
       return
     }
 
+    if (!userIdRef.current) {
+      setError('Error de verificación. Solicita un nuevo enlace.')
+      return
+    }
+
     setLoading(true)
     try {
-      const supabase = supabaseRef.current
-
-      // Restaurar sesión guardada para garantizar que esté activa
-      if (sessionRef.current) {
-        console.log('🔄 Restaurando sesión antes de actualizar contraseña...')
-        await supabase.auth.setSession({
-          access_token: sessionRef.current.access_token,
-          refresh_token: sessionRef.current.refresh_token
+      // Actualizar contraseña vía API server-side (usa adminClient, sin depender de sesión del browser)
+      const response = await fetch('/api/auth/set-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userIdRef.current,
+          password
         })
-      }
+      })
 
-      const { error: updateError } = await supabase.auth.updateUser({ password })
+      const result = await response.json()
 
-      if (updateError) {
-        console.error('❌ Error actualizando contraseña:', updateError)
-        setError(updateError.message || 'No se pudo actualizar la contraseña')
+      if (!response.ok) {
+        console.error('❌ Error actualizando contraseña:', result.error)
+        setError(result.error || 'No se pudo actualizar la contraseña')
         return
       }
 
-      console.log('✅ Contraseña actualizada exitosamente')
-      // Cerrar sesión para forzar login con nueva contraseña
-      await supabase.auth.signOut()
+      console.log('✅ Contraseña creada exitosamente')
       setSuccess('Contraseña creada correctamente. Redirigiendo al login...')
       setTimeout(() => {
         window.location.href = '/login'
@@ -150,7 +142,7 @@ function ConfirmPasswordContent() {
             <AlertDescription>{success}</AlertDescription>
           </Alert>
         )}
-        {sessionReady && !success && (
+        {verified && !success && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
