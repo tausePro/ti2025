@@ -18,7 +18,8 @@ import {
   UserCheck,
   UserX,
   Settings,
-  Mail
+  Mail,
+  Trash2
 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -108,6 +109,37 @@ export default function UsersManagementPage() {
     } catch (error: any) {
       console.error('Error enviando correo de bienvenida:', error)
       alert('Error enviando correo: ' + (error?.message || 'desconocido'))
+    }
+  }
+
+  const deleteUser = async (user: User) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar a ${user.full_name}? Esta acción no se puede deshacer.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/users/delete?id=${user.id}`, {
+        method: 'DELETE'
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        alert('Error: ' + (result.error || 'No se pudo eliminar el usuario'))
+        return
+      }
+
+      if (result.warning) {
+        alert('Advertencia: ' + result.warning)
+      } else {
+        alert('Usuario eliminado exitosamente')
+      }
+
+      // Actualizar lista local
+      setUsers(users.filter(u => u.id !== user.id))
+    } catch (error: any) {
+      console.error('Error eliminando usuario:', error)
+      alert('Error inesperado al eliminar usuario')
     }
   }
 
@@ -383,6 +415,15 @@ export default function UsersManagementPage() {
                         </>
                       )}
                     </DropdownMenuItem>
+                    {profile && ['super_admin', 'admin'].includes(profile.role) && user.id !== profile.id && (
+                      <DropdownMenuItem 
+                        onClick={() => deleteUser(user)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Eliminar
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

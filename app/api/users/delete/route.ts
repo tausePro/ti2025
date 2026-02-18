@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -12,10 +12,33 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 })
     }
 
+    // Verificar autenticación y permisos del usuario actual
     const supabase = createClient()
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+
+    const { data: currentProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', currentUser.id)
+      .single()
+
+    if (!currentProfile || !['super_admin', 'admin'].includes(currentProfile.role)) {
+      return NextResponse.json({ error: 'No tienes permisos para eliminar usuarios' }, { status: 403 })
+    }
+
+    // No permitir eliminarse a sí mismo
+    if (userId === currentUser.id) {
+      return NextResponse.json({ error: 'No puedes eliminar tu propia cuenta' }, { status: 400 })
+    }
+
+    const adminClient = createAdminClient()
 
     // Primero eliminar el perfil (esto debería disparar CASCADE en permisos personalizados)
-    const { error: profileError } = await supabase
+    const { error: profileError } = await adminClient
       .from('profiles')
       .delete()
       .eq('id', userId)
@@ -27,21 +50,19 @@ export async function DELETE(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Luego intentar eliminar el usuario de auth
-    const { error: authError } = await supabase.auth.admin.deleteUser(userId)
+    // Luego eliminar el usuario de auth con adminClient
+    const { error: authError } = await adminClient.auth.admin.deleteUser(userId)
 
     if (authError) {
       console.error('Error deleting auth user:', authError)
-      // No retornamos error aquí porque el perfil ya fue eliminado
-      // El usuario quedará en auth pero sin perfil (inconsistencia menor)
       return NextResponse.json({
         success: true,
-        warning: 'Usuario eliminado del sistema pero puede quedar en la autenticación',
+        warning: 'Perfil eliminado pero el usuario puede quedar en autenticación',
         message: 'Usuario eliminado parcialmente'
       })
     }
 
-    console.log('✅ Usuario eliminado completamente')
+    console.log('✅ Usuario eliminado completamente:', userId)
 
     return NextResponse.json({
       success: true,

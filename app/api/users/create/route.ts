@@ -130,10 +130,11 @@ export async function POST(request: NextRequest) {
         throw new Error(`No se pudo generar el enlace de contraseña: ${linkError.message}`)
       }
 
-      const setPasswordUrl = linkData?.properties?.action_link
-      if (!setPasswordUrl) {
-        throw new Error('No se recibió action_link para crear contraseña')
+      const hashedToken = linkData?.properties?.hashed_token
+      if (!hashedToken) {
+        throw new Error('No se recibió hashed_token para crear contraseña')
       }
+      const setPasswordUrl = `${appOrigin}/confirm?token_hash=${hashedToken}&type=recovery`
 
       await sendTemplateEmail({
         templateType: 'welcome_user',

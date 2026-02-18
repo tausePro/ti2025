@@ -201,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (typeof window !== 'undefined') {
               localStorage.removeItem('user_profile')
               localStorage.removeItem('user_permissions')
-              if (!window.location.pathname.includes('/login')) {
+              if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/confirm')) {
                 window.location.href = '/login'
               }
             }
