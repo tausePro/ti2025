@@ -47,8 +47,9 @@ export async function POST(request: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://beta.talentoinmobiliario.com'
-    const loginUrl = `${appUrl}/login`
-    const redirectTo = `${appUrl}/confirm`
+    const appOrigin = new URL(appUrl).origin
+    const loginUrl = `${appOrigin}/login`
+    const redirectTo = `${appOrigin}/confirm`
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'recovery',
       email: targetProfile.email,
