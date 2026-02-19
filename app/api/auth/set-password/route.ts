@@ -1,28 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, password } = await request.json()
+    const { token_hash, type, password } = await request.json()
 
-    if (!userId || !password) {
-      return NextResponse.json({ error: 'userId y password son requeridos' }, { status: 400 })
+    if (!token_hash || !type || !password) {
+      return NextResponse.json({ error: 'token_hash, type y password son requeridos' }, { status: 400 })
     }
 
     if (password.length < 6) {
       return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 })
     }
 
-    const adminClient = createAdminClient()
+    // Verificar el token en el servidor (NO en el browser)
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) { return cookieStore.get(name)?.value },
+          set() {},
+          remove() {},
+        },
+      }
+    )
 
-    // Verificar que el usuario existe
-    const { data: userData, error: getUserError } = await adminClient.auth.admin.getUserById(userId)
+    const { data: otpData, error: otpError } = await supabase.auth.verifyOtp({
+      token_hash,
+      type: type as 'recovery' | 'email'
+    })
 
-    if (getUserError || !userData?.user) {
-      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+    if (otpError) {
+      console.error('❌ Error verificando token:', otpError)
+      return NextResponse.json({ error: 'El enlace ha expirado o no es válido. Solicita uno nuevo al administrador.' }, { status: 400 })
     }
 
-    // Actualizar contraseña usando adminClient (service role, sin depender de sesión del browser)
+    if (!otpData?.user?.id) {
+      return NextResponse.json({ error: 'No se pudo verificar tu identidad.' }, { status: 400 })
+    }
+
+    const userId = otpData.user.id
+
+    // Actualizar contraseña usando adminClient (service role)
+    const adminClient = createAdminClient()
     const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
       password
     })

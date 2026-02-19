@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,50 +13,13 @@ function ConfirmPasswordContent() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [verifying, setVerifying] = useState(true)
-  const [verified, setVerified] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const searchParams = useSearchParams()
-  const userIdRef = useRef<string | null>(null)
 
-  useEffect(() => {
-    const verifyToken = async () => {
-      const supabase = createClient()
-      const tokenHash = searchParams.get('token_hash')
-      const type = searchParams.get('type')
-
-      if (!tokenHash || !type) {
-        setError('Enlace inválido. Solicita uno nuevo al administrador.')
-        setVerifying(false)
-        return
-      }
-
-      console.log('🔑 Verificando token_hash...')
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
-        token_hash: tokenHash,
-        type: type as 'recovery' | 'email'
-      })
-
-      if (verifyError) {
-        console.error('❌ Error verificando token:', verifyError)
-        setError('El enlace ha expirado o no es válido. Solicita uno nuevo al administrador.')
-        setVerifying(false)
-        return
-      }
-
-      if (data?.user?.id) {
-        console.log('✅ Token verificado, userId:', data.user.id)
-        userIdRef.current = data.user.id
-        setVerified(true)
-      } else {
-        setError('No se pudo verificar tu identidad. Solicita un nuevo enlace al administrador.')
-      }
-      setVerifying(false)
-    }
-
-    verifyToken()
-  }, [searchParams])
+  const tokenHash = searchParams.get('token_hash')
+  const type = searchParams.get('type')
+  const hasToken = !!(tokenHash && type)
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -74,19 +36,15 @@ function ConfirmPasswordContent() {
       return
     }
 
-    if (!userIdRef.current) {
-      setError('Error de verificación. Solicita un nuevo enlace.')
-      return
-    }
-
     setLoading(true)
     try {
-      // Actualizar contraseña vía API server-side (usa adminClient, sin depender de sesión del browser)
+      // TODO server-side: verificar token + actualizar contraseña (el browser NUNCA toca sesión de Supabase)
       const response = await fetch('/api/auth/set-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: userIdRef.current,
+          token_hash: tokenHash,
+          type,
           password
         })
       })
@@ -100,15 +58,6 @@ function ConfirmPasswordContent() {
       }
 
       console.log('✅ Contraseña creada exitosamente')
-
-      // Cerrar la sesión de recovery que creó verifyOtp para que no interfiera con el login normal
-      try {
-        const supabase = createClient()
-        await supabase.auth.signOut()
-      } catch (e) {
-        // Ignorar errores de signOut, no es crítico
-      }
-
       setSuccess('Contraseña creada correctamente. Redirigiendo al login...')
       setTimeout(() => {
         window.location.href = '/login'
@@ -121,12 +70,11 @@ function ConfirmPasswordContent() {
     }
   }
 
-  if (verifying) {
+  if (!hasToken) {
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-gray-500" />
-          <p className="text-gray-600">Verificando enlace...</p>
+          <p className="text-red-600">Enlace inválido. Solicita uno nuevo al administrador.</p>
         </CardContent>
       </Card>
     )
@@ -151,7 +99,7 @@ function ConfirmPasswordContent() {
             <AlertDescription>{success}</AlertDescription>
           </Alert>
         )}
-        {verified && !success && (
+        {!success && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
