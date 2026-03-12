@@ -7,6 +7,7 @@ import { WebVitalsProvider } from '@/components/providers/WebVitalsProvider'
 import Script from 'next/script'
 
 const inter = Inter({ subsets: ['latin'] })
+const isProduction = process.env.NODE_ENV === 'production'
 
 export const metadata: Metadata = {
   title: 'Talento Inmobiliario - Supervisión Técnica',
@@ -46,25 +47,27 @@ export default function RootLayout({
             {children}
           </AuthProvider>
         </ErrorBoundary>
-        <Script
-          id="register-sw"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                      console.log('SW registered: ', registration);
-                    })
-                    .catch(function(registrationError) {
-                      console.log('SW registration failed: ', registrationError);
-                    });
-                });
-              }
-            `,
-          }}
-        />
+        {isProduction && (
+          <Script
+            id="register-sw"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `
+                if ('serviceWorker' in navigator) {
+                  window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/sw.js')
+                      .then(function(registration) {
+                        console.log('SW registered: ', registration);
+                      })
+                      .catch(function(registrationError) {
+                        console.log('SW registration failed: ', registrationError);
+                      });
+                  });
+                }
+              `,
+            }}
+          />
+        )}
       </body>
     </html>
   )

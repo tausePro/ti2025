@@ -28,6 +28,7 @@ import {
   Mail
 } from 'lucide-react'
 import Link from 'next/link'
+import { OfflineIndicator } from '@/components/shared/OfflineIndicator'
 
 export default function DashboardLayout({
   children,
@@ -340,6 +341,7 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+    <OfflineIndicator />
     </>
   )
 }

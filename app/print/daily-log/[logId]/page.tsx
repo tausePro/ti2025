@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AutoPrint } from '@/components/print/AutoPrint'
 import { replacePlaceholders } from '@/lib/reports/placeholder-replacer'
+import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
 
 export default async function DailyLogPrintPage({
   params
@@ -72,14 +73,9 @@ export default async function DailyLogPrintPage({
     : { data: null }
 
   const storedLabels = (log.custom_fields as any)?._field_labels || {}
-  const customFieldLabels = (configData?.custom_fields || []).reduce(
-    (acc: Record<string, string>, field: any) => {
-      if (field?.id && field?.label) {
-        acc[field.id] = field.label
-      }
-      return acc
-    },
-    { ...storedLabels }
+  const customFieldLabels = getCustomFieldLabelsMap(
+    (configData?.custom_fields || []) as Array<{ id?: string; label?: string }>,
+    storedLabels
   )
 
   const checklistSections = (log.custom_fields?.checklists || [])
@@ -90,7 +86,7 @@ export default async function DailyLogPrintPage({
       )
     }))
     .filter((section: any) => section.items?.length)
-  const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => key !== 'checklists')
+  const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => !['checklists', '_field_labels', 'photo_count'].includes(key))
 
   const getWeatherLabel = (weather: string) => {
     switch (weather) {
@@ -183,7 +179,7 @@ export default async function DailyLogPrintPage({
                 </div>
                 {template?.header_config?.show_date && (
                   <div className="text-right text-xs">
-                    {new Date(log.date).toLocaleDateString('es-CO', {
+                    {formatDateValue(log.date, 'es-CO', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric'
@@ -241,7 +237,7 @@ export default async function DailyLogPrintPage({
                     <h1 className="text-2xl font-bold text-gray-900">Bitácora diaria</h1>
                     <p className="text-gray-600">Proyecto: {project?.name}</p>
                     <p className="text-gray-600">
-                      Fecha: {new Date(log.date).toLocaleDateString('es-CO', {
+                      Fecha: {formatDateValue(log.date, 'es-CO', {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',

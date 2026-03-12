@@ -7,7 +7,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { DailyLogsTimeline } from '@/components/daily-logs/DailyLogsTimeline'
 import { DailyLogsCalendar } from '@/components/daily-logs/DailyLogsCalendar'
-import { Loader2, Settings } from 'lucide-react'
+import { Loader2, Settings, WifiOff } from 'lucide-react'
+import { useOnlineStatus } from '@/hooks/useOnlineStatus'
+import {
+  getLocalDailyLogsByProject,
+  cacheDailyLogsFromRemote,
+  cacheProjectConfig,
+  getCachedProjectConfig,
+} from '@/lib/offline/daily-log-service'
 
 export default function DailyLogsPage({ params }: { params: { id: string } }) {
   const [project, setProject] = useState<any>(null)
@@ -18,6 +25,8 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const supabase = createClient()
   const { profile } = useAuth()
+  const { isOnline } = useOnlineStatus()
+  const [isOfflineMode, setIsOfflineMode] = useState(false)
   
   // Solo admin, super_admin, gerente y supervisor pueden configurar bitácoras
   const canConfigureDailyLogs = profile?.role && ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role)
@@ -25,90 +34,145 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
   const loadData = useCallback(async () => {
     try {
       setLoading(true)
+      setIsOfflineMode(false)
 
-      // Verificar autenticación
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      // Obtener proyecto
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', params.id)
-        .single()
-
-      if (projectError || !projectData) {
-        console.error('Error loading project:', projectError)
-        router.push('/projects')
-        return
-      }
-
-      setProject(projectData)
-
-      // Obtener bitácoras del proyecto
-      const { data: logsData, error: logsError } = await supabase
-        .from('daily_logs')
-        .select(`
-          *,
-          created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)
-        `)
-        .eq('project_id', params.id)
-        .order('date', { ascending: false })
-
-      if (logsError) {
-        console.error('Error loading logs:', logsError)
-        setDailyLogs([])
-        return
-      }
-
-      // Convertir rutas de fotos a URLs públicas
-      const logsWithPublicUrls = logsData?.map((log: any) => {
-        if (log.photos && Array.isArray(log.photos) && log.photos.length > 0) {
-          const publicUrls = log.photos.map((photoPath: string) => {
-            // Si ya es una URL completa, devolverla tal cual
-            if (photoPath.startsWith('http')) {
-              return photoPath
-            }
-            // Si es una ruta, convertirla a URL pública
-            const { data: { publicUrl } } = supabase.storage
-              .from('daily-logs-photos')
-              .getPublicUrl(photoPath)
-            return publicUrl
-          })
-          return { ...log, photos: publicUrls }
-        }
-        return log
-      }) || []
-
-      setDailyLogs(logsWithPublicUrls)
-
-      // Obtener labels de campos personalizados
-      const { data: configData } = await supabase
-        .from('daily_log_configs')
-        .select('custom_fields')
-        .eq('project_id', params.id)
-        .single()
-
-      if (configData?.custom_fields) {
-        const labels = (configData.custom_fields as any[]).reduce((acc: Record<string, string>, field: any) => {
-          if (field?.id && field?.label) {
-            acc[field.id] = field.label
+      if (isOnline) {
+        // ============================================================
+        // ONLINE: cargar de Supabase, cachear en IndexedDB
+        // ============================================================
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) {
+            router.push('/login')
+            return
           }
-          return acc
-        }, {})
-        setCustomFieldLabels(labels)
+
+          // Obtener proyecto
+          const { data: projectData, error: projectError } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('id', params.id)
+            .single()
+
+          if (projectError || !projectData) {
+            console.error('Error loading project:', projectError)
+            router.push('/projects')
+            return
+          }
+
+          setProject(projectData)
+
+          // Cachear proyecto para uso offline
+          await cacheProjectConfig(params.id, 'template', { project_name: projectData.name, project_code: projectData.project_code })
+
+          // Obtener bitácoras del proyecto
+          const { data: logsData, error: logsError } = await supabase
+            .from('daily_logs')
+            .select(`
+              *,
+              created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)
+            `)
+            .eq('project_id', params.id)
+            .order('date', { ascending: false })
+
+          if (logsError) {
+            console.error('Error loading logs:', logsError)
+            setDailyLogs([])
+            return
+          }
+
+          // Convertir rutas de fotos a URLs públicas
+          const logsWithPublicUrls = logsData?.map((log: any) => {
+            if (log.photos && Array.isArray(log.photos) && log.photos.length > 0) {
+              const publicUrls = log.photos.map((photoPath: string) => {
+                if (photoPath.startsWith('http')) return photoPath
+                const { data: { publicUrl } } = supabase.storage
+                  .from('daily-logs-photos')
+                  .getPublicUrl(photoPath)
+                return publicUrl
+              })
+              return { ...log, photos: publicUrls }
+            }
+            return log
+          }) || []
+
+          // Cachear remotos en IndexedDB
+          await cacheDailyLogsFromRemote(params.id, logsWithPublicUrls)
+
+          // Merge: incluir registros offline pendientes que no están en remoto
+          const localLogs = await getLocalDailyLogsByProject(params.id)
+          const remoteIds = new Set(logsWithPublicUrls.map((l: any) => l.id))
+          const pendingLocalLogs = localLogs
+            .filter(l => !remoteIds.has(l.id) && l.sync_status !== 'synced')
+            .map(l => ({ ...l, _isLocal: true }))
+
+          setDailyLogs([...pendingLocalLogs, ...logsWithPublicUrls])
+
+          // Obtener y cachear labels de campos personalizados
+          const { data: configData } = await supabase
+            .from('daily_log_configs')
+            .select('custom_fields')
+            .eq('project_id', params.id)
+            .single()
+
+          if (configData?.custom_fields) {
+            const labels = (configData.custom_fields as any[]).reduce((acc: Record<string, string>, field: any) => {
+              if (field?.id && field?.label) {
+                acc[field.id] = field.label
+              }
+              return acc
+            }, {})
+            setCustomFieldLabels(labels)
+            await cacheProjectConfig(params.id, 'daily_log_config', configData)
+          } else {
+            setCustomFieldLabels({})
+          }
+
+        } catch (onlineError) {
+          console.warn('⚠️ Error online, cargando datos locales...', onlineError)
+          await loadOfflineData()
+        }
       } else {
-        setCustomFieldLabels({})
+        // ============================================================
+        // OFFLINE: cargar desde IndexedDB
+        // ============================================================
+        await loadOfflineData()
       }
     } catch (error) {
       console.error('Error in loadData:', error)
     } finally {
       setLoading(false)
     }
-  }, [params.id, router, supabase])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id, isOnline])
+
+  const loadOfflineData = async () => {
+    setIsOfflineMode(true)
+
+    // Cargar proyecto desde caché (guardado como tipo 'template')
+    const cachedTemplate = await getCachedProjectConfig(params.id, 'template')
+    if (cachedTemplate?.project_name) {
+      setProject({ id: params.id, name: cachedTemplate.project_name })
+    } else {
+      setProject({ id: params.id, name: 'Proyecto (offline)' })
+    }
+
+    // Cargar bitácoras locales
+    const localLogs = await getLocalDailyLogsByProject(params.id)
+    setDailyLogs(localLogs.map(l => ({ ...l, _isLocal: true })))
+
+    // Cargar labels cacheados
+    const cachedConfig = await getCachedProjectConfig(params.id, 'daily_log_config')
+    if (cachedConfig?.custom_fields) {
+      const labels = (cachedConfig.custom_fields as any[]).reduce((acc: Record<string, string>, field: any) => {
+        if (field?.id && field?.label) {
+          acc[field.id] = field.label
+        }
+        return acc
+      }, {})
+      setCustomFieldLabels(labels)
+    }
+  }
 
   useEffect(() => {
     loadData()
@@ -144,6 +208,17 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Banner offline */}
+      {isOfflineMode && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-300 text-amber-800 px-4 py-3 rounded-lg mb-4">
+          <WifiOff className="h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="font-medium text-sm">Modo offline — datos locales</p>
+            <p className="text-xs text-amber-600">Mostrando bitácoras guardadas en el dispositivo. Se actualizarán al volver la conexión.</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>

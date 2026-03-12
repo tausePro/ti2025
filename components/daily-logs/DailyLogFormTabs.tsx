@@ -20,9 +20,12 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { MapPin, Clock, User, Loader2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { MapPin, Clock, User, Loader2, CheckCircle2, XCircle, AlertCircle, WifiOff, CloudOff } from 'lucide-react'
 import { CustomField, DailyLogConfig } from '@/types/daily-log-config'
 import { useAuth } from '@/contexts/AuthContext'
+import { getCurrentDateInputValue } from '@/lib/utils'
+import { useOnlineStatus } from '@/hooks/useOnlineStatus'
+import { saveLocalDailyLog, saveLocalPhoto, cacheProjectConfig, getCachedProjectConfig } from '@/lib/offline/daily-log-service'
 
 interface DailyLogFormTabsProps {
   projectId: string
@@ -35,6 +38,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
   const router = useRouter()
   const supabase = createClient()
   const { profile } = useAuth()
+  const { isOnline } = useOnlineStatus()
   
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -47,7 +51,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
   
   // Estado del formulario
   const [formData, setFormData] = useState<DailyLogFormData>({
-    date: new Date().toISOString().split('T')[0],
+    date: getCurrentDateInputValue(),
     time: new Date().toTimeString().slice(0, 5),
     weather: 'soleado',
     temperature: undefined,
@@ -91,37 +95,60 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
   }, [])
 
   // Cargar configuración, usuarios y datos existentes (si es edición)
+  // Soporta fallback offline: si no hay red, usa caché local
   useEffect(() => {
     async function loadData() {
       setLoading(true)
       
-      // Cargar config
-      const { data: configData } = await supabase
-        .from('daily_log_configs')
-        .select('*')
-        .eq('project_id', projectId)
-        .single()
+      let configData: any = null
+      let usersData: any[] | null = null
+
+      if (isOnline) {
+        // --- ONLINE: cargar de Supabase y cachear ---
+        try {
+          const { data: cfgResp } = await supabase
+            .from('daily_log_configs')
+            .select('*')
+            .eq('project_id', projectId)
+            .single()
+          configData = cfgResp
+
+          const { data: usrResp } = await supabase
+            .from('project_members')
+            .select('user_id, role_in_project, user:profiles!user_id(id, full_name, email)')
+            .eq('project_id', projectId)
+          usersData = usrResp
+
+          // Cachear para uso offline
+          if (configData) {
+            await cacheProjectConfig(projectId, 'daily_log_config', configData)
+          }
+          if (usersData) {
+            await cacheProjectConfig(projectId, 'project_users', usersData)
+          }
+        } catch (err) {
+          console.warn('⚠️ Error cargando datos online, intentando caché local...', err)
+          configData = await getCachedProjectConfig(projectId, 'daily_log_config')
+          usersData = await getCachedProjectConfig(projectId, 'project_users')
+        }
+      } else {
+        // --- OFFLINE: cargar de caché local ---
+        configData = await getCachedProjectConfig(projectId, 'daily_log_config')
+        usersData = await getCachedProjectConfig(projectId, 'project_users')
+      }
       
       if (configData) {
         setConfig(configData)
         setCustomFields(configData.custom_fields || [])
       }
       
-      // Cargar usuarios del proyecto y rol del usuario actual
-      const { data: usersData } = await supabase
-        .from('project_members')
-        .select('user_id, role_in_project, user:profiles!user_id(id, full_name, email)')
-        .eq('project_id', projectId)
-      
       if (usersData) {
-        setProjectUsers(usersData.map(d => (d as any).user).filter(Boolean))
+        setProjectUsers(usersData.map((d: any) => d.user).filter(Boolean))
         
-        // Obtener el rol del usuario actual en este proyecto
-        const currentUserMember = usersData.find(m => m.user_id === profile?.id)
+        const currentUserMember = usersData.find((m: any) => m.user_id === profile?.id)
         if (currentUserMember) {
           setUserRoleInProject(currentUserMember.role_in_project)
           
-          // Si es residente, auto-asignar la bitácora a sí mismo
           if (currentUserMember.role_in_project === 'residente' && !logId) {
             setFormData(prev => ({
               ...prev,
@@ -133,16 +160,30 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
       
       // Si es modo edición, cargar datos existentes
       if (logId) {
-        const { data: logData } = await supabase
-          .from('daily_logs')
-          .select('*')
-          .eq('id', logId)
-          .single()
+        let logData: any = null
+
+        if (isOnline) {
+          try {
+            const { data } = await supabase
+              .from('daily_logs')
+              .select('*')
+              .eq('id', logId)
+              .single()
+            logData = data
+          } catch {
+            // Fallback: buscar en IndexedDB
+            const { getLocalDailyLog } = await import('@/lib/offline/daily-log-service')
+            logData = await getLocalDailyLog(logId)
+          }
+        } else {
+          const { getLocalDailyLog } = await import('@/lib/offline/daily-log-service')
+          logData = await getLocalDailyLog(logId)
+        }
         
         if (logData) {
           const loadedChecklists = logData.custom_fields?.checklists || CHECKLIST_SECTIONS
           setFormData({
-            date: logData.date || new Date().toISOString().split('T')[0],
+            date: logData.date || getCurrentDateInputValue(),
             time: logData.time || new Date().toTimeString().slice(0, 5),
             weather: logData.weather || 'soleado',
             temperature: logData.temperature ? parseFloat(logData.temperature) : undefined,
@@ -314,7 +355,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
     }))
   }
 
-  // Manejar submit
+  // Manejar submit — flujo offline-first
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -323,33 +364,8 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
 
     try {
       console.log('🔄 Iniciando guardado de bitácora...')
-      
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      
-      if (authError) throw authError
-      if (!user) throw new Error('No hay usuario autenticado')
 
-      // Obtener perfil con firma
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role, signature_url')
-        .eq('id', user.id)
-        .single()
-      
-      if (profileError || !profile) {
-        throw new Error('Perfil de usuario no encontrado')
-      }
-
-      // Firma automática
-      const autoSignature: Signature = {
-        user_id: profile.id,
-        user_name: profile.full_name || profile.email,
-        user_role: profile.role || 'usuario',
-        signature_url: profile.signature_url || '',
-        signed_at: new Date().toISOString()
-      }
-
-      // Preparar datos
+      // Preparar datos comunes
       const normalizedChecklists = formData.checklists.map(section => ({
         ...section,
         items: section.items.map(item => ({
@@ -364,11 +380,24 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
         }
         return acc
       }, {})
+      const storedFieldLabels = (formData.custom_fields?._field_labels as Record<string, string> | undefined) || {}
+      const mergedFieldLabels = logId
+        ? { ...customFieldLabels, ...storedFieldLabels }
+        : customFieldLabels
 
-      const dailyLogData = {
+      // Construir firma con datos del perfil del AuthContext
+      const autoSignature: Signature = {
+        user_id: profile?.id || '',
+        user_name: profile?.full_name || profile?.email || '',
+        user_role: profile?.role || 'usuario',
+        signature_url: (profile as any)?.signature_url || '',
+        signed_at: new Date().toISOString()
+      }
+
+      const commonData = {
         project_id: projectId,
         template_id: templateId,
-        ...(logId ? {} : { created_by: user.id }), // Solo en creación
+        created_by: profile?.id || '',
         date: formData.date,
         time: formData.time,
         weather: formData.weather,
@@ -382,93 +411,126 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
         recommendations: formData.recommendations,
         assigned_to: formData.assigned_to || null,
         location: formData.location || null,
-        signatures: logId ? formData.signatures : [autoSignature], // Mantener firmas existentes en edición
+        signatures: logId ? formData.signatures : [autoSignature],
         custom_fields: {
           ...formData.custom_fields,
           checklists: normalizedChecklists,
-          _field_labels: customFieldLabels
+          _field_labels: mergedFieldLabels
         },
-        sync_status: 'synced',
-        ...(logId ? { updated_at: new Date().toISOString() } : {})
       }
 
-      console.log(logId ? '📝 Actualizando bitácora...' : '📝 Creando bitácora...', dailyLogData)
+      const isNew = !logId
 
-      let data
-      if (logId) {
-        // Actualizar
-        const { data: updateData, error: updateError } = await supabase
-          .from('daily_logs')
-          .update(dailyLogData)
-          .eq('id', logId)
-          .select()
-          .single()
-
-        if (updateError) throw updateError
-        data = updateData
-      } else {
-        // Crear
-        const { data: insertData, error: insertError } = await supabase
-          .from('daily_logs')
-          .insert(dailyLogData)
-          .select()
-          .single()
-
-        if (insertError) throw insertError
-        data = insertData
-      }
-
-      // Upload de fotos
-      if (formData.photos && formData.photos.length > 0 && data) {
-        console.log(`📸 Subiendo ${formData.photos.length} fotos...`)
-        
-        const photoUrls: string[] = []
-        
-        for (let i = 0; i < formData.photos.length; i++) {
-          const file = formData.photos[i]
-          const fileExt = file.name.split('.').pop()
-          const fileName = `${user.id}/${projectId}/${data.id}/${Date.now()}_${i}.${fileExt}`
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('daily-logs-photos')
-            .upload(fileName, file)
-          
-          if (uploadError) {
-            console.error(`❌ Error subiendo foto ${i}:`, uploadError)
-            continue
+      // ============================================================
+      // INTENTAR GUARDADO ONLINE
+      // ============================================================
+      if (isOnline) {
+        try {
+          const supabaseData = {
+            ...commonData,
+            ...(isNew ? {} : { id: logId }),
+            ...(isNew ? {} : { updated_at: new Date().toISOString() }),
+            sync_status: 'synced',
           }
-          
-          const { data: { publicUrl } } = supabase.storage
-            .from('daily-logs-photos')
-            .getPublicUrl(fileName)
-          
-          photoUrls.push(publicUrl)
-        }
-        
-        // Actualizar con URLs de fotos
-        const { error: updateError } = await supabase
-          .from('daily_logs')
-          .update({ photos: photoUrls })
-          .eq('id', data.id)
-        
-        if (updateError) {
-          console.error('❌ Error actualizando fotos:', updateError)
-        } else {
-          console.log('✅ Fotos guardadas:', photoUrls.length)
+          // Quitar created_by en edición
+          if (!isNew) delete (supabaseData as any).created_by
+
+          let data
+          if (isNew) {
+            const { data: insertData, error: insertError } = await supabase
+              .from('daily_logs')
+              .insert(supabaseData)
+              .select()
+              .single()
+            if (insertError) throw insertError
+            data = insertData
+          } else {
+            const { id: _id, ...updatePayload } = supabaseData as any
+            const { data: updateData, error: updateError } = await supabase
+              .from('daily_logs')
+              .update(updatePayload)
+              .eq('id', logId)
+              .select()
+              .single()
+            if (updateError) throw updateError
+            data = updateData
+          }
+
+          // Upload de fotos online
+          if (formData.photos && formData.photos.length > 0 && data) {
+            const photoUrls: string[] = []
+            for (let i = 0; i < formData.photos.length; i++) {
+              const file = formData.photos[i]
+              const fileExt = file.name.split('.').pop()
+              const fileName = `${profile?.id}/${projectId}/${data.id}/${Date.now()}_${i}.${fileExt}`
+              const { error: uploadError } = await supabase.storage
+                .from('daily-logs-photos')
+                .upload(fileName, file)
+              if (uploadError) {
+                console.error(`❌ Error subiendo foto ${i}:`, uploadError)
+                continue
+              }
+              const { data: { publicUrl } } = supabase.storage
+                .from('daily-logs-photos')
+                .getPublicUrl(fileName)
+              photoUrls.push(publicUrl)
+            }
+            if (photoUrls.length > 0) {
+              await supabase
+                .from('daily_logs')
+                .update({ photos: photoUrls })
+                .eq('id', data.id)
+            }
+          }
+
+          // Cachear en local como synced
+          const { cacheDailyLogsFromRemote } = await import('@/lib/offline/daily-log-service')
+          await cacheDailyLogsFromRemote(projectId, [data])
+
+          setSuccess('✅ Bitácora guardada exitosamente')
+          console.log('✅ Bitácora guardada online')
+
+          await new Promise(resolve => setTimeout(resolve, 800))
+          if (onSuccess) { onSuccess() } else { router.push(`/projects/${projectId}/daily-logs`) }
+          return
+
+        } catch (onlineError: any) {
+          console.warn('⚠️ Fallo online, guardando localmente...', onlineError.message)
+          // Caer al flujo offline
         }
       }
 
-      console.log('✅ Bitácora guardada exitosamente')
-      
-      setSuccess('✅ Bitácora guardada exitosamente')
+      // ============================================================
+      // GUARDADO OFFLINE (o fallback si falló el online)
+      // ============================================================
+      console.log('📱 Guardando bitácora localmente...')
 
-      await new Promise(resolve => setTimeout(resolve, 800))
+      const localLog = await saveLocalDailyLog(
+        {
+          id: logId,
+          ...commonData,
+        },
+        isNew
+      )
 
-      if (onSuccess) {
-        onSuccess()
-      } else {
-        router.push(`/projects/${projectId}/daily-logs`)
+      // Guardar fotos en IndexedDB
+      if (formData.photos && formData.photos.length > 0) {
+        for (const file of formData.photos) {
+          await saveLocalPhoto(localLog.id, file)
+        }
+        console.log(`📸 ${formData.photos.length} fotos guardadas localmente`)
       }
+
+      setSuccess(
+        isOnline
+          ? '⚠️ Error de red. Bitácora guardada localmente — se sincronizará automáticamente.'
+          : '📱 Bitácora guardada localmente — se sincronizará cuando haya conexión.'
+      )
+      console.log('✅ Bitácora guardada offline:', localLog.id)
+
+      await new Promise(resolve => setTimeout(resolve, 1200))
+      if (onSuccess) { onSuccess() } else { router.push(`/projects/${projectId}/daily-logs`) }
+
     } catch (error: any) {
       console.error('❌ Error:', error)
       setError(error.message || 'Error al guardar la bitácora')
@@ -492,6 +554,17 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Banner de estado offline */}
+      {!isOnline && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-300 text-amber-800 px-4 py-3 rounded-lg">
+          <WifiOff className="h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="font-medium text-sm">Sin conexión a internet</p>
+            <p className="text-xs text-amber-600">La bitácora se guardará localmente y se sincronizará cuando vuelva la conexión.</p>
+          </div>
+        </div>
+      )}
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6">
           <TabsTrigger value="basica">📋 Básica</TabsTrigger>
@@ -924,10 +997,13 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+          className={`px-6 py-2 text-white rounded-md disabled:opacity-50 flex items-center gap-2 ${
+            isOnline ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-600 hover:bg-amber-700'
+          }`}
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-          {loading ? 'Guardando...' : 'Guardar Bitácora'}
+          {!isOnline && !loading && <CloudOff className="h-4 w-4" />}
+          {loading ? 'Guardando...' : isOnline ? 'Guardar Bitácora' : 'Guardar Localmente'}
         </button>
       </div>
     </form>

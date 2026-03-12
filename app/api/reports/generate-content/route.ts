@@ -229,6 +229,49 @@ export async function POST(request: Request) {
   }
 }
 
+function getReviewedChecklistItems(log: any) {
+  return (log?.custom_fields?.checklists || []).flatMap((section: any) =>
+    (section.items || [])
+      .filter((item: any) => item.status === 'compliant' || item.status === 'non_compliant')
+      .map((item: any) => ({
+        sectionTitle: section.title,
+        description: item.description,
+        status: item.status,
+        observations: item.observations
+      }))
+  )
+}
+
+function getCustomFieldEntries(log: any) {
+  const customFields = log?.custom_fields || {}
+  const fieldLabels: Record<string, string> = customFields._field_labels || {}
+
+  return Object.entries(customFields)
+    .filter(([key, value]) => {
+      if (key === 'checklists' || key === '_field_labels' || key === 'photo_count') {
+        return false
+      }
+
+      if (value === null || value === undefined) {
+        return false
+      }
+
+      if (Array.isArray(value)) {
+        return value.length > 0
+      }
+
+      if (typeof value === 'string') {
+        return value.trim().length > 0
+      }
+
+      return true
+    })
+    .map(([key, value]) => ({
+      label: fieldLabels[key] || key.replace(/_/g, ' '),
+      value: Array.isArray(value) ? value.join(', ') : String(value)
+    }))
+}
+
 function prepareContext(section: any, sourceData: any): string {
   const dataSources = section.data_sources || []
   let context = ''
@@ -248,12 +291,44 @@ function prepareContext(section: any, sourceData: any): string {
   if (dataSources.includes('daily_logs') && sourceData.daily_logs?.length > 0) {
     context += `\n## BITÁCORAS DIARIAS (${sourceData.daily_logs.length} registros)\n`
     sourceData.daily_logs.forEach((log: any) => {
+      const checklistItems = getReviewedChecklistItems(log)
+      const compliant = checklistItems.filter((item: any) => item.status === 'compliant').length
+      const nonCompliant = checklistItems.filter((item: any) => item.status === 'non_compliant').length
+      const customFieldEntries = getCustomFieldEntries(log)
+
       context += `\n### ${log.date}\n`
       context += `- Actividades: ${log.activities || 'N/A'}\n`
       context += `- Personal: ${log.personnel_count || 0} personas\n`
       context += `- Clima: ${log.weather || 'N/A'}\n`
+      if (log.materials) {
+        context += `- Materiales: ${log.materials}\n`
+      }
+      if (log.equipment) {
+        context += `- Equipos: ${log.equipment}\n`
+      }
       if (log.observations) {
         context += `- Observaciones: ${log.observations}\n`
+      }
+      if (log.issues) {
+        context += `- Novedades o incidencias: ${log.issues}\n`
+      }
+      if (log.recommendations) {
+        context += `- Recomendaciones: ${log.recommendations}\n`
+      }
+      if (checklistItems.length > 0) {
+        context += `- Checklist revisado: ${checklistItems.length} ítems (${compliant} cumple, ${nonCompliant} no cumple)\n`
+        checklistItems.slice(0, 8).forEach((item: any) => {
+          context += `  - ${item.sectionTitle} / ${item.description}: ${item.status === 'compliant' ? 'Cumple' : 'No cumple'}${item.observations ? ` (${item.observations})` : ''}\n`
+        })
+      }
+      if (customFieldEntries.length > 0) {
+        context += `- Campos personalizados:\n`
+        customFieldEntries.forEach((entry) => {
+          context += `  - ${entry.label}: ${entry.value}\n`
+        })
+      }
+      if (Array.isArray(log.photos) && log.photos.length > 0) {
+        context += `- Fotos registradas: ${log.photos.length}\n`
       }
     })
   }

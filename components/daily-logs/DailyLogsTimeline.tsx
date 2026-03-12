@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { PhotoGallery } from './PhotoGallery'
 import { Camera, Clock, MapPin, User, FileText, CheckCircle2, XCircle, AlertCircle, Settings } from 'lucide-react'
+import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
+import { SyncStatusBadge } from '@/components/shared/OfflineIndicator'
 
 interface DailyLogsTimelineProps {
   logs: any[]
@@ -28,8 +30,16 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
   // Función para obtener campos personalizados (excluyendo checklists)
   const getCustomFields = (log: any) => {
     if (!log.custom_fields) return {}
-    const { checklists, ...customFields } = log.custom_fields
+    const { checklists, _field_labels, photo_count, ...customFields } = log.custom_fields
     return customFields
+  }
+
+  const getLogFieldLabels = (log: any) => {
+    const storedLabels = log?.custom_fields?._field_labels || {}
+    return getCustomFieldLabelsMap([], {
+      ...customFieldLabels,
+      ...storedLabels
+    })
   }
 
   // Agrupar bitácoras por día
@@ -59,7 +69,7 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
           {/* Fecha del día */}
           <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-50 to-white border-l-4 border-blue-500 py-3 px-4 mb-6 shadow-sm">
             <h2 className="text-xl font-bold text-gray-900">
-              {new Date(date).toLocaleDateString('es-CO', {
+              {formatDateValue(date, 'es-CO', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
@@ -106,17 +116,7 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                         </div>
 
                         {/* Estado de sincronización */}
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          log.sync_status === 'synced' 
-                            ? 'bg-green-100 text-green-800'
-                            : log.sync_status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {log.sync_status === 'synced' ? '✓ Sincronizado' : 
-                           log.sync_status === 'pending' ? '⏳ Pendiente' : 
-                           log.sync_status}
-                        </span>
+                        <SyncStatusBadge syncStatus={log.sync_status || 'synced'} />
 
                         {/* Ubicación GPS */}
                         {log.location && (
@@ -258,6 +258,7 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                     const customFields = getCustomFields(log)
                     const entries = Object.entries(customFields)
                     if (entries.length === 0) return null
+                    const fieldLabels = getLogFieldLabels(log)
                     
                     return (
                       <div className="mb-3 p-3 bg-blue-50 rounded-lg">
@@ -269,7 +270,7 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                           {entries.map(([key, value]) => (
                             <div key={key} className="flex gap-2">
                               <span className="text-gray-600">
-                                {customFieldLabels[key] || key.replace(/_/g, ' ')}:
+                                {fieldLabels[key] || key.replace(/_/g, ' ')}:
                               </span>
                               <span className="font-medium text-gray-900">
                                 {Array.isArray(value) ? value.join(', ') : String(value)}

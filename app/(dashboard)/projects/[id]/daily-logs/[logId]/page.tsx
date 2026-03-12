@@ -1,73 +1,111 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { PhotoGallery } from '@/components/daily-logs/PhotoGallery'
-import { ArrowLeft, Calendar, Cloud, Users, Wrench, Package, FileText, Camera, Edit, Printer } from 'lucide-react'
+import { ArrowLeft, Calendar, Cloud, Users, Wrench, Package, FileText, Camera, Edit, Printer, Loader2, WifiOff } from 'lucide-react'
+import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
+import { SyncStatusBadge } from '@/components/shared/OfflineIndicator'
+import { useOnlineStatus } from '@/hooks/useOnlineStatus'
+import { getLocalDailyLog, getCachedProjectConfig } from '@/lib/offline/daily-log-service'
 
-export default async function DailyLogDetailPage({ 
+export default function DailyLogDetailPage({ 
   params 
 }: { 
   params: { id: string; logId: string } 
 }) {
+  const router = useRouter()
   const supabase = createClient()
+  const { profile } = useAuth()
+  const { isOnline } = useOnlineStatus()
 
-  // Verificar autenticación
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    redirect('/login')
-  }
+  const [log, setLog] = useState<any>(null)
+  const [project, setProject] = useState<any>(null)
+  const [assignedProfile, setAssignedProfile] = useState<any>(null)
+  const [customFieldLabels, setCustomFieldLabels] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
+  const [isOfflineMode, setIsOfflineMode] = useState(false)
 
-  // Obtener bitácora
-  const { data: log, error } = await (supabase
-    .from('daily_logs') as any)
-    .select(`
-      *,
-      created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)
-    `)
-    .eq('id', params.logId)
-    .single()
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true)
 
-  if (error || !log) {
-    redirect(`/projects/${params.id}/daily-logs`)
-  }
+      if (isOnline) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) { router.push('/login'); return }
 
-  // Obtener proyecto
-  const { data: project } = await (supabase
-    .from('projects') as any)
-    .select('name')
-    .eq('id', params.id)
-    .single()
+          const { data: logData, error } = await (supabase
+            .from('daily_logs') as any)
+            .select(`*, created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)`)
+            .eq('id', params.logId)
+            .single()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role, full_name, email')
-    .eq('id', user.id)
-    .single()
+          if (error || !logData) { router.push(`/projects/${params.id}/daily-logs`); return }
+          setLog(logData)
 
-  const { data: assignedProfile } = await supabase
-    .from('profiles')
-    .select('full_name, email')
-    .eq('id', log.assigned_to)
-    .maybeSingle()
+          const { data: projectData } = await (supabase.from('projects') as any)
+            .select('name').eq('id', params.id).single()
+          setProject(projectData)
 
-  const { data: configData } = await supabase
-    .from('daily_log_configs')
-    .select('custom_fields')
-    .eq('project_id', params.id)
-    .single()
+          if (logData.assigned_to) {
+            const { data: assigned } = await supabase.from('profiles')
+              .select('full_name, email').eq('id', logData.assigned_to).maybeSingle()
+            setAssignedProfile(assigned)
+          }
 
-  const storedLabels = (log.custom_fields as any)?._field_labels || {}
-  const customFieldLabels = (configData?.custom_fields || []).reduce(
-    (acc: Record<string, string>, field: any) => {
-      if (field?.id && field?.label) {
-        acc[field.id] = field.label
+          const { data: configData } = await supabase.from('daily_log_configs')
+            .select('custom_fields').eq('project_id', params.id).single()
+
+          const storedLabels = (logData.custom_fields as any)?._field_labels || {}
+          setCustomFieldLabels(getCustomFieldLabelsMap(
+            (configData?.custom_fields || []) as Array<{ id?: string; label?: string }>,
+            storedLabels
+          ))
+        } catch {
+          await loadOffline()
+        }
+      } else {
+        await loadOffline()
       }
-      return acc
-    },
-    { ...storedLabels }
-  )
 
-  const canEdit = user.id === log.created_by || ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile?.role || '')
+      setLoading(false)
+    }
+
+    async function loadOffline() {
+      setIsOfflineMode(true)
+      const localLog = await getLocalDailyLog(params.logId)
+      if (!localLog) { router.push(`/projects/${params.id}/daily-logs`); return }
+
+      setLog(localLog)
+      setProject({ name: 'Proyecto (offline)' })
+
+      const cachedConfig = await getCachedProjectConfig(params.id, 'daily_log_config')
+      const storedLabels = (localLog.custom_fields as any)?._field_labels || {}
+      setCustomFieldLabels(getCustomFieldLabelsMap(
+        (cachedConfig?.custom_fields || []) as Array<{ id?: string; label?: string }>,
+        storedLabels
+      ))
+    }
+
+    loadData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id, params.logId, isOnline])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
+
+  if (!log) return null
+
+  const canEdit = profile?.id === log.created_by || ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile?.role || '')
 
   const checklistSections = (log.custom_fields?.checklists || [])
     .map((section: any) => ({
@@ -77,7 +115,7 @@ export default async function DailyLogDetailPage({
       )
     }))
     .filter((section: any) => section.items?.length)
-  const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => key !== 'checklists')
+  const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => !['checklists', '_field_labels', 'photo_count'].includes(key))
 
   const getWeatherLabel = (weather: string) => {
     switch (weather) {
@@ -92,6 +130,14 @@ export default async function DailyLogDetailPage({
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Banner offline */}
+      {isOfflineMode && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-300 text-amber-800 px-4 py-3 rounded-lg mb-4">
+          <WifiOff className="h-5 w-5 flex-shrink-0" />
+          <p className="text-sm font-medium">Mostrando datos locales — sin conexión</p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6">
         <Link
@@ -105,7 +151,7 @@ export default async function DailyLogDetailPage({
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              Bitácora del {new Date(log.date).toLocaleDateString('es-CO', {
+              Bitácora del {formatDateValue(log.date, 'es-CO', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
@@ -117,7 +163,7 @@ export default async function DailyLogDetailPage({
             </p>
           </div>
           
-          {canEdit && (
+          {canEdit && !isOfflineMode && (
             <Link
               href={`/projects/${params.id}/daily-logs/${params.logId}/edit`}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
@@ -126,15 +172,17 @@ export default async function DailyLogDetailPage({
               Editar
             </Link>
           )}
-          <Link
-            href={`/print/daily-log/${params.logId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2 border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 flex items-center"
-          >
-            <Printer className="h-4 w-4 mr-2" />
-            Imprimir
-          </Link>
+          {!isOfflineMode && (
+            <Link
+              href={`/print/daily-log/${params.logId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 flex items-center"
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Imprimir
+            </Link>
+          )}
         </div>
       </div>
 
@@ -168,13 +216,7 @@ export default async function DailyLogDetailPage({
           
           <div>
             <p className="text-sm text-gray-500">Estado</p>
-            <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-              log.sync_status === 'synced' 
-                ? 'bg-green-100 text-green-800'
-                : 'bg-yellow-100 text-yellow-800'
-            }`}>
-              {log.sync_status === 'synced' ? '✓ Sincronizado' : '⏳ Pendiente'}
-            </span>
+            <SyncStatusBadge syncStatus={log.sync_status || 'synced'} />
           </div>
         </div>
 
@@ -288,7 +330,12 @@ export default async function DailyLogDetailPage({
                   <p className="text-xs text-gray-500 capitalize">{signature.user_role}</p>
                   {signature.signed_at && (
                     <p className="text-xs text-gray-400">
-                      {new Date(signature.signed_at).toLocaleDateString('es-CO')}
+                      {formatDateValue(signature.signed_at, 'es-CO', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
                     </p>
                   )}
                 </div>

@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { db } from '@/lib/db/schema'
+
+// Campos internos que no existen en la tabla de Supabase
+const INTERNAL_FIELDS = ['sync_status', 'sync_error', 'offline_created', '_isLocal']
+
+function cleanForSupabase(data: any): any {
+  const clean = { ...data }
+  for (const field of INTERNAL_FIELDS) {
+    delete clean[field]
+  }
+  return clean
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,20 +31,40 @@ export async function POST(request: NextRequest) {
         let result
         
         switch (operation.table_name) {
-          case 'daily_logs':
+          case 'daily_logs': {
+            const cleanData = cleanForSupabase(operation.data)
+            const isOfflineId = cleanData.id?.startsWith('offline_')
+
             if (operation.operation === 'create') {
+              // Eliminar ID offline para que Supabase genere un UUID real
+              if (isOfflineId) {
+                delete cleanData.id
+              }
+
               const { data, error } = await supabase
                 .from('daily_logs')
-                .insert(operation.data)
+                .insert({ ...cleanData, sync_status: 'synced' })
                 .select()
                 .single()
               
               if (error) throw error
-              result = { success: true, data }
+              result = {
+                success: true,
+                data,
+                local_id: operation.record_id,
+                remote_id: data.id
+              }
             } else if (operation.operation === 'update') {
+              if (isOfflineId) {
+                result = { success: false, error: 'No se puede actualizar un registro con ID offline' }
+                break
+              }
+
+              const { id, created_by, created_at, ...updatePayload } = cleanData
+
               const { data, error } = await supabase
                 .from('daily_logs')
-                .update(operation.data)
+                .update({ ...updatePayload, sync_status: 'synced' })
                 .eq('id', operation.record_id)
                 .select()
                 .single()
@@ -43,20 +73,14 @@ export async function POST(request: NextRequest) {
               result = { success: true, data }
             }
             break
+          }
 
-          case 'photos':
+          case 'photos': {
             if (operation.operation === 'create') {
-              // Para fotos, primero subir a Storage, luego crear registro
-              const { data, error } = await supabase
-                .from('photos')
-                .insert(operation.data)
-                .select()
-                .single()
-              
-              if (error) throw error
-              result = { success: true, data }
+              result = { success: true, note: 'Las fotos se sincronizan directamente desde el sync-manager' }
             }
             break
+          }
 
           default:
             result = { success: false, error: 'Tabla no soportada' }
