@@ -10,6 +10,8 @@ import Image from 'next/image'
 interface PhotoUploadProps {
   photos: File[]
   onPhotosChange: (photos: File[]) => void
+  captions?: string[]
+  onCaptionsChange?: (captions: string[]) => void
   maxPhotos?: number
   maxSizeMB?: number
   disabled?: boolean
@@ -17,7 +19,9 @@ interface PhotoUploadProps {
 
 export function PhotoUpload({ 
   photos, 
-  onPhotosChange, 
+  onPhotosChange,
+  captions = [],
+  onCaptionsChange,
   maxPhotos = 10,
   maxSizeMB = 10,
   disabled = false 
@@ -60,6 +64,12 @@ export function PhotoUpload({
       const newPhotos = [...photos, ...validFiles]
       onPhotosChange(newPhotos)
 
+      // Agregar captions vacíos para las nuevas fotos
+      if (onCaptionsChange) {
+        const newCaptions = [...captions, ...validFiles.map(() => '')]
+        onCaptionsChange(newCaptions)
+      }
+
       // Crear previews
       validFiles.forEach(file => {
         const reader = new FileReader()
@@ -81,6 +91,18 @@ export function PhotoUpload({
     const newPreviews = previews.filter((_, i) => i !== index)
     onPhotosChange(newPhotos)
     setPreviews(newPreviews)
+
+    if (onCaptionsChange) {
+      const newCaptions = captions.filter((_, i) => i !== index)
+      onCaptionsChange(newCaptions)
+    }
+  }
+
+  const updateCaption = (index: number, value: string) => {
+    if (!onCaptionsChange) return
+    const newCaptions = [...captions]
+    newCaptions[index] = value
+    onCaptionsChange(newCaptions)
   }
 
   const handleButtonClick = () => {
@@ -127,16 +149,16 @@ export function PhotoUpload({
         </Alert>
       )}
 
-      {/* Galería de previews */}
+      {/* Galería de previews con leyendas */}
       {previews.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {previews.map((preview, index) => (
             <Card key={index} className="relative group overflow-hidden">
-              <CardContent className="p-2">
-                <div className="relative aspect-square">
+              <CardContent className="p-2 space-y-2">
+                <div className="relative aspect-video">
                   <Image
                     src={preview}
-                    alt={`Foto ${index + 1}`}
+                    alt={captions[index] || `Foto ${index + 1}`}
                     fill
                     className="object-cover rounded"
                   />
@@ -156,9 +178,19 @@ export function PhotoUpload({
                   {/* Info del archivo */}
                   <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 
                                 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {(photos[index].size / 1024).toFixed(0)} KB
+                    {(photos[index]?.size / 1024).toFixed(0)} KB
                   </div>
                 </div>
+
+                {/* Leyenda de la foto */}
+                <input
+                  type="text"
+                  value={captions[index] || ''}
+                  onChange={(e) => updateCaption(index, e.target.value)}
+                  placeholder="Ej: Foto panorámica proyecto, Revisión columnas..."
+                  disabled={disabled}
+                  className="w-full text-xs px-2 py-1.5 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-400 placeholder:text-gray-400"
+                />
               </CardContent>
             </Card>
           ))}

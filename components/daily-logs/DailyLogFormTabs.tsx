@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { MapPin, Clock, User, Loader2, CheckCircle2, XCircle, AlertCircle, WifiOff, CloudOff } from 'lucide-react'
+import { MapPin, Clock, User, Loader2, CheckCircle2, XCircle, AlertCircle, WifiOff, CloudOff, Trash2 } from 'lucide-react'
 import { CustomField, DailyLogConfig } from '@/types/daily-log-config'
 import { useAuth } from '@/contexts/AuthContext'
 import { getCurrentDateInputValue } from '@/lib/utils'
@@ -69,6 +69,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
     photos: [],
     custom_fields: {}
   })
+  const [photoCaptions, setPhotoCaptions] = useState<string[]>([])
 
   // Hook de geolocalización
   const { location, error: gpsError, loading: gpsLoading, requestLocation } = useGeolocation()
@@ -285,6 +286,26 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
     }))
   }
 
+  const removeChecklistSection = (sectionId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      checklists: prev.checklists.filter(section => section.id !== sectionId)
+    }))
+  }
+
+  const removeChecklistItem = (sectionId: string, itemId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      checklists: prev.checklists.map(section => {
+        if (section.id !== sectionId) return section
+        return {
+          ...section,
+          items: section.items.filter(item => item.id !== itemId)
+        }
+      })
+    }))
+  }
+
   const addChecklistSection = () => {
     const nextIndex = formData.checklists.length + 1
     const newSectionId = `section_${Date.now()}`
@@ -415,7 +436,8 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
         custom_fields: {
           ...formData.custom_fields,
           checklists: normalizedChecklists,
-          _field_labels: mergedFieldLabels
+          _field_labels: mergedFieldLabels,
+          ...(photoCaptions.length > 0 ? { photo_captions: photoCaptions } : {})
         },
       }
 
@@ -857,6 +879,14 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
                     >
                       {collapsedSections[section.id] ? 'Expandir' : 'Contraer'}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => removeChecklistSection(section.id)}
+                      className="text-xs p-1.5 rounded text-red-500 hover:bg-red-50 hover:text-red-700"
+                      title="Eliminar categoría"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               </CardHeader>
@@ -875,7 +905,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() => updateChecklistItem(section.id, item.id, 'status', 'compliant')}
+                          onClick={() => updateChecklistItem(section.id, item.id, 'status', item.status === 'compliant' ? null : 'compliant')}
                           className={`p-2 rounded ${item.status === 'compliant' ? 'bg-green-100' : 'hover:bg-gray-100'}`}
                           title="Cumple"
                         >
@@ -883,7 +913,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
                         </button>
                         <button
                           type="button"
-                          onClick={() => updateChecklistItem(section.id, item.id, 'status', 'non_compliant')}
+                          onClick={() => updateChecklistItem(section.id, item.id, 'status', item.status === 'non_compliant' ? null : 'non_compliant')}
                           className={`p-2 rounded ${item.status === 'non_compliant' ? 'bg-red-100' : 'hover:bg-gray-100'}`}
                           title="No Cumple"
                         >
@@ -891,11 +921,19 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
                         </button>
                         <button
                           type="button"
-                          onClick={() => updateChecklistItem(section.id, item.id, 'status', 'not_applicable')}
+                          onClick={() => updateChecklistItem(section.id, item.id, 'status', item.status === 'not_applicable' ? null : 'not_applicable')}
                           className={`p-2 rounded ${item.status === 'not_applicable' ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
                           title="No Aplica"
                         >
                           <AlertCircle className={`h-5 w-5 ${item.status === 'not_applicable' ? 'text-gray-600' : 'text-gray-400'}`} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeChecklistItem(section.id, item.id)}
+                          className="p-2 rounded hover:bg-red-50"
+                          title="Eliminar item"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-400 hover:text-red-600" />
                         </button>
                       </div>
                     </div>
@@ -937,6 +975,8 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
               <PhotoUpload
                 photos={formData.photos}
                 onPhotosChange={(photos) => updateField('photos', photos)}
+                captions={photoCaptions}
+                onCaptionsChange={setPhotoCaptions}
                 maxPhotos={10}
                 maxSizeMB={10}
                 disabled={loading}

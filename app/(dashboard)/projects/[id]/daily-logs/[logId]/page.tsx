@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { PhotoGallery } from '@/components/daily-logs/PhotoGallery'
-import { ArrowLeft, Calendar, Cloud, Users, Wrench, Package, FileText, Camera, Edit, Printer, Loader2, WifiOff } from 'lucide-react'
+import { ArrowLeft, Calendar, Cloud, Users, Wrench, Package, FileText, Camera, Edit, Printer, Loader2, WifiOff, Trash2 } from 'lucide-react'
 import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
 import { SyncStatusBadge } from '@/components/shared/OfflineIndicator'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
@@ -28,6 +28,7 @@ export default function DailyLogDetailPage({
   const [customFieldLabels, setCustomFieldLabels] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [isOfflineMode, setIsOfflineMode] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -95,6 +96,28 @@ export default function DailyLogDetailPage({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id, params.logId, isOnline])
 
+  const handleDelete = async () => {
+    if (!confirm('¿Estás seguro de eliminar esta bitácora? Esta acción no se puede deshacer.')) return
+    setDeleting(true)
+    try {
+      if (isOnline && !params.logId.startsWith('offline_')) {
+        const { error } = await supabase.from('daily_logs').delete().eq('id', params.logId)
+        if (error) throw error
+      }
+      // Eliminar también de IndexedDB
+      const { db } = await import('@/lib/db/schema')
+      await db.daily_logs.delete(params.logId)
+      await db.photos.where('daily_log_id').equals(params.logId).delete()
+
+      router.push(`/projects/${params.id}/daily-logs`)
+    } catch (err: any) {
+      console.error('Error eliminando bitácora:', err)
+      alert('Error al eliminar: ' + (err.message || 'Error desconocido'))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -105,7 +128,11 @@ export default function DailyLogDetailPage({
 
   if (!log) return null
 
-  const canEdit = profile?.id === log.created_by || ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile?.role || '')
+  const isAdmin = ['admin', 'super_admin'].includes(profile?.role || '')
+  const isOwnerOrSupervisor = profile?.id === log.created_by || ['gerente', 'supervisor'].includes(profile?.role || '')
+  const hoursElapsed = (Date.now() - new Date(log.created_at).getTime()) / (1000 * 60 * 60)
+  const withinEditWindow = hoursElapsed <= 72
+  const canEdit = isAdmin || (isOwnerOrSupervisor && withinEditWindow)
 
   const checklistSections = (log.custom_fields?.checklists || [])
     .map((section: any) => ({
@@ -115,7 +142,8 @@ export default function DailyLogDetailPage({
       )
     }))
     .filter((section: any) => section.items?.length)
-  const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => !['checklists', '_field_labels', 'photo_count'].includes(key))
+  const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => !['checklists', '_field_labels', 'photo_count', 'photo_captions'].includes(key))
+  const photoCaptions: string[] = log.custom_fields?.photo_captions || []
 
   const getWeatherLabel = (weather: string) => {
     switch (weather) {
@@ -163,28 +191,48 @@ export default function DailyLogDetailPage({
             </p>
           </div>
           
-          {canEdit && !isOfflineMode && (
-            <Link
-              href={`/projects/${params.id}/daily-logs/${params.logId}/edit`}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
-            </Link>
-          )}
-          {!isOfflineMode && (
-            <Link
-              href={`/print/daily-log/${params.logId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 flex items-center"
-            >
-              <Printer className="h-4 w-4 mr-2" />
-              Imprimir
-            </Link>
-          )}
+          <div className="flex gap-2 flex-shrink-0">
+            {canEdit && !isOfflineMode && (
+              <Link
+                href={`/projects/${params.id}/daily-logs/${params.logId}/edit`}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Editar
+              </Link>
+            )}
+            {!isOfflineMode && (
+              <Link
+                href={`/print/daily-log/${params.logId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 flex items-center"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir
+              </Link>
+            )}
+            {canEdit && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-4 py-2 border border-red-200 text-red-600 rounded-md hover:bg-red-50 flex items-center disabled:opacity-50"
+              >
+                {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                Eliminar
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Aviso de ventana expirada */}
+      {!canEdit && isOwnerOrSupervisor && !withinEditWindow && (
+        <div className="text-xs text-gray-400 mb-2">
+          La ventana de edición de 72 horas ha expirado. Contacta a un administrador si necesitas modificar esta bitácora.
+        </div>
+      )}
 
       {/* Contenido */}
       <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
@@ -393,7 +441,25 @@ export default function DailyLogDetailPage({
               <Camera className="h-5 w-5 mr-2 text-blue-600" />
               Fotos del Día ({log.photos.length})
             </h2>
-            <PhotoGallery photos={log.photos} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {log.photos.map((photo: string, idx: number) => (
+                <div key={idx} className="space-y-2">
+                  <div className="relative aspect-video rounded-lg overflow-hidden border">
+                    <img
+                      src={photo}
+                      alt={photoCaptions[idx] || `Foto ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
+                      {idx + 1}/{log.photos.length}
+                    </span>
+                  </div>
+                  {photoCaptions[idx] && (
+                    <p className="text-sm text-gray-600 italic px-1">{photoCaptions[idx]}</p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

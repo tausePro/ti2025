@@ -30,7 +30,7 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
   // Función para obtener campos personalizados (excluyendo checklists)
   const getCustomFields = (log: any) => {
     if (!log.custom_fields) return {}
-    const { checklists, _field_labels, photo_count, ...customFields } = log.custom_fields
+    const { checklists, _field_labels, photo_count, photo_captions, ...customFields } = log.custom_fields
     return customFields
   }
 
@@ -283,17 +283,34 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                   })()}
 
                   {/* Fotos */}
-                  {log.photos && log.photos.length > 0 && (
-                    <div className="mt-4 pt-4 border-t">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Camera className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium text-gray-700">
-                          {log.photos.length} {log.photos.length === 1 ? 'foto' : 'fotos'}
-                        </span>
+                  {log.photos && log.photos.length > 0 && (() => {
+                    const captions: string[] = log.custom_fields?.photo_captions || []
+                    return (
+                      <div className="mt-4 pt-4 border-t">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Camera className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm font-medium text-gray-700">
+                            {log.photos.length} {log.photos.length === 1 ? 'foto' : 'fotos'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {log.photos.map((photo: string, idx: number) => (
+                            <div key={idx} className="space-y-1">
+                              <div className="relative aspect-square rounded-lg overflow-hidden border">
+                                <img src={photo} alt={captions[idx] || `Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                                <span className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                                  {idx + 1}/{log.photos.length}
+                                </span>
+                              </div>
+                              {captions[idx] && (
+                                <p className="text-xs text-gray-500 italic truncate" title={captions[idx]}>{captions[idx]}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <PhotoGallery photos={log.photos} />
-                    </div>
-                  )}
+                    )
+                  })()}
 
                   {/* Firmas */}
                   {log.signatures && log.signatures.length > 0 && (

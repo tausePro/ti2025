@@ -271,15 +271,19 @@ export default function NewSamplePage({ params }: { params: { projectId: string 
       if (sampleError) throw sampleError
 
       // Crear ensayos programados según el template
-      const testsToCreate = selectedTemplate.test_configuration.test_periods.map((period: number) => ({
-        sample_id: sampleData.id,
-        test_name: selectedTemplate.test_configuration.test_name,
-        test_period: period,
-        test_date: new Date(sampleDate).getTime() + (period * 24 * 60 * 60 * 1000), // fecha + días
-        test_config: {
-          cylinders_count: selectedTemplate.test_configuration.samples_per_test
+      const testsToCreate = selectedTemplate.test_configuration.test_periods.map((period: number) => {
+        const baseDate = new Date(sampleDate + 'T12:00:00')
+        baseDate.setDate(baseDate.getDate() + period)
+        return {
+          sample_id: sampleData.id,
+          test_name: selectedTemplate.test_configuration.test_name,
+          test_period: period,
+          test_date: baseDate.toISOString().split('T')[0], // formato YYYY-MM-DD
+          test_config: {
+            cylinders_count: selectedTemplate.test_configuration.samples_per_test
+          }
         }
-      }))
+      })
 
       const { error: testsError } = await supabase
         .from('quality_control_tests')
@@ -291,7 +295,12 @@ export default function NewSamplePage({ params }: { params: { projectId: string 
       router.push(`/quality-control/${params.projectId}/${sampleData.id}`)
     } catch (error: any) {
       console.error('Error saving sample:', error)
-      setError(error.message || 'Error al guardar la muestra')
+      const msg = error.message || ''
+      if (msg.includes('duplicate key') || msg.includes('unique constraint')) {
+        setError(`Ya existe una muestra con el número "${sampleNumber}" en este proyecto. Usa un número diferente.`)
+      } else {
+        setError(msg || 'Error al guardar la muestra')
+      }
     } finally {
       setSaving(false)
     }
