@@ -38,10 +38,26 @@ const FILE_TYPES = [
   { value: 'report', label: 'Reporte' },
   { value: 'photo', label: 'Foto' },
   { value: 'drawing', label: 'Plano' },
+  { value: 'excel', label: 'Excel / Hoja de cálculo' },
+  { value: 'pdf', label: 'Documento PDF' },
+  { value: 'video', label: 'Video' },
   { value: 'other', label: 'Otro' },
 ]
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+const MAX_FILE_SIZE_DEFAULT = 10 * 1024 * 1024 // 10MB
+const MAX_FILE_SIZE_VIDEO = 100 * 1024 * 1024 // 100MB
+
+const ACCEPTED_EXTENSIONS = '.pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.avi,.mkv,.dwg,.dxf'
+
+function detectFileType(file: File): string {
+  const mime = file.type.toLowerCase()
+  const name = file.name.toLowerCase()
+  if (mime.includes('spreadsheet') || mime.includes('excel') || name.endsWith('.xls') || name.endsWith('.xlsx') || name.endsWith('.csv')) return 'excel'
+  if (mime === 'application/pdf' || name.endsWith('.pdf')) return 'pdf'
+  if (mime.startsWith('video/') || name.endsWith('.mp4') || name.endsWith('.mov') || name.endsWith('.avi')) return 'video'
+  if (mime.startsWith('image/')) return 'photo'
+  return ''
+}
 
 export function UploadDocumentDialog({ projectId, onClose, onDocumentUploaded }: UploadDocumentDialogProps) {
   const { profile } = useAuth()
@@ -60,9 +76,17 @@ export function UploadDocumentDialog({ projectId, onClose, onDocumentUploaded }:
     const selectedFile = e.target.files?.[0]
     if (!selectedFile) return
 
-    // Validar tamaño
-    if (selectedFile.size > MAX_FILE_SIZE) {
-      setError(`El archivo es demasiado grande. Máximo ${MAX_FILE_SIZE / 1024 / 1024}MB`)
+    // Auto-detectar tipo
+    const detected = detectFileType(selectedFile)
+    if (detected && !fileType) {
+      setFileType(detected)
+    }
+
+    // Validar tamaño según tipo
+    const isVideo = detected === 'video' || fileType === 'video'
+    const maxSize = isVideo ? MAX_FILE_SIZE_VIDEO : MAX_FILE_SIZE_DEFAULT
+    if (selectedFile.size > maxSize) {
+      setError(`El archivo es demasiado grande. Máximo ${maxSize / 1024 / 1024}MB${isVideo ? ' para videos' : ''}`)
       return
     }
 
@@ -204,10 +228,14 @@ export function UploadDocumentDialog({ projectId, onClose, onDocumentUploaded }:
                     Haz clic para seleccionar un archivo
                   </p>
                   <p className="text-xs text-gray-500">
-                    Máximo 10MB
+                    Máximo 10MB (100MB para videos)
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    PDF, Excel, Word, imágenes, videos, planos
                   </p>
                   <Input
                     type="file"
+                    accept={ACCEPTED_EXTENSIONS}
                     onChange={handleFileChange}
                     className="mt-4"
                     disabled={uploading}

@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { DailyLogsTimeline } from '@/components/daily-logs/DailyLogsTimeline'
 import { DailyLogsCalendar } from '@/components/daily-logs/DailyLogsCalendar'
-import { Loader2, Settings, WifiOff } from 'lucide-react'
+import { Loader2, Settings, WifiOff, Printer, CheckSquare, X } from 'lucide-react'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import {
   getLocalDailyLogsByProject,
@@ -27,9 +27,39 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
   const { profile } = useAuth()
   const { isOnline } = useOnlineStatus()
   const [isOfflineMode, setIsOfflineMode] = useState(false)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   
   // Solo admin, super_admin, gerente y supervisor pueden configurar bitácoras
   const canConfigureDailyLogs = profile?.role && ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role)
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === filteredLogs.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredLogs.map(l => l.id)))
+    }
+  }
+
+  const handlePrintSelected = () => {
+    if (selectedIds.size === 0) return
+    const ids = Array.from(selectedIds).join(',')
+    window.open(`/print/daily-logs/batch?ids=${ids}`, '_blank')
+  }
+
+  const handleExitSelection = () => {
+    setSelectionMode(false)
+    setSelectedIds(new Set())
+  }
 
   const loadData = useCallback(async () => {
     try {
@@ -228,6 +258,14 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
           </p>
         </div>
         <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => selectionMode ? handleExitSelection() : setSelectionMode(true)}
+            className={`px-4 py-2 rounded-md flex items-center gap-2 text-sm ${selectionMode ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          >
+            <CheckSquare className="h-4 w-4" />
+            {selectionMode ? 'Cancelar selección' : 'Seleccionar'}
+          </button>
           {canConfigureDailyLogs && (
             <Link
               href={`/projects/${params.id}/daily-logs/settings`}
@@ -286,10 +324,49 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
           </Link>
         </div>
           ) : (
-            <DailyLogsTimeline logs={filteredLogs} projectId={params.id} customFieldLabels={customFieldLabels} />
+            <DailyLogsTimeline
+              logs={filteredLogs}
+              projectId={params.id}
+              customFieldLabels={customFieldLabels}
+              selectable={selectionMode}
+              selectedIds={selectedIds}
+              onToggleSelect={handleToggleSelect}
+            />
           )}
         </div>
       </div>
+
+      {/* Barra de acción de selección */}
+      {selectionMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white border border-gray-200 shadow-2xl rounded-xl px-6 py-3 flex items-center gap-4">
+          <span className="text-sm font-medium text-gray-700">
+            {selectedIds.size} bitácora{selectedIds.size > 1 ? 's' : ''} seleccionada{selectedIds.size > 1 ? 's' : ''}
+          </span>
+          <button
+            type="button"
+            onClick={handleSelectAll}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            {selectedIds.size === filteredLogs.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
+          </button>
+          <button
+            type="button"
+            onClick={handlePrintSelected}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2 text-sm"
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir seleccionadas
+          </button>
+          <button
+            type="button"
+            onClick={handleExitSelection}
+            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+            title="Cerrar selección"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Botón volver */}
       <div className="mt-6">

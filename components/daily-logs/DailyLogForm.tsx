@@ -40,6 +40,8 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
     weather: 'soleado',
     temperature: undefined,
     personnel_count: 0,
+    work_front: '',
+    element: '',
     activities: '',
     materials: '',
     equipment: '',

@@ -270,45 +270,62 @@ export default async function DailyLogPrintPage({
                   </div>
                 </section>
 
+            {(log.work_front || log.element) && (
+              <section className="grid grid-cols-2 gap-4 text-sm mb-6 print-avoid-break">
+                {log.work_front && (
+                  <div>
+                    <p className="text-gray-500">Frente de Trabajo</p>
+                    <p className="font-medium">{log.work_front}</p>
+                  </div>
+                )}
+                {log.element && (
+                  <div>
+                    <p className="text-gray-500">Elemento</p>
+                    <p className="font-medium">{log.element}</p>
+                  </div>
+                )}
+              </section>
+            )}
+
             {log.activities && (
               <section className="mb-5 print-avoid-break">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-2">Actividades realizadas</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{log.activities}</p>
+                <div className="text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.activities }} />
               </section>
             )}
 
             {log.materials && (
               <section className="mb-5 print-avoid-break">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-2">Materiales utilizados</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{log.materials}</p>
+                <div className="text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.materials }} />
               </section>
             )}
 
             {log.equipment && (
               <section className="mb-5 print-avoid-break">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-2">Equipos utilizados</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{log.equipment}</p>
+                <div className="text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.equipment }} />
               </section>
             )}
 
             {log.observations && (
               <section className="mb-5 print-avoid-break">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-2">Observaciones</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{log.observations}</p>
+                <div className="text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.observations }} />
               </section>
             )}
 
             {log.issues && (
               <section className="mb-5 print-avoid-break">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-2">Problemas encontrados</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{log.issues}</p>
+                <div className="text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.issues }} />
               </section>
             )}
 
             {log.recommendations && (
               <section className="mb-5 print-avoid-break">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-2">Recomendaciones</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{log.recommendations}</p>
+                <div className="text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.recommendations }} />
               </section>
             )}
 
@@ -421,19 +438,45 @@ export default async function DailyLogPrintPage({
         @media print {
           @page {
             size: A4;
-            margin: 0;
+            margin: 10mm 10mm 15mm 10mm;
           }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
           html, body {
-            background: #fff;
+            background: #fff !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           .print-avoid-break {
             break-inside: avoid;
             page-break-inside: avoid;
           }
+          h2 {
+            page-break-after: avoid;
+          }
+          table {
+            page-break-inside: avoid;
+          }
+          p {
+            orphans: 3;
+            widows: 3;
+          }
+        }
+        .prose table {
+          border-collapse: collapse;
+          width: 100%;
+        }
+        .prose th,
+        .prose td {
+          border: 1px solid #d1d5db;
+          padding: 0.4rem 0.6rem;
+          font-size: 0.8rem;
+        }
+        .prose th {
+          background-color: #f3f4f6;
+          font-weight: 600;
         }
       `}</style>
     </div>

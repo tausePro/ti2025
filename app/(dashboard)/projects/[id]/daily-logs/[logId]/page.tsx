@@ -268,6 +268,24 @@ export default function DailyLogDetailPage({
           </div>
         </div>
 
+        {/* Frente de Trabajo y Elemento */}
+        {(log.work_front || log.element) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b">
+            {log.work_front && (
+              <div>
+                <p className="text-sm text-gray-500">Frente de Trabajo</p>
+                <p className="text-lg font-medium text-gray-900">{log.work_front}</p>
+              </div>
+            )}
+            {log.element && (
+              <div>
+                <p className="text-sm text-gray-500">Elemento</p>
+                <p className="text-lg font-medium text-gray-900">{log.element}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Actividades */}
         {log.activities && (
           <div>
@@ -275,9 +293,7 @@ export default function DailyLogDetailPage({
               <FileText className="h-5 w-5 mr-2 text-blue-600" />
               Actividades Realizadas
             </h2>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.activities}</p>
-            </div>
+            <div className="bg-gray-50 rounded-lg p-4 prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: log.activities }} />
           </div>
         )}
 
@@ -288,9 +304,7 @@ export default function DailyLogDetailPage({
               <Package className="h-5 w-5 mr-2 text-blue-600" />
               Materiales Utilizados
             </h2>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.materials}</p>
-            </div>
+            <div className="bg-gray-50 rounded-lg p-4 prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: log.materials }} />
           </div>
         )}
 
@@ -301,9 +315,7 @@ export default function DailyLogDetailPage({
               <Wrench className="h-5 w-5 mr-2 text-blue-600" />
               Equipos Utilizados
             </h2>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.equipment}</p>
-            </div>
+            <div className="bg-gray-50 rounded-lg p-4 prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: log.equipment }} />
           </div>
         )}
 
@@ -313,9 +325,7 @@ export default function DailyLogDetailPage({
             <h2 className="text-xl font-semibold text-gray-900 mb-3">
               Observaciones
             </h2>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.observations}</p>
-            </div>
+            <div className="bg-gray-50 rounded-lg p-4 prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: log.observations }} />
           </div>
         )}
 
@@ -325,9 +335,7 @@ export default function DailyLogDetailPage({
             <h2 className="text-xl font-semibold text-gray-900 mb-3">
               Problemas Encontrados
             </h2>
-            <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.issues}</p>
-            </div>
+            <div className="bg-red-50 rounded-lg p-4 border border-red-200 prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: log.issues }} />
           </div>
         )}
 
@@ -337,9 +345,7 @@ export default function DailyLogDetailPage({
             <h2 className="text-xl font-semibold text-gray-900 mb-3">
               Recomendaciones
             </h2>
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.recommendations}</p>
-            </div>
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: log.recommendations }} />
           </div>
         )}
 

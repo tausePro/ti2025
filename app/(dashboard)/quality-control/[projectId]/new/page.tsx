@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowLeft, Plus, Calendar } from 'lucide-react'
 import Link from 'next/link'
+import { getCurrentDateInputValue } from '@/lib/utils'
 
 interface Project {
   id: string
@@ -58,7 +59,7 @@ export default function NewSamplePage({ params }: { params: { projectId: string 
   const [customFormData, setCustomFormData] = useState<CustomFormData>({})
   const [sampleNumber, setSampleNumber] = useState('')
   const [sampleCode, setSampleCode] = useState('')
-  const [sampleDate, setSampleDate] = useState(new Date().toISOString().split('T')[0])
+  const [sampleDate, setSampleDate] = useState(getCurrentDateInputValue())
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(true)
@@ -271,25 +272,34 @@ export default function NewSamplePage({ params }: { params: { projectId: string 
       if (sampleError) throw sampleError
 
       // Crear ensayos programados según el template
-      const testsToCreate = selectedTemplate.test_configuration.test_periods.map((period: number) => {
-        const baseDate = new Date(sampleDate + 'T12:00:00')
-        baseDate.setDate(baseDate.getDate() + period)
-        return {
-          sample_id: sampleData.id,
-          test_name: selectedTemplate.test_configuration.test_name,
-          test_period: period,
-          test_date: baseDate.toISOString().split('T')[0], // formato YYYY-MM-DD
-          test_config: {
-            cylinders_count: selectedTemplate.test_configuration.samples_per_test
+      const testPeriods = selectedTemplate.test_configuration?.test_periods
+      const testName = selectedTemplate.test_configuration?.test_name || 'Ensayo'
+      const samplesPerTest = selectedTemplate.test_configuration?.samples_per_test || 3
+
+      if (Array.isArray(testPeriods) && testPeriods.length > 0) {
+        const testsToCreate = testPeriods.map((period: number) => {
+          // Calcular fecha del ensayo sumando días a la fecha de muestra
+          const [year, month, day] = sampleDate.split('-').map(Number)
+          const baseDate = new Date(year, month - 1, day)
+          baseDate.setDate(baseDate.getDate() + period)
+          const testDate = `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}-${String(baseDate.getDate()).padStart(2, '0')}`
+          return {
+            sample_id: sampleData.id,
+            test_name: testName,
+            test_period: period,
+            test_date: testDate,
+            test_config: {
+              cylinders_count: samplesPerTest
+            }
           }
-        }
-      })
+        })
 
-      const { error: testsError } = await supabase
-        .from('quality_control_tests')
-        .insert(testsToCreate)
+        const { error: testsError } = await supabase
+          .from('quality_control_tests')
+          .insert(testsToCreate)
 
-      if (testsError) throw testsError
+        if (testsError) throw testsError
+      }
 
       // Redirigir a detalles de la muestra
       router.push(`/quality-control/${params.projectId}/${sampleData.id}`)

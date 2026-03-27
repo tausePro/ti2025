@@ -57,8 +57,8 @@ export function useWebVitals() {
         metric.value,
         metadata
       )
-    } catch (error) {
-      console.error('Error recording web vitals:', error)
+    } catch {
+      // Fail silently - non-critical telemetry
     }
   }, [recordMetric])
 
@@ -277,8 +277,8 @@ export function useWebVitals() {
         }
       )
 
-    } catch (error) {
-      console.error('Error in web vitals tracking:', error)
+    } catch {
+      // Fail silently - non-critical telemetry
     }
   }, [measureLCP, measureFID, measureCLS, measureNavigationTiming, measureResourceTiming, recordMetric])
 

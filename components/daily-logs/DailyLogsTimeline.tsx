@@ -10,9 +10,12 @@ interface DailyLogsTimelineProps {
   logs: any[]
   projectId: string
   customFieldLabels?: Record<string, string>
+  selectable?: boolean
+  selectedIds?: Set<string>
+  onToggleSelect?: (id: string) => void
 }
 
-export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: DailyLogsTimelineProps) {
+export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {}, selectable = false, selectedIds, onToggleSelect }: DailyLogsTimelineProps) {
   // Función para obtener resumen de checklists
   const getChecklistSummary = (log: any) => {
     if (!log.custom_fields?.checklists) return null
@@ -99,7 +102,7 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                 </div>
 
                 {/* Card de la entrada */}
-                <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 ml-4">
+                <div className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 ml-4 ${selectable && selectedIds?.has(log.id) ? 'ring-2 ring-blue-500 bg-blue-50/30' : ''}`}>
                   {/* Header */}
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
@@ -145,7 +148,17 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                     </div>
 
                     {/* Botones de acción */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                      {selectable && (
+                        <label className="flex items-center cursor-pointer mr-1" title="Seleccionar para imprimir">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds?.has(log.id) || false}
+                            onChange={() => onToggleSelect?.(log.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                      )}
                       <Link
                         href={`/projects/${projectId}/daily-logs/${log.id}`}
                         className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
@@ -188,39 +201,57 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                     )}
                   </div>
 
+                  {/* Frente de Trabajo y Elemento */}
+                  {(log.work_front || log.element) && (
+                    <div className="flex flex-wrap gap-4 text-sm mb-3">
+                      {log.work_front && (
+                        <div>
+                          <span className="text-gray-500">Frente:</span>{' '}
+                          <span className="font-medium text-blue-700">{log.work_front}</span>
+                        </div>
+                      )}
+                      {log.element && (
+                        <div>
+                          <span className="text-gray-500">Elemento:</span>{' '}
+                          <span className="font-medium text-blue-700">{log.element}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Actividades y detalles */}
                   {log.activities && (
                     <div className="mb-3">
                       <p className="text-sm font-medium text-gray-700 mb-1">Actividades:</p>
-                      <p className="text-sm text-gray-600">{log.activities}</p>
+                      <div className="text-sm text-gray-600 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.activities }} />
                     </div>
                   )}
 
                   {log.materials && (
                     <div className="mb-3">
                       <p className="text-sm font-medium text-gray-700 mb-1">Materiales:</p>
-                      <p className="text-sm text-gray-600">{log.materials}</p>
+                      <div className="text-sm text-gray-600 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.materials }} />
                     </div>
                   )}
 
                   {log.equipment && (
                     <div className="mb-3">
                       <p className="text-sm font-medium text-gray-700 mb-1">Equipos:</p>
-                      <p className="text-sm text-gray-600">{log.equipment}</p>
+                      <div className="text-sm text-gray-600 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.equipment }} />
                     </div>
                   )}
 
                   {log.observations && (
                     <div className="mb-3">
                       <p className="text-sm font-medium text-gray-700 mb-1">Observaciones:</p>
-                      <p className="text-sm text-gray-600">{log.observations}</p>
+                      <div className="text-sm text-gray-600 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.observations }} />
                     </div>
                   )}
 
                   {log.issues && (
                     <div className="mb-3">
                       <p className="text-sm font-medium text-red-700 mb-1">⚠️ Problemas:</p>
-                      <p className="text-sm text-red-600">{log.issues}</p>
+                      <div className="text-sm text-red-600 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.issues }} />
                     </div>
                   )}
 

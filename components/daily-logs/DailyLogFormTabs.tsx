@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { RichTextEditor } from '@/components/ui/RichTextEditor'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { MapPin, Clock, User, Loader2, CheckCircle2, XCircle, AlertCircle, WifiOff, CloudOff, Trash2 } from 'lucide-react'
 import { CustomField, DailyLogConfig } from '@/types/daily-log-config'
@@ -56,6 +57,8 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
     weather: 'soleado',
     temperature: undefined,
     personnel_count: undefined,
+    work_front: '',
+    element: '',
     activities: '',
     materials: '',
     equipment: '',
@@ -189,6 +192,8 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
             weather: logData.weather || 'soleado',
             temperature: logData.temperature ? parseFloat(logData.temperature) : undefined,
             personnel_count: logData.personnel_count || 0,
+            work_front: logData.work_front || logData.custom_fields?.work_front || '',
+            element: logData.element || logData.custom_fields?.element || '',
             activities: logData.activities || '',
             materials: logData.materials || '',
             equipment: logData.equipment || '',
@@ -427,6 +432,8 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
         activities: formData.activities,
         materials: formData.materials,
         equipment: formData.equipment,
+        work_front: formData.work_front || null,
+        element: formData.element || null,
         observations: formData.observations,
         issues: formData.issues,
         recommendations: formData.recommendations,
@@ -744,36 +751,54 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
               <CardDescription>Describe las actividades, materiales y equipos del día</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="work_front">Frente de Trabajo</Label>
+                  <Input
+                    id="work_front"
+                    value={formData.work_front || ''}
+                    onChange={(e) => updateField('work_front', e.target.value)}
+                    placeholder="Ej: Torre A, Zona Norte, Bloque 2..."
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="element">Elemento</Label>
+                  <Input
+                    id="element"
+                    value={formData.element || ''}
+                    onChange={(e) => updateField('element', e.target.value)}
+                    placeholder="Ej: Columna C-3, Losa Piso 5, Muro M-2..."
+                  />
+                </div>
+              </div>
+
               <div>
                 <Label htmlFor="activities">Actividades Realizadas</Label>
-                <Textarea
-                  id="activities"
+                <RichTextEditor
                   value={formData.activities}
-                  onChange={(e) => updateField('activities', e.target.value)}
+                  onChange={(html) => updateField('activities', html)}
                   placeholder="Describe las actividades realizadas durante el día..."
-                  rows={4}
+                  minHeight="120px"
                 />
               </div>
 
               <div>
                 <Label htmlFor="materials">Materiales Utilizados</Label>
-                <Textarea
-                  id="materials"
-                  value={formData.materials}
-                  onChange={(e) => updateField('materials', e.target.value)}
+                <RichTextEditor
+                  value={formData.materials || ''}
+                  onChange={(html) => updateField('materials', html)}
                   placeholder="Lista de materiales utilizados..."
-                  rows={3}
+                  minHeight="90px"
                 />
               </div>
 
               <div>
                 <Label htmlFor="equipment">Equipos y Maquinaria</Label>
-                <Textarea
-                  id="equipment"
-                  value={formData.equipment}
-                  onChange={(e) => updateField('equipment', e.target.value)}
+                <RichTextEditor
+                  value={formData.equipment || ''}
+                  onChange={(html) => updateField('equipment', html)}
                   placeholder="Equipos y maquinaria utilizada..."
-                  rows={3}
+                  minHeight="90px"
                 />
               </div>
             </CardContent>
@@ -790,34 +815,31 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="observations">Observaciones Generales</Label>
-                <Textarea
-                  id="observations"
-                  value={formData.observations}
-                  onChange={(e) => updateField('observations', e.target.value)}
+                <RichTextEditor
+                  value={formData.observations || ''}
+                  onChange={(html) => updateField('observations', html)}
                   placeholder="Observaciones generales del día..."
-                  rows={4}
+                  minHeight="120px"
                 />
               </div>
 
               <div>
                 <Label htmlFor="issues">Problemas o Incidentes</Label>
-                <Textarea
-                  id="issues"
-                  value={formData.issues}
-                  onChange={(e) => updateField('issues', e.target.value)}
+                <RichTextEditor
+                  value={formData.issues || ''}
+                  onChange={(html) => updateField('issues', html)}
                   placeholder="Problemas o incidentes presentados..."
-                  rows={3}
+                  minHeight="90px"
                 />
               </div>
 
               <div>
                 <Label htmlFor="recommendations">Recomendaciones</Label>
-                <Textarea
-                  id="recommendations"
-                  value={formData.recommendations}
-                  onChange={(e) => updateField('recommendations', e.target.value)}
+                <RichTextEditor
+                  value={formData.recommendations || ''}
+                  onChange={(html) => updateField('recommendations', html)}
                   placeholder="Recomendaciones para próximas jornadas..."
-                  rows={3}
+                  minHeight="90px"
                 />
               </div>
             </CardContent>
