@@ -65,6 +65,7 @@ export function RichTextEditor({
   const editor = useEditor({
     extensions,
     content: value || '',
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: `prose prose-sm max-w-none focus:outline-none px-3 py-2`,

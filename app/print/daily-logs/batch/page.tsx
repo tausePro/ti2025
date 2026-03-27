@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
@@ -49,6 +49,18 @@ const getWeatherLabel = (weather: string) => {
 }
 
 export default function BatchPrintPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+      </div>
+    }>
+      <BatchPrintContent />
+    </Suspense>
+  )
+}
+
+function BatchPrintContent() {
   const searchParams = useSearchParams()
   const supabase = createClient()
 
