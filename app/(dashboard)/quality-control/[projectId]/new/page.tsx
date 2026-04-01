@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -48,8 +48,9 @@ interface CustomFormData {
   [key: string]: any
 }
 
-export default function NewSamplePage({ params }: { params: { projectId: string } }) {
+export default function NewSamplePage() {
   const { profile } = useAuth()
+  const params = useParams<{ projectId: string }>()
   const router = useRouter()
   const supabase = createClient()
   
@@ -177,8 +178,8 @@ export default function NewSamplePage({ params }: { params: { projectId: string 
               <SelectValue placeholder={`Seleccionar ${field.label}`} />
             </SelectTrigger>
             <SelectContent>
-              {field.options?.map((option: string) => (
-                <SelectItem key={option} value={option}>
+              {field.options?.map((option: string, index: number) => (
+                <SelectItem key={`${field.name}-select-${option}-${index}`} value={option}>
                   {option}
                 </SelectItem>
               ))}

@@ -74,6 +74,7 @@ const withPWA = require('next-pwa')({
 })
 
 const nextConfig = {
+  outputFileTracingRoot: __dirname,
   images: {
     remotePatterns: [
       {

@@ -256,7 +256,7 @@ export async function collectReportData(
   periodStart: string,
   periodEnd: string
 ): Promise<CollectedData> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // 1. Información del proyecto
   const { data: project } = await supabase

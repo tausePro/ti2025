@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -41,12 +41,9 @@ interface ResultEntry {
   notes: string
 }
 
-export default function RegisterResultsPage({ 
-  params 
-}: { 
-  params: { projectId: string; sampleId: string } 
-}) {
+export default function RegisterResultsPage() {
   const { profile } = useAuth()
+  const params = useParams<{ projectId: string; sampleId: string }>()
   const router = useRouter()
   const supabase = createClient()
 

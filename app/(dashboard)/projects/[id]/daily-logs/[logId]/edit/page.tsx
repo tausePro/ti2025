@@ -5,9 +5,10 @@ import DailyLogFormTabs from '@/components/daily-logs/DailyLogFormTabs'
 export default async function EditDailyLogPage({ 
   params 
 }: { 
-  params: { id: string; logId: string } 
+  params: Promise<{ id: string; logId: string }> 
 }) {
-  const supabase = createClient()
+  const { id, logId } = await params
+  const supabase = await createClient()
 
   // Verificar autenticación
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,7 +20,7 @@ export default async function EditDailyLogPage({
   const { data: project, error: projectError } = await (supabase
     .from('projects') as any)
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (projectError || !project) {
@@ -30,11 +31,11 @@ export default async function EditDailyLogPage({
   const { data: log, error: logError } = await (supabase
     .from('daily_logs') as any)
     .select('*')
-    .eq('id', params.logId)
+    .eq('id', logId)
     .single()
 
   if (logError || !log) {
-    redirect(`/projects/${params.id}/daily-logs`)
+    redirect(`/projects/${id}/daily-logs`)
   }
 
   return (
@@ -47,8 +48,8 @@ export default async function EditDailyLogPage({
       </div>
 
       <DailyLogFormTabs 
-        projectId={params.id}
-        logId={params.logId}
+        projectId={id}
+        logId={logId}
       />
     </div>
   )

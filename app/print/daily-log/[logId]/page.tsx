@@ -7,9 +7,10 @@ import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
 export default async function DailyLogPrintPage({
   params
 }: {
-  params: { logId: string }
+  params: Promise<{ logId: string }>
 }) {
-  const supabase = createClient()
+  const { logId } = await params
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
@@ -20,18 +21,19 @@ export default async function DailyLogPrintPage({
     .from('daily_logs') as any)
     .select(`
       *,
-      created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)
+      created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email),
+      project:projects(*)
     `)
-    .eq('id', params.logId)
+    .eq('id', logId)
     .single()
 
   if (error || !log) {
     redirect('/dashboard')
   }
 
-  const { data: project } = await (supabase
-    .from('projects') as any)
-    .select('id, name, project_code, location, address, client_name')
+  const { data: project } = await supabase
+    .from('projects')
+    .select('*')
     .eq('id', log.project_id)
     .single()
 

@@ -28,7 +28,7 @@ async function getOpenAIClient(supabase: any) {
 
 export async function POST(request: Request) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser()

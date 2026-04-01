@@ -2,8 +2,9 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { TemplateForm } from '@/components/reports/ui/TemplateForm'
 
-export default async function EditTemplatePage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function EditTemplatePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
 
   // Verificar autenticación
   const { data: { user } } = await supabase.auth.getUser()
@@ -41,7 +42,7 @@ export default async function EditTemplatePage({ params }: { params: { id: strin
   const { data: template, error } = await supabase
     .from('report_templates')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (error || !template) {

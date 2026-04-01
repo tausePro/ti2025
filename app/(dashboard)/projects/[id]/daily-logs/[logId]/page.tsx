@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
@@ -12,11 +12,8 @@ import { SyncStatusBadge } from '@/components/shared/OfflineIndicator'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import { getLocalDailyLog, getCachedProjectConfig } from '@/lib/offline/daily-log-service'
 
-export default function DailyLogDetailPage({ 
-  params 
-}: { 
-  params: { id: string; logId: string } 
-}) {
+export default function DailyLogDetailPage() {
+  const params = useParams<{ id: string; logId: string }>()
   const router = useRouter()
   const supabase = createClient()
   const { profile } = useAuth()

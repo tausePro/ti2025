@@ -2,8 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import DailyLogFormTabs from '@/components/daily-logs/DailyLogFormTabs'
 
-export default async function NewDailyLogPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+export default async function NewDailyLogPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const supabase = await createClient()
 
   // Verificar autenticación
   const { data: { user } } = await supabase.auth.getUser()
@@ -15,7 +16,7 @@ export default async function NewDailyLogPage({ params }: { params: { id: string
   const { data: project, error: projectError } = await (supabase
     .from('projects') as any)
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (projectError || !project) {
@@ -26,7 +27,7 @@ export default async function NewDailyLogPage({ params }: { params: { id: string
   const { data: template } = await (supabase
     .from('daily_log_templates') as any)
     .select('*')
-    .eq('project_id', params.id)
+    .eq('project_id', id)
     .eq('is_active', true)
     .single()
 
@@ -40,7 +41,7 @@ export default async function NewDailyLogPage({ params }: { params: { id: string
       </div>
 
       <DailyLogFormTabs 
-        projectId={params.id} 
+        projectId={id} 
         templateId={template?.id}
       />
     </div>

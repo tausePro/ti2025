@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Download, Calendar, MapPin, FileText, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
@@ -49,12 +49,9 @@ interface QualityTest {
   }[]
 }
 
-export default function SampleReportPage({ 
-  params 
-}: { 
-  params: { sampleId: string } 
-}) {
+export default function SampleReportPage() {
   const { profile } = useAuth()
+  const params = useParams<{ sampleId: string }>()
   const router = useRouter()
   const supabase = createClient()
   

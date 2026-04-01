@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { TemplatesList } from '@/components/reports/ui/TemplatesList'
 
 export default async function ReportTemplatesPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Verificar autenticación
   const { data: { user }, error: authError } = await supabase.auth.getUser()

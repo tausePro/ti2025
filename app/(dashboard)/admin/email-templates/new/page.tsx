@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { EmailTemplateForm } from '@/components/emails/EmailTemplateForm'
 
 export default async function NewEmailTemplatePage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {

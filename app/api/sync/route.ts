@@ -14,7 +14,7 @@ function cleanForSupabase(data: any): any {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser()

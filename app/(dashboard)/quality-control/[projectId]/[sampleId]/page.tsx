@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -57,22 +57,13 @@ interface QualityTest {
   test_date: string
   actual_test_date: string | null
   status: string
-  results: Array<{
-    id: string
-    specimen_number: number
-    result_value: number
-    meets_criteria: boolean | null
-    deviation_percentage: number | null
-    notes: string
-  }>
+  test_config: any
+  results: any[]
 }
 
-export default function SampleDetailsPage({ 
-  params 
-}: { 
-  params: { projectId: string; sampleId: string } 
-}) {
+export default function SampleDetailsPage() {
   const { profile, hasPermission } = useAuth()
+  const params = useParams<{ projectId: string; sampleId: string }>()
   const router = useRouter()
   const supabase = createClient()
   
