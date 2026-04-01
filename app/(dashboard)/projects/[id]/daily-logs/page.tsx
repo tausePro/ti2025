@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
@@ -16,12 +16,13 @@ import {
   getCachedProjectConfig,
 } from '@/lib/offline/daily-log-service'
 
-export default function DailyLogsPage({ params }: { params: { id: string } }) {
+export default function DailyLogsPage() {
   const [project, setProject] = useState<any>(null)
   const [dailyLogs, setDailyLogs] = useState<any[]>([])
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [customFieldLabels, setCustomFieldLabels] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
+  const params = useParams<{ id: string }>()
   const router = useRouter()
   const supabase = createClient()
   const { profile } = useAuth()
@@ -29,7 +30,11 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
   const [isOfflineMode, setIsOfflineMode] = useState(false)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  
+  const [rangeStart, setRangeStart] = useState('')
+  const [rangeEnd, setRangeEnd] = useState('')
+  const hasRangeFilter = Boolean(rangeStart || rangeEnd)
+  const isInvalidRange = Boolean(rangeStart && rangeEnd && rangeStart > rangeEnd)
+
   // Solo admin, super_admin, gerente y supervisor pueden configurar bitácoras
   const canConfigureDailyLogs = profile?.role && ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role)
 
@@ -43,7 +48,7 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
   }
 
   const handleSelectAll = () => {
-    if (selectedIds.size === filteredLogs.length) {
+    if (allFilteredSelected) {
       setSelectedIds(new Set())
     } else {
       setSelectedIds(new Set(filteredLogs.map(l => l.id)))
@@ -52,6 +57,15 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
 
   const handlePrintSelected = () => {
     if (selectedIds.size === 0) return
+
+    if (hasRangeFilter && allFilteredSelected) {
+      const queryParams = new URLSearchParams({ projectId: params.id })
+      if (rangeStart) queryParams.set('start', rangeStart)
+      if (rangeEnd) queryParams.set('end', rangeEnd)
+      window.open(`/print/daily-logs/batch?${queryParams.toString()}`, '_blank')
+      return
+    }
+
     const ids = Array.from(selectedIds).join(',')
     window.open(`/print/daily-logs/batch?ids=${ids}`, '_blank')
   }
@@ -59,6 +73,28 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
   const handleExitSelection = () => {
     setSelectionMode(false)
     setSelectedIds(new Set())
+    setRangeStart('')
+    setRangeEnd('')
+  }
+
+  const handleRangeStartChange = (value: string) => {
+    setSelectedDate(null)
+    setRangeStart(value)
+  }
+
+  const handleRangeEndChange = (value: string) => {
+    setSelectedDate(null)
+    setRangeEnd(value)
+  }
+
+  const handleClearRange = () => {
+    setRangeStart('')
+    setRangeEnd('')
+  }
+
+  const handleSelectRange = () => {
+    if (!hasRangeFilter || isInvalidRange) return
+    setSelectedIds(new Set(filteredLogs.map(log => log.id)))
   }
 
   const loadData = useCallback(async () => {
@@ -214,9 +250,39 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
   )
 
   const filteredLogs = useMemo(() => {
-    if (!selectedDate) return dailyLogs
-    return dailyLogs.filter(log => log.date === selectedDate)
-  }, [dailyLogs, selectedDate])
+    if (isInvalidRange) return []
+
+    let logs = dailyLogs
+
+    if (selectedDate) {
+      logs = logs.filter(log => log.date === selectedDate)
+    }
+
+    if (rangeStart) {
+      logs = logs.filter(log => log.date >= rangeStart)
+    }
+
+    if (rangeEnd) {
+      logs = logs.filter(log => log.date <= rangeEnd)
+    }
+
+    return logs
+  }, [dailyLogs, selectedDate, rangeStart, rangeEnd, isInvalidRange])
+
+  const allFilteredSelected = useMemo(
+    () => filteredLogs.length > 0 && filteredLogs.every(log => selectedIds.has(log.id)),
+    [filteredLogs, selectedIds]
+  )
+
+  useEffect(() => {
+    if (!selectionMode) return
+
+    const visibleIds = new Set(filteredLogs.map(log => log.id))
+    setSelectedIds(prev => {
+      const nextIds = Array.from(prev).filter(id => visibleIds.has(id))
+      return nextIds.length === prev.size ? prev : new Set(nextIds)
+    })
+  }, [filteredLogs, selectionMode])
 
   if (loading) {
     return (
@@ -312,16 +378,96 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
+          {selectionMode && (
+            <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="range-start" className="mb-1 block text-sm font-medium text-gray-700">
+                      Desde
+                    </label>
+                    <input
+                      id="range-start"
+                      type="date"
+                      value={rangeStart}
+                      onChange={(e) => handleRangeStartChange(e.target.value)}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="range-end" className="mb-1 block text-sm font-medium text-gray-700">
+                      Hasta
+                    </label>
+                    <input
+                      id="range-end"
+                      type="date"
+                      value={rangeEnd}
+                      onChange={(e) => handleRangeEndChange(e.target.value)}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSelectRange}
+                    disabled={!hasRangeFilter || isInvalidRange || filteredLogs.length === 0}
+                    className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                  >
+                    Seleccionar rango
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearRange}
+                    disabled={!hasRangeFilter}
+                    className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
+                  >
+                    Limpiar rango
+                  </button>
+                </div>
+              </div>
+
+              {isInvalidRange ? (
+                <p className="mt-3 text-sm text-red-600">La fecha inicial no puede ser mayor a la fecha final.</p>
+              ) : (
+                <p className="mt-3 text-sm text-gray-600">
+                  {hasRangeFilter
+                    ? `${filteredLogs.length} bitácora${filteredLogs.length === 1 ? '' : 's'} dentro del rango actual.`
+                    : 'Define un rango de fechas para seleccionar periodos largos y generar un solo PDF.'}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Lista de bitácoras */}
           {!filteredLogs || filteredLogs.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-500 mb-4">No hay bitácoras registradas</p>
-          <Link
-            href={`/projects/${params.id}/daily-logs/new`}
-            className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Crear Primera Bitácora
-          </Link>
+          <p className="text-gray-500 mb-4">
+            {dailyLogs.length === 0
+              ? 'No hay bitácoras registradas'
+              : 'No hay bitácoras dentro de los filtros seleccionados'}
+          </p>
+          {dailyLogs.length === 0 ? (
+            <Link
+              href={`/projects/${params.id}/daily-logs/new`}
+              className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Crear Primera Bitácora
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedDate(null)
+                setRangeStart('')
+                setRangeEnd('')
+              }}
+              className="inline-block px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            >
+              Limpiar filtros
+            </button>
+          )}
         </div>
           ) : (
             <DailyLogsTimeline
@@ -337,25 +483,27 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Barra de acción de selección */}
-      {selectionMode && selectedIds.size > 0 && (
+      {selectionMode && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white border border-gray-200 shadow-2xl rounded-xl px-6 py-3 flex items-center gap-4">
           <span className="text-sm font-medium text-gray-700">
-            {selectedIds.size} bitácora{selectedIds.size > 1 ? 's' : ''} seleccionada{selectedIds.size > 1 ? 's' : ''}
+            {selectedIds.size} de {filteredLogs.length} visible{filteredLogs.length === 1 ? '' : 's'} seleccionada{selectedIds.size === 1 ? '' : 's'}
           </span>
           <button
             type="button"
             onClick={handleSelectAll}
-            className="text-sm text-blue-600 hover:underline"
+            disabled={filteredLogs.length === 0}
+            className="text-sm text-blue-600 hover:underline disabled:cursor-not-allowed disabled:text-gray-400"
           >
-            {selectedIds.size === filteredLogs.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
+            {allFilteredSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
           </button>
           <button
             type="button"
             onClick={handlePrintSelected}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2 text-sm"
+            disabled={selectedIds.size === 0}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2 text-sm disabled:cursor-not-allowed disabled:bg-gray-300"
           >
             <Printer className="h-4 w-4" />
-            Imprimir seleccionadas
+            {hasRangeFilter && allFilteredSelected ? 'Generar / imprimir rango' : 'Generar / imprimir PDF'}
           </button>
           <button
             type="button"

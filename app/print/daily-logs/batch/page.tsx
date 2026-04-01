@@ -69,6 +69,11 @@ function BatchPrintContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const idsParam = searchParams.get('ids')
+  const projectIdParam = searchParams.get('projectId')
+  const startParam = searchParams.get('start')
+  const endParam = searchParams.get('end')
+
   useEffect(() => {
     loadLogs()
   }, [])
@@ -81,27 +86,37 @@ function BatchPrintContent() {
 
   const loadLogs = async () => {
     try {
-      const idsParam = searchParams.get('ids')
-      if (!idsParam) {
-        setError('No se proporcionaron IDs de bitácoras')
-        return
-      }
-
-      const ids = idsParam.split(',').filter(Boolean)
-      if (ids.length === 0) {
-        setError('No se proporcionaron IDs válidos')
-        return
-      }
-
-      const { data: logsData, error: logsError } = await supabase
+      let query = supabase
         .from('daily_logs')
         .select(`
           *,
           created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email),
           assigned_to_profile:profiles!daily_logs_assigned_to_fkey(full_name, email, role, professional_license, phone, signature_url)
         `)
-        .in('id', ids)
-        .order('date', { ascending: true })
+
+      if (idsParam) {
+        const ids = idsParam.split(',').filter(Boolean)
+        if (ids.length === 0) {
+          setError('No se proporcionaron IDs válidos')
+          return
+        }
+        query = query.in('id', ids)
+      } else if (projectIdParam && (startParam || endParam)) {
+        query = query.eq('project_id', projectIdParam)
+
+        if (startParam) {
+          query = query.gte('date', startParam)
+        }
+
+        if (endParam) {
+          query = query.lte('date', endParam)
+        }
+      } else {
+        setError('Debes indicar bitácoras por IDs o por rango de fechas')
+        return
+      }
+
+      const { data: logsData, error: logsError } = await query.order('date', { ascending: true })
 
       if (logsError) throw logsError
       if (!logsData || logsData.length === 0) {
@@ -153,7 +168,9 @@ function BatchPrintContent() {
       <div className="flex items-center justify-center min-h-screen bg-white">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Cargando {searchParams.get('ids')?.split(',').length || 0} bitácoras...</p>
+          <p className="mt-4 text-gray-600">
+            Cargando {idsParam ? `${idsParam.split(',').length} bitácoras seleccionadas` : 'bitácoras del rango solicitado'}...
+          </p>
         </div>
       </div>
     )
