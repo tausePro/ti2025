@@ -26,13 +26,60 @@ import { CustomField, DailyLogConfig } from '@/types/daily-log-config'
 import { useAuth } from '@/contexts/AuthContext'
 import { getCurrentDateInputValue } from '@/lib/utils'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
-import { saveLocalDailyLog, saveLocalPhoto, cacheProjectConfig, getCachedProjectConfig } from '@/lib/offline/daily-log-service'
+import { saveLocalDailyLog, replaceLocalPendingPhotos, clearLocalPendingPhotos, cacheProjectConfig, getCachedProjectConfig } from '@/lib/offline/daily-log-service'
 
 interface DailyLogFormTabsProps {
   projectId: string
   templateId?: string
   logId?: string // Para modo edición
   onSuccess?: () => void
+}
+
+function normalizeStoredPhotoUrls(photos: unknown): string[] {
+  if (!Array.isArray(photos)) {
+    return []
+  }
+
+  return photos.flatMap((photo) => {
+    if (typeof photo === 'string' && photo.trim()) {
+      return [photo]
+    }
+
+    if (
+      photo &&
+      typeof photo === 'object' &&
+      'url' in photo &&
+      typeof (photo as { url?: unknown }).url === 'string'
+    ) {
+      return [(photo as { url: string }).url]
+    }
+
+    return []
+  })
+}
+
+function buildOfflinePhotoFile(photo: {
+  blob_data: Blob
+  filename: string
+  original_name?: string
+  mime_type?: string
+}): File {
+  return new File(
+    [photo.blob_data],
+    photo.original_name || photo.filename || `foto-${Date.now()}.jpg`,
+    {
+      type: photo.mime_type || photo.blob_data.type || 'image/jpeg',
+      lastModified: Date.now(),
+    }
+  )
+}
+
+function normalizePhotoCaptions(captions: unknown, totalPhotos: number): string[] {
+  const source = Array.isArray(captions) ? captions : []
+  return Array.from({ length: totalPhotos }, (_, index) => {
+    const value = source[index]
+    return typeof value === 'string' ? value : ''
+  })
 }
 
 export default function DailyLogFormTabs({ projectId, templateId, logId, onSuccess }: DailyLogFormTabsProps) {
@@ -72,6 +119,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
     photos: [],
     custom_fields: {}
   })
+  const [existingPhotos, setExistingPhotos] = useState<string[]>([])
   const [photoCaptions, setPhotoCaptions] = useState<string[]>([])
 
   // Hook de geolocalización
@@ -165,6 +213,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
       // Si es modo edición, cargar datos existentes
       if (logId) {
         let logData: any = null
+        const { getLocalDailyLog, getLocalPhotos } = await import('@/lib/offline/daily-log-service')
 
         if (isOnline) {
           try {
@@ -175,17 +224,24 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
               .single()
             logData = data
           } catch {
-            // Fallback: buscar en IndexedDB
-            const { getLocalDailyLog } = await import('@/lib/offline/daily-log-service')
             logData = await getLocalDailyLog(logId)
           }
         } else {
-          const { getLocalDailyLog } = await import('@/lib/offline/daily-log-service')
           logData = await getLocalDailyLog(logId)
         }
         
         if (logData) {
           const loadedChecklists = logData.custom_fields?.checklists || CHECKLIST_SECTIONS
+          const storedPhotoUrls = normalizeStoredPhotoUrls(logData.photos)
+          const localPhotos = await getLocalPhotos(logId)
+          const pendingLocalFiles = localPhotos
+            .filter(photo => !photo.remote_url)
+            .map(buildOfflinePhotoFile)
+          const nextPhotoCaptions = normalizePhotoCaptions(
+            logData.custom_fields?.photo_captions,
+            storedPhotoUrls.length + pendingLocalFiles.length
+          )
+
           setFormData({
             date: logData.date || getCurrentDateInputValue(),
             time: logData.time || new Date().toTimeString().slice(0, 5),
@@ -204,9 +260,11 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
             location: logData.location || undefined,
             signatures: logData.signatures || [],
             checklists: loadedChecklists,
-            photos: [],
+            photos: pendingLocalFiles,
             custom_fields: logData.custom_fields || {}
           })
+          setExistingPhotos(storedPhotoUrls)
+          setPhotoCaptions(nextPhotoCaptions)
 
           setCollapsedSections(
             (loadedChecklists as ChecklistSection[]).reduce((acc, section) => {
@@ -216,6 +274,8 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
           )
         }
       } else {
+        setExistingPhotos([])
+        setPhotoCaptions([])
         // Modo creación: inicializar campos custom con defaults
         if (configData?.custom_fields) {
           const customFieldsData: Record<string, any> = {}
@@ -440,11 +500,12 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
         assigned_to: formData.assigned_to || null,
         location: formData.location || null,
         signatures: logId ? formData.signatures : [autoSignature],
+        photos: existingPhotos,
         custom_fields: {
           ...formData.custom_fields,
           checklists: normalizedChecklists,
           _field_labels: mergedFieldLabels,
-          ...(photoCaptions.length > 0 ? { photo_captions: photoCaptions } : {})
+          photo_captions: photoCaptions
         },
       }
 
@@ -486,6 +547,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
           }
 
           // Upload de fotos online
+          let finalPhotoUrls = Array.isArray(data?.photos) ? data.photos : existingPhotos
           if (formData.photos && formData.photos.length > 0 && data) {
             const photoUrls: string[] = []
             for (let i = 0; i < formData.photos.length; i++) {
@@ -504,12 +566,27 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
                 .getPublicUrl(fileName)
               photoUrls.push(publicUrl)
             }
-            if (photoUrls.length > 0) {
+            finalPhotoUrls = [...existingPhotos, ...photoUrls]
+            if (photoUrls.length > 0 || existingPhotos.length > 0) {
               await supabase
                 .from('daily_logs')
-                .update({ photos: photoUrls })
+                .update({ photos: finalPhotoUrls })
                 .eq('id', data.id)
             }
+          }
+          if (data) {
+            data = {
+              ...data,
+              photos: finalPhotoUrls,
+              custom_fields: {
+                ...data.custom_fields,
+                photo_captions: photoCaptions,
+              },
+            }
+          }
+
+          if (logId) {
+            await clearLocalPendingPhotos(logId)
           }
 
           // Cachear en local como synced
@@ -543,10 +620,8 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
       )
 
       // Guardar fotos en IndexedDB
+      await replaceLocalPendingPhotos(localLog.id, formData.photos || [])
       if (formData.photos && formData.photos.length > 0) {
-        for (const file of formData.photos) {
-          await saveLocalPhoto(localLog.id, file)
-        }
         console.log(`📸 ${formData.photos.length} fotos guardadas localmente`)
       }
 
@@ -997,6 +1072,8 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
               <PhotoUpload
                 photos={formData.photos}
                 onPhotosChange={(photos) => updateField('photos', photos)}
+                existingPhotos={existingPhotos}
+                onExistingPhotosChange={setExistingPhotos}
                 captions={photoCaptions}
                 onCaptionsChange={setPhotoCaptions}
                 maxPhotos={10}

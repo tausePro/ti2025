@@ -29,6 +29,7 @@ export interface SaveDailyLogParams {
   location?: any
   signatures?: any[]
   custom_fields?: any
+  photos?: string[]
 }
 
 export async function saveLocalDailyLog(
@@ -57,7 +58,7 @@ export async function saveLocalDailyLog(
     location: params.location,
     signatures: params.signatures,
     custom_fields: params.custom_fields,
-    photos: [],
+    photos: params.photos || [],
     created_by: params.created_by,
     created_at: isNew ? now : (await getLocalDailyLog(id))?.created_at || now,
     updated_at: now,
@@ -110,6 +111,34 @@ export async function saveLocalPhoto(
 
 export async function getLocalPhotos(dailyLogId: string): Promise<OfflinePhoto[]> {
   return db.photos.where('daily_log_id').equals(dailyLogId).toArray()
+}
+
+export async function clearLocalPendingPhotos(dailyLogId: string): Promise<void> {
+  const localPhotos = await getLocalPhotos(dailyLogId)
+  const pendingPhotoIds = localPhotos
+    .filter(photo => !photo.remote_url)
+    .map(photo => photo.id)
+
+  if (pendingPhotoIds.length === 0) {
+    return
+  }
+
+  await db.photos.bulkDelete(pendingPhotoIds)
+}
+
+export async function replaceLocalPendingPhotos(
+  dailyLogId: string,
+  files: File[]
+): Promise<OfflinePhoto[]> {
+  await clearLocalPendingPhotos(dailyLogId)
+
+  const savedPhotos: OfflinePhoto[] = []
+
+  for (const file of files) {
+    savedPhotos.push(await saveLocalPhoto(dailyLogId, file))
+  }
+
+  return savedPhotos
 }
 
 export async function getLocalPhotoAsUrl(photo: OfflinePhoto): Promise<string> {
