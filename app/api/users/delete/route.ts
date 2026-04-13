@@ -13,7 +13,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Verificar autenticación y permisos del usuario actual
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user: currentUser } } = await supabase.auth.getUser()
 
     if (!currentUser) {

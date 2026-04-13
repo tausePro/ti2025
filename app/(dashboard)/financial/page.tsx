@@ -6,18 +6,27 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { 
-  DollarSign, 
-  TrendingUp, 
-  TrendingDown,
   Building2,
   FileText,
   AlertCircle,
   CheckCircle,
   Clock,
   Wallet,
-  ArrowUpRight,
-  ArrowDownRight
+  XCircle,
+  Banknote,
+  Filter
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -46,6 +55,7 @@ interface PaymentOrder {
   status: 'pendiente' | 'aprobado' | 'rechazado' | 'pagado'
   priority: 'low' | 'normal' | 'high' | 'urgent'
   requested_at: string
+  rejection_reason?: string | null
   project: {
     name: string
     code: string
@@ -77,78 +87,169 @@ export default function FinancialPage() {
     approvedOrders: 0,
     totalPendingAmount: 0
   })
+  const [statusFilter, setStatusFilter] = useState<string>('active')
+  const [selectedOrder, setSelectedOrder] = useState<PaymentOrder | null>(null)
+  const [showApproveDialog, setShowApproveDialog] = useState(false)
+  const [showRejectDialog, setShowRejectDialog] = useState(false)
+  const [showPaidDialog, setShowPaidDialog] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [actionLoading, setActionLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+  const isGerente = profile?.role === 'gerente'
 
   useEffect(() => {
-    console.log('👤 Profile en /financial:', profile)
-    
-    // Verificar permisos: solo admin y gerente
-    if (profile && profile.role !== 'admin' && profile.role !== 'gerente') {
-      console.log('❌ Sin permisos, rol:', profile.role)
+    if (profile && !isAdmin && !isGerente) {
       router.push('/dashboard')
       return
     }
-
-    if (profile) {
-      console.log('✅ Permisos OK, cargando datos...')
-      loadFinancialData()
-    }
-  }, [profile, router])
+    if (profile) loadFinancialData()
+  }, [profile, router, statusFilter])
 
   async function loadFinancialData() {
     try {
-      console.log('🔄 Cargando datos financieros...')
-      
-      // Cargar cuentas fiduciarias con información del proyecto
       const { data: accountsData, error: accountsError } = await supabase
         .from('fiduciary_accounts')
-        .select(`
-          *,
-          project:projects(name, code)
-        `)
+        .select(`*, project:projects(name, code)`)
         .order('created_at', { ascending: false })
 
-      console.log('📊 Cuentas fiduciarias:', accountsData?.length || 0, accountsError)
       if (accountsError) throw accountsError
 
-      // Cargar órdenes de pago pendientes y aprobadas
-      const { data: ordersData, error: ordersError } = await supabase
+      let ordersQuery = supabase
         .from('payment_orders')
-        .select(`
-          *,
-          project:projects(name, code)
-        `)
-        .in('status', ['pendiente', 'aprobado'])
+        .select(`*, project:projects(name, code)`)
         .order('requested_at', { ascending: false })
-        .limit(10)
+        .limit(20)
 
-      console.log('📋 Órdenes de pago:', ordersData?.length || 0, ordersError)
+      if (statusFilter === 'active') {
+        ordersQuery = ordersQuery.in('status', ['pendiente', 'aprobado'])
+      } else if (statusFilter !== 'all') {
+        ordersQuery = ordersQuery.eq('status', statusFilter)
+      }
+
+      const { data: ordersData, error: ordersError } = await ordersQuery
       if (ordersError) throw ordersError
 
-      setAccounts(accountsData || [])
-      setPaymentOrders(ordersData || [])
+      const normalizedAccounts = (accountsData || []).map((a: any) => ({
+        ...a,
+        project: Array.isArray(a.project) ? a.project[0] : a.project
+      }))
+      const normalizedOrders = (ordersData || []).map((o: any) => ({
+        ...o,
+        project: Array.isArray(o.project) ? o.project[0] : o.project
+      }))
 
-      // Calcular resumen
-      const totalBalance = (accountsData || []).reduce((sum, acc) => sum + Number(acc.current_balance), 0)
-      const activeAccounts = (accountsData || []).filter(acc => acc.is_active).length
-      const pendingOrders = (ordersData || []).filter(order => order.status === 'pendiente').length
-      const approvedOrders = (ordersData || []).filter(order => order.status === 'aprobado').length
-      const totalPendingAmount = (ordersData || [])
-        .filter(order => order.status === 'pendiente')
-        .reduce((sum, order) => sum + Number(order.amount), 0)
+      setAccounts(normalizedAccounts)
+      setPaymentOrders(normalizedOrders)
+
+      const totalBalance = normalizedAccounts.reduce((sum: number, acc: any) => sum + Number(acc.current_balance), 0)
+      const activeAccounts = normalizedAccounts.filter((acc: any) => acc.is_active).length
+      const pendingOrders = normalizedOrders.filter((o: any) => o.status === 'pendiente').length
+      const approvedOrders = normalizedOrders.filter((o: any) => o.status === 'aprobado').length
+      const totalPendingAmount = normalizedOrders
+        .filter((o: any) => o.status === 'pendiente')
+        .reduce((sum: number, o: any) => sum + Number(o.amount), 0)
 
       setSummary({
         totalBalance,
-        totalAccounts: (accountsData || []).length,
+        totalAccounts: normalizedAccounts.length,
         activeAccounts,
         pendingOrders,
         approvedOrders,
         totalPendingAmount
       })
-
     } catch (error) {
       console.error('Error loading financial data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleApprove = async () => {
+    if (!selectedOrder) return
+    try {
+      setActionLoading(true)
+      setError('')
+      const { error } = await supabase
+        .from('payment_orders')
+        .update({
+          status: 'aprobado',
+          approved_by: profile!.id,
+          approved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedOrder.id)
+        .eq('status', 'pendiente')
+
+      if (error) throw error
+      setSuccess(`Orden ${selectedOrder.order_number} aprobada`)
+      setShowApproveDialog(false)
+      setSelectedOrder(null)
+      loadFinancialData()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleReject = async () => {
+    if (!selectedOrder || !rejectionReason.trim()) {
+      setError('Debes indicar un motivo de rechazo')
+      return
+    }
+    try {
+      setActionLoading(true)
+      setError('')
+      const { error } = await supabase
+        .from('payment_orders')
+        .update({
+          status: 'rechazado',
+          rejection_reason: rejectionReason.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedOrder.id)
+        .eq('status', 'pendiente')
+
+      if (error) throw error
+      setSuccess(`Orden ${selectedOrder.order_number} rechazada`)
+      setShowRejectDialog(false)
+      setRejectionReason('')
+      setSelectedOrder(null)
+      loadFinancialData()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleMarkPaid = async () => {
+    if (!selectedOrder) return
+    try {
+      setActionLoading(true)
+      setError('')
+      const { error } = await supabase
+        .from('payment_orders')
+        .update({
+          status: 'pagado',
+          paid_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedOrder.id)
+        .eq('status', 'aprobado')
+
+      if (error) throw error
+      setSuccess(`Orden ${selectedOrder.order_number} marcada como pagada`)
+      setShowPaidDialog(false)
+      setSelectedOrder(null)
+      loadFinancialData()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setActionLoading(false)
     }
   }
 
@@ -164,11 +265,11 @@ export default function FinancialPage() {
     const statusConfig = {
       pendiente: { label: 'Pendiente', variant: 'secondary' as const, icon: Clock },
       aprobado: { label: 'Aprobada', variant: 'default' as const, icon: CheckCircle },
-      rechazado: { label: 'Rechazada', variant: 'destructive' as const, icon: AlertCircle },
-      pagado: { label: 'Pagada', variant: 'default' as const, icon: CheckCircle }
+      rechazado: { label: 'Rechazada', variant: 'destructive' as const, icon: XCircle },
+      pagado: { label: 'Pagada', variant: 'default' as const, icon: Banknote }
     }
 
-    const config = statusConfig[status as keyof typeof statusConfig]
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pendiente
     const Icon = config.icon
 
     return (
@@ -187,7 +288,7 @@ export default function FinancialPage() {
       urgent: { label: 'Urgente', className: 'bg-red-100 text-red-800' }
     }
 
-    const config = priorityConfig[priority as keyof typeof priorityConfig]
+    const config = priorityConfig[priority as keyof typeof priorityConfig] || priorityConfig.normal
 
     return (
       <Badge variant="outline" className={config.className}>
@@ -212,6 +313,20 @@ export default function FinancialPage() {
         <p className="text-gray-600">Resumen de cuentas fiduciarias y órdenes de pago</p>
       </div>
 
+      {/* Alerts */}
+      {success && (
+        <Alert className="bg-green-50 border-green-200">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">{success}</AlertDescription>
+        </Alert>
+      )}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Resumen financiero */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
@@ -229,7 +344,7 @@ export default function FinancialPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={summary.pendingOrders > 0 ? 'border-orange-200 bg-orange-50/50' : ''}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Órdenes Pendientes</CardTitle>
             <Clock className="h-4 w-4 text-orange-600" />
@@ -292,7 +407,7 @@ export default function FinancialPage() {
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold">{account.project.name}</h3>
+                      <h3 className="font-semibold">{account.project?.name || 'Sin proyecto'}</h3>
                       <Badge variant="outline" className="text-xs">
                         SIFI {account.sifi_code}
                       </Badge>
@@ -308,7 +423,7 @@ export default function FinancialPage() {
                     </div>
                     <p className="text-sm text-gray-600">{account.account_name}</p>
                     <p className="text-xs text-gray-500">
-                      {account.bank_name} • {account.account_number}
+                      {account.bank_name} &bull; {account.account_number}
                     </p>
                   </div>
                   <div className="text-right">
@@ -324,46 +439,102 @@ export default function FinancialPage() {
         </CardContent>
       </Card>
 
-      {/* Órdenes de Pago Recientes */}
+      {/* Órdenes de Pago */}
       <Card>
         <CardHeader>
-          <CardTitle>Órdenes de Pago Recientes</CardTitle>
-          <CardDescription>
-            Últimas solicitudes de pago pendientes y aprobadas
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Órdenes de Pago</CardTitle>
+              <CardDescription>
+                Gestiona las solicitudes de pago
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="active">Pendientes y Aprobadas</option>
+                <option value="pendiente">Solo Pendientes</option>
+                <option value="aprobado">Solo Aprobadas</option>
+                <option value="rechazado">Rechazadas</option>
+                <option value="pagado">Pagadas</option>
+                <option value="all">Todas</option>
+              </select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {paymentOrders.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>No hay órdenes de pago pendientes</p>
+              <p>No hay órdenes de pago con el filtro seleccionado</p>
             </div>
           ) : (
             <div className="space-y-4">
               {paymentOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors gap-3"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="font-semibold">{order.order_number}</h3>
                       {getStatusBadge(order.status)}
                       {getPriorityBadge(order.priority)}
                     </div>
-                    <p className="text-sm text-gray-600 mb-1">{order.description}</p>
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                      <span>Proyecto: {order.project.name}</span>
-                      <span>•</span>
-                      <span>Beneficiario: {order.beneficiary_name}</span>
-                      <span>•</span>
+                    <p className="text-sm text-gray-600 mb-1 truncate">{order.description}</p>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
+                      <span>{order.project?.name || 'Sin proyecto'}</span>
+                      <span>&bull;</span>
+                      <span>{order.beneficiary_name}</span>
+                      <span>&bull;</span>
                       <span>{new Date(order.requested_at).toLocaleDateString('es-CO')}</span>
                     </div>
+                    {order.status === 'rechazado' && order.rejection_reason && (
+                      <p className="text-xs text-red-600 mt-1">
+                        Motivo: {order.rejection_reason}
+                      </p>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold">
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <p className="text-xl font-bold whitespace-nowrap">
                       {formatCurrency(order.amount)}
                     </p>
+                    <div className="flex gap-1">
+                      {order.status === 'pendiente' && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={() => { setSelectedOrder(order); setShowApproveDialog(true) }}
+                          >
+                            <CheckCircle className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => { setSelectedOrder(order); setShowRejectDialog(true) }}
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      )}
+                      {order.status === 'aprobado' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-green-300 text-green-700 hover:bg-green-50"
+                          onClick={() => { setSelectedOrder(order); setShowPaidDialog(true) }}
+                        >
+                          <Banknote className="h-3.5 w-3.5 mr-1" />
+                          Pagada
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -371,6 +542,78 @@ export default function FinancialPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dialog: Aprobar Orden */}
+      <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Aprobar Orden de Pago</DialogTitle>
+            <DialogDescription>
+              Se aprobará la orden <strong>{selectedOrder?.order_number}</strong> por <strong>{selectedOrder ? formatCurrency(selectedOrder.amount) : ''}</strong> a favor de <strong>{selectedOrder?.beneficiary_name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowApproveDialog(false); setSelectedOrder(null) }} disabled={actionLoading}>
+              Cancelar
+            </Button>
+            <Button className="bg-green-600 hover:bg-green-700" onClick={handleApprove} disabled={actionLoading}>
+              {actionLoading ? 'Aprobando...' : 'Aprobar Orden'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Rechazar Orden */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rechazar Orden de Pago</DialogTitle>
+            <DialogDescription>
+              Se rechazará la orden <strong>{selectedOrder?.order_number}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Motivo del rechazo *</Label>
+              <Textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Explica por qué se rechaza esta orden..."
+                rows={3}
+                required
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowRejectDialog(false); setRejectionReason(''); setSelectedOrder(null) }} disabled={actionLoading}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleReject} disabled={actionLoading || !rejectionReason.trim()}>
+              {actionLoading ? 'Rechazando...' : 'Rechazar Orden'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Marcar como Pagada */}
+      <Dialog open={showPaidDialog} onOpenChange={setShowPaidDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Pago</DialogTitle>
+            <DialogDescription>
+              Se marcará como pagada la orden <strong>{selectedOrder?.order_number}</strong> por <strong>{selectedOrder ? formatCurrency(selectedOrder.amount) : ''}</strong> a favor de <strong>{selectedOrder?.beneficiary_name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowPaidDialog(false); setSelectedOrder(null) }} disabled={actionLoading}>
+              Cancelar
+            </Button>
+            <Button onClick={handleMarkPaid} disabled={actionLoading}>
+              {actionLoading ? 'Procesando...' : 'Confirmar Pago'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

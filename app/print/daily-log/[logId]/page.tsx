@@ -2,13 +2,15 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AutoPrint } from '@/components/print/AutoPrint'
 import { replacePlaceholders } from '@/lib/reports/placeholder-replacer'
+import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
 
 export default async function DailyLogPrintPage({
   params
 }: {
-  params: { logId: string }
+  params: Promise<{ logId: string }>
 }) {
-  const supabase = createClient()
+  const { logId } = await params
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
@@ -19,18 +21,19 @@ export default async function DailyLogPrintPage({
     .from('daily_logs') as any)
     .select(`
       *,
-      created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)
+      created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email),
+      project:projects(*)
     `)
-    .eq('id', params.logId)
+    .eq('id', logId)
     .single()
 
   if (error || !log) {
     redirect('/dashboard')
   }
 
-  const { data: project } = await (supabase
-    .from('projects') as any)
-    .select('id, name, project_code, location, address, client_name')
+  const { data: project } = await supabase
+    .from('projects')
+    .select('*')
     .eq('id', log.project_id)
     .single()
 
@@ -72,14 +75,9 @@ export default async function DailyLogPrintPage({
     : { data: null }
 
   const storedLabels = (log.custom_fields as any)?._field_labels || {}
-  const customFieldLabels = (configData?.custom_fields || []).reduce(
-    (acc: Record<string, string>, field: any) => {
-      if (field?.id && field?.label) {
-        acc[field.id] = field.label
-      }
-      return acc
-    },
-    { ...storedLabels }
+  const customFieldLabels = getCustomFieldLabelsMap(
+    (configData?.custom_fields || []) as Array<{ id?: string; label?: string }>,
+    storedLabels
   )
 
   const checklistSections = (log.custom_fields?.checklists || [])
@@ -90,7 +88,12 @@ export default async function DailyLogPrintPage({
       )
     }))
     .filter((section: any) => section.items?.length)
-  const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => key !== 'checklists')
+  const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => !['checklists', '_field_labels', 'photo_count', 'photo_captions', 'work_front', 'element'].includes(key))
+  const photoCaptions: string[] = Array.isArray(log.custom_fields?.photo_captions)
+    ? log.custom_fields.photo_captions
+    : typeof log.custom_fields?.photo_captions === 'string'
+      ? log.custom_fields.photo_captions.split(',')
+      : []
 
   const getWeatherLabel = (weather: string) => {
     switch (weather) {
@@ -183,7 +186,7 @@ export default async function DailyLogPrintPage({
                 </div>
                 {template?.header_config?.show_date && (
                   <div className="text-right text-xs">
-                    {new Date(log.date).toLocaleDateString('es-CO', {
+                    {formatDateValue(log.date, 'es-CO', {
                       year: 'numeric',
                       month: 'long',
                       day: 'numeric'
@@ -224,95 +227,111 @@ export default async function DailyLogPrintPage({
           </div>
         </div>
       ) : (
-        <>
-          <img
-            src="/brand/MEMBRETE%20TI.jpg"
-            alt="Membrete"
-            className="fixed inset-0 w-full h-full object-cover pointer-events-none select-none"
-            style={{ zIndex: 0 }}
-          />
+        <div className="membrete-page max-w-[210mm] mx-auto">
+          {/* ===== HEADER FIJO: Logo ===== */}
+          <header className="membrete-header">
+            <img
+              src="/brand/logo-header.png"
+              alt="Talento Inmobiliario"
+              className="h-14 object-contain"
+            />
+          </header>
 
-          <div className="max-w-[210mm] mx-auto px-6 pb-10 pt-24">
-            <div className="relative" style={{ zIndex: 1 }}>
-              <div className="bg-white/95 p-6">
-                <header className="border-b border-gray-200 pb-4 mb-6">
-                  <div className="flex flex-col gap-2">
-                    <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Reporte Diario</p>
-                    <h1 className="text-2xl font-bold text-gray-900">Bitácora diaria</h1>
-                    <p className="text-gray-600">Proyecto: {project?.name}</p>
-                    <p className="text-gray-600">
-                      Fecha: {new Date(log.date).toLocaleDateString('es-CO', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                </header>
+          {/* ===== CONTENIDO ===== */}
+          <main className="membrete-body px-10">
+            <div className="mb-6">
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Reporte Diario</p>
+              <h1 className="text-2xl font-bold text-gray-900 mt-1">Bitácora diaria</h1>
+              <p className="text-gray-600 mt-1">Proyecto: {project?.name}</p>
+              <p className="text-gray-600">
+                Fecha: {formatDateValue(log.date, 'es-CO', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </p>
+            </div>
 
-                <section className="grid grid-cols-2 gap-4 text-sm mb-6 print-avoid-break">
+            <section className="grid grid-cols-2 gap-4 text-sm mb-6 print-avoid-break">
+              <div>
+                <p className="text-gray-500">Clima</p>
+                <p className="font-medium">{getWeatherLabel(log.weather)}</p>
+              </div>
+              {log.temperature && (
+                <div>
+                  <p className="text-gray-500">Temperatura</p>
+                  <p className="font-medium">{log.temperature}°C</p>
+                </div>
+              )}
+              <div>
+                <p className="text-gray-500">Personal</p>
+                <p className="font-medium">{log.personnel_count ?? 0} personas</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Elaborado por</p>
+                <p className="font-medium">
+                  {assignedProfile?.full_name || assignedProfile?.email || log.created_by_profile?.full_name || 'Usuario'}
+                </p>
+              </div>
+            </section>
+
+            {(log.work_front || log.element) && (
+              <section className="grid grid-cols-2 gap-4 text-sm mb-6 print-avoid-break">
+                {log.work_front && (
                   <div>
-                    <p className="text-gray-500">Clima</p>
-                    <p className="font-medium">{getWeatherLabel(log.weather)}</p>
+                    <p className="text-gray-500">Frente de Trabajo</p>
+                    <p className="font-medium">{log.work_front}</p>
                   </div>
-                  {log.temperature && (
-                    <div>
-                      <p className="text-gray-500">Temperatura</p>
-                      <p className="font-medium">{log.temperature}°C</p>
-                    </div>
-                  )}
+                )}
+                {log.element && (
                   <div>
-                    <p className="text-gray-500">Personal</p>
-                    <p className="font-medium">{log.personnel_count ?? 0} personas</p>
+                    <p className="text-gray-500">Elemento</p>
+                    <p className="font-medium">{log.element}</p>
                   </div>
-                  <div>
-                    <p className="text-gray-500">Elaborado por</p>
-                    <p className="font-medium">
-                      {assignedProfile?.full_name || assignedProfile?.email || log.created_by_profile?.full_name || 'Usuario'}
-                    </p>
-                  </div>
-                </section>
+                )}
+              </section>
+            )}
 
             {log.activities && (
               <section className="mb-5 print-avoid-break">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-2">Actividades realizadas</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{log.activities}</p>
+                <div className="text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.activities }} />
               </section>
             )}
 
             {log.materials && (
               <section className="mb-5 print-avoid-break">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-2">Materiales utilizados</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{log.materials}</p>
+                <div className="text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.materials }} />
               </section>
             )}
 
             {log.equipment && (
               <section className="mb-5 print-avoid-break">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-2">Equipos utilizados</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{log.equipment}</p>
+                <div className="text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.equipment }} />
               </section>
             )}
 
             {log.observations && (
               <section className="mb-5 print-avoid-break">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-2">Observaciones</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{log.observations}</p>
+                <div className="text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.observations }} />
               </section>
             )}
 
             {log.issues && (
               <section className="mb-5 print-avoid-break">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-2">Problemas encontrados</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{log.issues}</p>
+                <div className="text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.issues }} />
               </section>
             )}
 
             {log.recommendations && (
               <section className="mb-5 print-avoid-break">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-2">Recomendaciones</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{log.recommendations}</p>
+                <div className="text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.recommendations }} />
               </section>
             )}
 
@@ -333,11 +352,11 @@ export default async function DailyLogPrintPage({
             )}
 
             {checklistSections.length > 0 && (
-              <section className="mb-6 print-avoid-break">
+              <section className="mb-6">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-3">Checklist</h2>
                 <div className="space-y-4">
                   {checklistSections.map((section: any) => (
-                    <div key={section.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div key={section.id} className="border border-gray-200 rounded-lg overflow-hidden print-avoid-break">
                       <div className="bg-gray-100 px-3 py-2 font-semibold text-gray-800 text-sm">
                         {section.title}
                       </div>
@@ -369,16 +388,22 @@ export default async function DailyLogPrintPage({
             )}
 
             {log.photos && log.photos.length > 0 && (
-              <section className="mb-6 print-avoid-break">
+              <section className="mb-6">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-3">Registro fotográfico</h2>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   {log.photos.map((photo: string, index: number) => (
-                    <img
-                      key={`${photo}-${index}`}
-                      src={photo}
-                      alt={`Foto ${index + 1}`}
-                      className="w-full h-auto max-h-72 object-contain rounded-lg border border-gray-200 bg-white"
-                    />
+                    <div key={`${photo}-${index}`} className="print-avoid-break">
+                      <img
+                        src={photo}
+                        alt={photoCaptions[index] || `Foto ${index + 1}`}
+                        className="w-full h-auto max-h-72 object-contain rounded-lg border border-gray-200 bg-white"
+                      />
+                      {photoCaptions[index] && (
+                        <p className="text-xs text-gray-600 text-center mt-1 italic">
+                          {photoCaptions[index]}
+                        </p>
+                      )}
+                    </div>
                   ))}
                 </div>
               </section>
@@ -415,29 +440,158 @@ export default async function DailyLogPrintPage({
                 </div>
               </section>
             )}
+          </main>
+
+          {/* ===== FOOTER FIJO: Contacto + Decoración verde ===== */}
+          <footer className="membrete-footer">
+            <div className="membrete-footer-line" />
+            <div className="membrete-footer-content">
+              <div className="membrete-footer-contact">
+                <span>📞 (604) 3288739</span>
+                <span>✉️ gerencia@talentoinmobiliario.com</span>
+                <span>🌐 https://talentoinmobiliario.com/</span>
+                <span>📍 Calle 71 Sur # 43B – 52 Oficina 203, Sabaneta, Antioquia</span>
               </div>
             </div>
-          </div>
-        </>
+            {/* Decoración geométrica verde esquina inferior derecha */}
+            <div className="membrete-corner-decoration" />
+          </footer>
+        </div>
       )}
 
       <style>{`
+        /* ===== MEMBRETE HTML/CSS — Replica el Word oficial ===== */
+        .membrete-page {
+          position: relative;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+        }
+        .membrete-header {
+          padding: 20px 40px 10px 40px;
+        }
+        .membrete-body {
+          flex: 1;
+          padding-top: 10px;
+          padding-bottom: 80px;
+        }
+        .membrete-footer {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          padding: 0 40px 12px 40px;
+        }
+        .membrete-footer-line {
+          height: 2px;
+          background: linear-gradient(to right, #8BC34A, #E53935);
+          margin-bottom: 8px;
+        }
+        .membrete-footer-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+        }
+        .membrete-footer-contact {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          font-size: 11px;
+          color: #555;
+        }
+        .membrete-footer-contact span {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .membrete-corner-decoration {
+          position: fixed;
+          bottom: 0;
+          right: 0;
+          width: 80px;
+          height: 120px;
+          overflow: hidden;
+        }
+        .membrete-corner-decoration::before,
+        .membrete-corner-decoration::after {
+          content: '';
+          position: absolute;
+          right: -20px;
+          width: 60px;
+          height: 140px;
+          transform: rotate(-20deg);
+        }
+        .membrete-corner-decoration::before {
+          background: #8BC34A;
+          bottom: -30px;
+          right: -10px;
+        }
+        .membrete-corner-decoration::after {
+          background: #689F38;
+          bottom: -30px;
+          right: 15px;
+          opacity: 0.7;
+        }
+
         @media print {
           @page {
             size: A4;
-            margin: 0;
+            margin: 10mm 10mm 15mm 10mm;
           }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
           html, body {
-            background: #fff;
+            background: #fff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .membrete-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+          }
+          .membrete-body {
+            padding-top: 80px;
+          }
+          .membrete-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
           }
           .print-avoid-break {
             break-inside: avoid;
             page-break-inside: avoid;
           }
+          h2 {
+            page-break-after: avoid;
+          }
+          table {
+            page-break-inside: avoid;
+          }
+          p {
+            orphans: 3;
+            widows: 3;
+          }
+        }
+        .prose table {
+          border-collapse: collapse;
+          width: 100%;
+        }
+        .prose th,
+        .prose td {
+          border: 1px solid #d1d5db;
+          padding: 0.4rem 0.6rem;
+          font-size: 0.8rem;
+        }
+        .prose th {
+          background-color: #f3f4f6;
+          font-weight: 600;
         }
       `}</style>
     </div>

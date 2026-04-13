@@ -68,8 +68,8 @@ export function DailyLogsCalendar({
       </div>
 
       <div className="grid grid-cols-7 gap-1 text-xs text-gray-500 mb-2">
-        {weekdayLabels.map(label => (
-          <div key={label} className="text-center font-medium">
+        {weekdayLabels.map((label, index) => (
+          <div key={`${label}-${index}`} className="text-center font-medium">
             {label}
           </div>
         ))}

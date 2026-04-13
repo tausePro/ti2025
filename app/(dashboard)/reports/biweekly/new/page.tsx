@@ -399,20 +399,38 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
       if (error) throw error
 
       try {
+        const { data: reportMeta } = await supabase
+          .from('biweekly_reports')
+          .select('report_number')
+          .eq('id', reportId)
+          .single()
+
         const { data: projectData } = await supabase
           .from('projects')
           .select('name')
           .eq('id', selectedProject)
           .single()
 
-        const { data: supervisorData } = await supabase
+        const { data: projectMembers } = await supabase
           .from('project_members')
-          .select('profiles(full_name, email)')
+          .select('user_id')
           .eq('project_id', selectedProject)
           .eq('is_active', true)
-          .limit(1)
 
-        const supervisorProfile = supervisorData?.[0]?.profiles as any
+        const memberIds = (projectMembers || []).map((member: any) => member.user_id)
+        let supervisorProfile: { full_name?: string; email?: string } | null = null
+
+        if (memberIds.length > 0) {
+          const { data: supervisorProfiles } = await supabase
+            .from('profiles')
+            .select('full_name, email')
+            .in('id', memberIds)
+            .eq('role', 'supervisor')
+            .limit(1)
+
+          supervisorProfile = supervisorProfiles?.[0] || null
+        }
+
         if (supervisorProfile?.email) {
           const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://beta.talentoinmobiliario.com'}/login`
           await fetch('/api/emails/send-template', {
@@ -423,7 +441,7 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
               to: supervisorProfile.email,
               variables: {
                 project_name: projectData?.name || '',
-                report_number: '',
+                report_number: reportMeta?.report_number || '',
                 login_url: loginUrl
               }
             })

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { TemplateForm } from '@/components/reports/ui/TemplateForm'
 
 export default async function NewTemplatePage() {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   // Verificar autenticación
   const { data: { user } } = await supabase.auth.getUser()

@@ -313,6 +313,8 @@ export interface DailyLogBaseFields {
   weather: 'soleado' | 'nublado' | 'lluvioso' | 'tormentoso'
   temperature?: number
   personnel_count?: number
+  work_front?: string // Frente de Trabajo
+  element?: string // Elemento
   activities: string
   materials?: string
   equipment?: string

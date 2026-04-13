@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Generar nombre único para el archivo
     const fileExt = file.name.split('.').pop()

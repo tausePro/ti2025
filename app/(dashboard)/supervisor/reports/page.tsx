@@ -25,7 +25,6 @@ import {
   XCircle,
   AlertCircle,
   Eye,
-  MessageSquare,
   Calendar,
   User
 } from 'lucide-react'
@@ -44,11 +43,14 @@ interface Report {
   created_by: string
   content?: Record<string, string>
   source_data?: any
+  rejection_reason?: string | null
   project: {
     name: string
     project_code: string
   }
 }
+
+const REVIEW_ROLES = ['supervisor', 'admin', 'super_admin']
 
 export default function SupervisorReportsPage() {
   const { profile } = useAuth()
@@ -66,8 +68,15 @@ export default function SupervisorReportsPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  const normalizeReports = (items: any[]): Report[] => {
+    return (items || []).map((item: any) => ({
+      ...item,
+      project: Array.isArray(item.project) ? item.project[0] : item.project,
+    }))
+  }
+
   useEffect(() => {
-    if (profile && profile.role !== 'supervisor') {
+    if (profile && !REVIEW_ROLES.includes(profile.role)) {
       router.push('/dashboard')
       return
     }
@@ -80,6 +89,23 @@ export default function SupervisorReportsPage() {
   async function loadReports() {
     try {
       console.log('🔄 Cargando reportes para revisión...')
+
+      if (profile?.role === 'admin' || profile?.role === 'super_admin') {
+        const { data: reportsData, error: reportsError } = await supabase
+          .from('biweekly_reports')
+          .select(`
+            *,
+            project:projects(name, project_code)
+          `)
+          .in('status', ['pending_review', 'rejected'])
+          .order('created_at', { ascending: false })
+
+        if (reportsError) throw reportsError
+
+        console.log('✅ Reportes cargados:', reportsData?.length || 0)
+        setReports(normalizeReports(reportsData || []))
+        return
+      }
 
       // Obtener proyectos del supervisor
       const { data: projectsData, error: projectsError } = await supabase
@@ -112,7 +138,7 @@ export default function SupervisorReportsPage() {
       if (reportsError) throw reportsError
 
       console.log('✅ Reportes cargados:', reportsData?.length || 0)
-      setReports(reportsData || [])
+      setReports(normalizeReports(reportsData || []))
     } catch (error: any) {
       console.error('❌ Error loading reports:', error)
       setError(error.message)
@@ -128,20 +154,22 @@ export default function SupervisorReportsPage() {
       setActionLoading(true)
       setError('')
 
-      const { error } = await supabase
-        .from('biweekly_reports')
-        .update({
-          status: 'approved',
-          reviewed_by: profile!.id,
-          reviewed_at: new Date().toISOString()
+      const { data: approved, error } = await supabase
+        .rpc('approve_biweekly_report', {
+          p_report_id: selectedReport.id,
+          p_supervisor_id: profile!.id,
+          p_notes: correctionNotes.trim() || null
         })
-        .eq('id', selectedReport.id)
 
       if (error) throw error
+      if (!approved) {
+        throw new Error('No fue posible aprobar el informe. Verifica que siga pendiente de revisión.')
+      }
 
-      setSuccess('Informe aprobado correctamente')
+      setSuccess('Informe aprobado y enviado a gerencia para firma')
       setShowApproveDialog(false)
       setCorrectionNotes('')
+      setSelectedReport(null)
       loadReports()
     } catch (error: any) {
       console.error('Error approving report:', error)
@@ -157,25 +185,31 @@ export default function SupervisorReportsPage() {
       return
     }
 
+    const rejectionDetail = correctionNotes.trim()
+      ? `${rejectionReason.trim()}\n\nNotas adicionales:\n${correctionNotes.trim()}`
+      : rejectionReason.trim()
+
     try {
       setActionLoading(true)
       setError('')
 
-      const { error } = await supabase
-        .from('biweekly_reports')
-        .update({
-          status: 'rejected',
-          reviewed_by: profile!.id,
-          reviewed_at: new Date().toISOString()
+      const { data: rejected, error } = await supabase
+        .rpc('reject_biweekly_report', {
+          p_report_id: selectedReport.id,
+          p_supervisor_id: profile!.id,
+          p_reason: rejectionDetail
         })
-        .eq('id', selectedReport.id)
 
       if (error) throw error
+      if (!rejected) {
+        throw new Error('No fue posible rechazar el informe. Verifica que siga pendiente de revisión.')
+      }
 
       setSuccess('Informe devuelto para correcciones')
       setShowRejectDialog(false)
       setRejectionReason('')
       setCorrectionNotes('')
+      setSelectedReport(null)
       loadReports()
     } catch (error: any) {
       console.error('Error rejecting report:', error)
@@ -190,6 +224,8 @@ export default function SupervisorReportsPage() {
       pending_review: { label: 'Pendiente Revisión', variant: 'secondary', icon: Clock },
       rejected: { label: 'Rechazado', variant: 'destructive', icon: AlertCircle },
       approved: { label: 'Aprobado', variant: 'default', icon: CheckCircle },
+      pending_signature: { label: 'Pendiente Firma', variant: 'default', icon: CheckCircle },
+      published: { label: 'Publicado', variant: 'default', icon: CheckCircle },
       draft: { label: 'Borrador', variant: 'secondary', icon: FileText }
     }
 
@@ -274,7 +310,7 @@ export default function SupervisorReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {reports.filter(r => r.status === 'corrections').length}
+              {reports.filter(r => r.status === 'rejected').length}
             </div>
             <p className="text-xs text-muted-foreground">
               Esperando correcciones
@@ -345,6 +381,7 @@ export default function SupervisorReportsPage() {
                     <Button
                       variant="default"
                       size="sm"
+                      disabled={report.status !== 'pending_review'}
                       onClick={() => {
                         setSelectedReport(report)
                         setShowApproveDialog(true)
@@ -356,6 +393,7 @@ export default function SupervisorReportsPage() {
                     <Button
                       variant="destructive"
                       size="sm"
+                      disabled={report.status !== 'pending_review'}
                       onClick={() => {
                         setSelectedReport(report)
                         setShowRejectDialog(true)
@@ -400,6 +438,7 @@ export default function SupervisorReportsPage() {
               onClick={() => {
                 setShowApproveDialog(false)
                 setCorrectionNotes('')
+                setSelectedReport(null)
               }}
               disabled={actionLoading}
             >
@@ -452,6 +491,7 @@ export default function SupervisorReportsPage() {
                 setShowRejectDialog(false)
                 setRejectionReason('')
                 setCorrectionNotes('')
+                setSelectedReport(null)
               }}
               disabled={actionLoading}
             >

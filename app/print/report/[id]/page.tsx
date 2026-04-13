@@ -409,6 +409,21 @@ export default function PrintReportPage() {
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
           }
         }
+
+        .prose table {
+          border-collapse: collapse;
+          width: 100%;
+        }
+        .prose th,
+        .prose td {
+          border: 1px solid #d1d5db;
+          padding: 0.4rem 0.6rem;
+          font-size: 0.8rem;
+        }
+        .prose th {
+          background-color: #f0f7e6;
+          font-weight: 600;
+        }
       `}</style>
     </div>
   )

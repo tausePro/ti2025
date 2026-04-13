@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -19,7 +19,8 @@ import {
   DEFAULT_DAILY_LOG_SETTINGS 
 } from '@/types/daily-log-config'
 
-export default function DailyLogSettingsPage({ params }: { params: { id: string } }) {
+export default function DailyLogSettingsPage() {
+  const params = useParams<{ id: string }>()
   const router = useRouter()
   const supabase = createClient()
   

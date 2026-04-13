@@ -78,8 +78,8 @@ export function CustomFieldRenderer({ field, value, onChange }: CustomFieldRende
               <SelectValue placeholder={field.placeholder || 'Seleccionar...'} />
             </SelectTrigger>
             <SelectContent>
-              {field.options?.map((option) => (
-                <SelectItem key={option} value={option}>
+              {field.options?.map((option, index) => (
+                <SelectItem key={`${field.id}-select-${option}-${index}`} value={option}>
                   {option}
                 </SelectItem>
               ))}
@@ -95,8 +95,8 @@ export function CustomFieldRenderer({ field, value, onChange }: CustomFieldRende
             : []
         return (
           <div className="space-y-2">
-            {field.options?.map((option) => (
-              <div key={option} className="flex items-center gap-2">
+            {field.options?.map((option, index) => (
+              <div key={`${field.id}-multiselect-${option}-${index}`} className="flex items-center gap-2">
                 <Checkbox
                   id={`${field.id}-${option}`}
                   checked={selectedValues.includes(option)}
@@ -139,8 +139,8 @@ export function CustomFieldRenderer({ field, value, onChange }: CustomFieldRende
       case 'radio':
         return (
           <div className="space-y-2">
-            {field.options?.map((option) => (
-              <div key={option} className="flex items-center gap-2">
+            {field.options?.map((option, index) => (
+              <div key={`${field.id}-radio-${option}-${index}`} className="flex items-center gap-2">
                 <input
                   type="radio"
                   id={`${field.id}-${option}`}

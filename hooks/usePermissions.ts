@@ -38,22 +38,13 @@ export function usePermissions(): PermissionCheck {
   }
 
   const hasPermission = (module: PermissionModule, action: PermissionAction, projectId?: string): boolean => {
-    console.log('🔍 DEBUG usePermissions - hasPermission llamado:', {
-      module,
-      action,
-      projectId,
-      profile: profile ? { id: profile.id, email: profile.email, role: profile.role } : null
-    })
-
     // Si no hay perfil, no hay permisos
     if (!profile) {
-      console.log('🔍 DEBUG usePermissions - No hay perfil, retornando false')
       return false
     }
 
     // Si es super_admin, tiene todos los permisos
     if (profile.role === 'super_admin') {
-      console.log('🔍 DEBUG usePermissions - Usuario es super_admin, retornando true')
       return true
     }
 
@@ -65,14 +56,11 @@ export function usePermissions(): PermissionCheck {
     )
 
     if (customPermission !== undefined) {
-      console.log('🔍 DEBUG usePermissions - Permiso personalizado encontrado:', customPermission.allowed)
       return customPermission.allowed
     }
 
     // Usar el sistema de permisos del contexto de autenticación (permisos del rol)
-    const result = authHasPermission(module, action)
-    console.log('🔍 DEBUG usePermissions - Resultado de authHasPermission:', result)
-    return result
+    return authHasPermission(module, action)
   }
 
   const getUserPermissions = (): UserPermission[] => {
