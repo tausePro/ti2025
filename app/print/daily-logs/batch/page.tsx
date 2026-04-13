@@ -223,7 +223,12 @@ function BatchPrintContent() {
 
       {/* Cada bitácora como página separada */}
       {logs.map((log, index) => {
-        const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => !['checklists', '_field_labels', 'photo_count', 'photo_captions'].includes(key))
+        const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => !['checklists', '_field_labels', 'photo_count', 'photo_captions', 'work_front', 'element'].includes(key))
+        const photoCaptions: string[] = Array.isArray(log.custom_fields?.photo_captions)
+          ? log.custom_fields.photo_captions
+          : typeof log.custom_fields?.photo_captions === 'string'
+            ? log.custom_fields.photo_captions.split(',')
+            : []
         const storedLabels = log.custom_fields?._field_labels || {}
         const fieldLabels = getCustomFieldLabelsMap([], storedLabels)
         const checklistSections = (log.custom_fields?.checklists || [])
@@ -366,16 +371,22 @@ function BatchPrintContent() {
             )}
 
             {log.photos && log.photos.length > 0 && (
-              <section className="mb-4 print-avoid-break">
+              <section className="mb-4">
                 <h3 className="text-sm uppercase tracking-widest text-gray-500 mb-2">Registro fotográfico</h3>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {log.photos.map((photo: string, idx: number) => (
-                    <img
-                      key={`${photo}-${idx}`}
-                      src={photo}
-                      alt={`Foto ${idx + 1}`}
-                      className="w-full h-auto max-h-60 object-contain rounded border border-gray-200 bg-white"
-                    />
+                    <div key={`${photo}-${idx}`} className="print-avoid-break">
+                      <img
+                        src={photo}
+                        alt={photoCaptions[idx] || `Foto ${idx + 1}`}
+                        className="w-full h-auto max-h-60 object-contain rounded border border-gray-200 bg-white"
+                      />
+                      {photoCaptions[idx] && (
+                        <p className="text-xs text-gray-600 text-center mt-1 italic">
+                          {photoCaptions[idx]}
+                        </p>
+                      )}
+                    </div>
                   ))}
                 </div>
               </section>

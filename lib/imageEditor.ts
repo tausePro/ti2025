@@ -5,6 +5,9 @@ export interface ImageEditorTransform {
   zoom: number
   offsetX: number
   offsetY: number
+  brightness?: number
+  contrast?: number
+  sharpness?: number
 }
 
 export interface CanvasSize {
@@ -186,6 +189,14 @@ export function drawImageToCanvas(
   context.save()
   context.imageSmoothingEnabled = true
   context.imageSmoothingQuality = 'high'
+
+  const brightness = transform.brightness ?? 100
+  const contrast = transform.contrast ?? 100
+  const sharpness = transform.sharpness ?? 0
+  const adjustedContrast = contrast + sharpness * 0.3
+  const adjustedBrightness = brightness + sharpness * 0.05
+  context.filter = `brightness(${adjustedBrightness}%) contrast(${adjustedContrast}%)`
+
   context.translate(
     canvasSize.width / 2 + metrics.clampedOffsetX,
     canvasSize.height / 2 + metrics.clampedOffsetY

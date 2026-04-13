@@ -50,6 +50,9 @@ export function PhotoEditorDialog({ file, open, onOpenChange, onApply }: PhotoEd
   const [rotation, setRotation] = useState(0)
   const [zoom, setZoom] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [brightness, setBrightness] = useState(100)
+  const [contrast, setContrast] = useState(100)
+  const [sharpness, setSharpness] = useState(0)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -67,6 +70,9 @@ export function PhotoEditorDialog({ file, open, onOpenChange, onApply }: PhotoEd
     setRotation(0)
     setZoom(1)
     setOffset({ x: 0, y: 0 })
+    setBrightness(100)
+    setContrast(100)
+    setSharpness(0)
     setError('')
     setLoading(true)
 
@@ -135,6 +141,9 @@ export function PhotoEditorDialog({ file, open, onOpenChange, onApply }: PhotoEd
         zoom,
         offsetX: offset.x,
         offsetY: offset.y,
+        brightness,
+        contrast,
+        sharpness,
       },
       '#000000'
     )
@@ -142,7 +151,7 @@ export function PhotoEditorDialog({ file, open, onOpenChange, onApply }: PhotoEd
     if (nextOffset.offsetX !== offset.x || nextOffset.offsetY !== offset.y) {
       setOffset({ x: nextOffset.offsetX, y: nextOffset.offsetY })
     }
-  }, [image, offset.x, offset.y, previewCanvasSize, rotation, zoom])
+  }, [image, offset.x, offset.y, previewCanvasSize, rotation, zoom, brightness, contrast, sharpness])
 
   const handleRotate = (direction: 'left' | 'right') => {
     setRotation((currentRotation) => currentRotation + (direction === 'left' ? -90 : 90))
@@ -153,6 +162,9 @@ export function PhotoEditorDialog({ file, open, onOpenChange, onApply }: PhotoEd
     setRotation(0)
     setZoom(1)
     setOffset({ x: 0, y: 0 })
+    setBrightness(100)
+    setContrast(100)
+    setSharpness(0)
     setError('')
   }
 
@@ -217,6 +229,9 @@ export function PhotoEditorDialog({ file, open, onOpenChange, onApply }: PhotoEd
         zoom,
         offsetX: offset.x,
         offsetY: offset.y,
+        brightness,
+        contrast,
+        sharpness,
       })
 
       onApply(editedFile)
@@ -234,7 +249,7 @@ export function PhotoEditorDialog({ file, open, onOpenChange, onApply }: PhotoEd
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-4xl">
+      <DialogContent className="w-[95vw] max-w-3xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar foto</DialogTitle>
           <DialogDescription>
@@ -308,8 +323,8 @@ export function PhotoEditorDialog({ file, open, onOpenChange, onApply }: PhotoEd
             />
           </div>
 
-          <div className="rounded-lg border bg-black/95 p-3">
-            <div className="mx-auto flex max-h-[65vh] min-h-[240px] items-center justify-center overflow-auto">
+          <div className="rounded-lg border bg-black/95 p-2">
+            <div className="mx-auto flex max-h-[50vh] min-h-[200px] items-center justify-center overflow-hidden">
               {loading ? (
                 <div className="flex min-h-[240px] items-center justify-center text-white">
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -334,6 +349,57 @@ export function PhotoEditorDialog({ file, open, onOpenChange, onApply }: PhotoEd
                   No se pudo cargar la imagen.
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Brillo</span>
+                <span>{brightness}%</span>
+              </div>
+              <input
+                type="range"
+                min="50"
+                max="150"
+                step="1"
+                value={brightness}
+                onChange={(e) => setBrightness(Number(e.target.value))}
+                disabled={loading || saving || !image}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Contraste</span>
+                <span>{contrast}%</span>
+              </div>
+              <input
+                type="range"
+                min="50"
+                max="150"
+                step="1"
+                value={contrast}
+                onChange={(e) => setContrast(Number(e.target.value))}
+                disabled={loading || saving || !image}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Nitidez</span>
+                <span>{sharpness}</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={sharpness}
+                onChange={(e) => setSharpness(Number(e.target.value))}
+                disabled={loading || saving || !image}
+                className="w-full"
+              />
             </div>
           </div>
 
