@@ -16,6 +16,7 @@ import { CustomFieldRenderer } from './CustomFieldRenderer'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { MapPin, Clock, User } from 'lucide-react'
 import { CustomField, DailyLogConfig } from '@/types/daily-log-config'
+import { getCurrentDateInputValue } from '@/lib/utils'
 
 interface DailyLogFormProps {
   projectId: string
@@ -34,11 +35,13 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
   
   // Estado del formulario
   const [formData, setFormData] = useState<DailyLogFormData>({
-    date: new Date().toISOString().split('T')[0],
+    date: getCurrentDateInputValue(),
     time: new Date().toTimeString().slice(0, 5), // HH:MM
     weather: 'soleado',
     temperature: undefined,
     personnel_count: 0,
+    work_front: '',
+    element: '',
     activities: '',
     materials: '',
     equipment: '',
@@ -198,6 +201,13 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
         signed_at: new Date().toISOString()
       }
 
+      const customFieldLabels = customFields.reduce((acc: Record<string, string>, field) => {
+        if (field?.id && field?.label) {
+          acc[field.id] = field.label
+        }
+        return acc
+      }, {})
+
       // Preparar datos para guardar
       const dailyLogData = {
         project_id: projectId,
@@ -219,7 +229,8 @@ export default function DailyLogForm({ projectId, templateId, onSuccess }: Daily
         signatures: [autoSignature], // Firma automática del creador
         custom_fields: {
           ...formData.custom_fields, // Campos personalizados
-          checklists: formData.checklists
+          checklists: formData.checklists,
+          _field_labels: customFieldLabels
         },
         sync_status: 'synced'
       }

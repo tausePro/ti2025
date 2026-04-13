@@ -1,114 +1,244 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { DailyLogsTimeline } from '@/components/daily-logs/DailyLogsTimeline'
 import { DailyLogsCalendar } from '@/components/daily-logs/DailyLogsCalendar'
-import { Loader2, Settings } from 'lucide-react'
+import { Loader2, Settings, WifiOff, Printer, CheckSquare, X } from 'lucide-react'
+import { useOnlineStatus } from '@/hooks/useOnlineStatus'
+import {
+  getLocalDailyLogsByProject,
+  cacheDailyLogsFromRemote,
+  cacheProjectConfig,
+  getCachedProjectConfig,
+} from '@/lib/offline/daily-log-service'
 
-export default function DailyLogsPage({ params }: { params: { id: string } }) {
+export default function DailyLogsPage() {
   const [project, setProject] = useState<any>(null)
   const [dailyLogs, setDailyLogs] = useState<any[]>([])
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [customFieldLabels, setCustomFieldLabels] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
+  const params = useParams<{ id: string }>()
   const router = useRouter()
   const supabase = createClient()
   const { profile } = useAuth()
-  
+  const { isOnline } = useOnlineStatus()
+  const [isOfflineMode, setIsOfflineMode] = useState(false)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [rangeStart, setRangeStart] = useState('')
+  const [rangeEnd, setRangeEnd] = useState('')
+  const hasRangeFilter = Boolean(rangeStart || rangeEnd)
+  const isInvalidRange = Boolean(rangeStart && rangeEnd && rangeStart > rangeEnd)
+
   // Solo admin, super_admin, gerente y supervisor pueden configurar bitácoras
   const canConfigureDailyLogs = profile?.role && ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role)
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredLogs.map(l => l.id)))
+    }
+  }
+
+  const handlePrintSelected = () => {
+    if (selectedIds.size === 0) return
+
+    if (hasRangeFilter && allFilteredSelected) {
+      const queryParams = new URLSearchParams({ projectId: params.id })
+      if (rangeStart) queryParams.set('start', rangeStart)
+      if (rangeEnd) queryParams.set('end', rangeEnd)
+      window.open(`/print/daily-logs/batch?${queryParams.toString()}`, '_blank')
+      return
+    }
+
+    const ids = Array.from(selectedIds).join(',')
+    window.open(`/print/daily-logs/batch?ids=${ids}`, '_blank')
+  }
+
+  const handleExitSelection = () => {
+    setSelectionMode(false)
+    setSelectedIds(new Set())
+    setRangeStart('')
+    setRangeEnd('')
+  }
+
+  const handleRangeStartChange = (value: string) => {
+    setSelectedDate(null)
+    setRangeStart(value)
+  }
+
+  const handleRangeEndChange = (value: string) => {
+    setSelectedDate(null)
+    setRangeEnd(value)
+  }
+
+  const handleClearRange = () => {
+    setRangeStart('')
+    setRangeEnd('')
+  }
+
+  const handleSelectRange = () => {
+    if (!hasRangeFilter || isInvalidRange) return
+    setSelectedIds(new Set(filteredLogs.map(log => log.id)))
+  }
 
   const loadData = useCallback(async () => {
     try {
       setLoading(true)
+      setIsOfflineMode(false)
 
-      // Verificar autenticación
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      // Obtener proyecto
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', params.id)
-        .single()
-
-      if (projectError || !projectData) {
-        console.error('Error loading project:', projectError)
-        router.push('/projects')
-        return
-      }
-
-      setProject(projectData)
-
-      // Obtener bitácoras del proyecto
-      const { data: logsData, error: logsError } = await supabase
-        .from('daily_logs')
-        .select(`
-          *,
-          created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)
-        `)
-        .eq('project_id', params.id)
-        .order('date', { ascending: false })
-
-      if (logsError) {
-        console.error('Error loading logs:', logsError)
-        setDailyLogs([])
-        return
-      }
-
-      // Convertir rutas de fotos a URLs públicas
-      const logsWithPublicUrls = logsData?.map((log: any) => {
-        if (log.photos && Array.isArray(log.photos) && log.photos.length > 0) {
-          const publicUrls = log.photos.map((photoPath: string) => {
-            // Si ya es una URL completa, devolverla tal cual
-            if (photoPath.startsWith('http')) {
-              return photoPath
-            }
-            // Si es una ruta, convertirla a URL pública
-            const { data: { publicUrl } } = supabase.storage
-              .from('daily-logs-photos')
-              .getPublicUrl(photoPath)
-            return publicUrl
-          })
-          return { ...log, photos: publicUrls }
-        }
-        return log
-      }) || []
-
-      setDailyLogs(logsWithPublicUrls)
-
-      // Obtener labels de campos personalizados
-      const { data: configData } = await supabase
-        .from('daily_log_configs')
-        .select('custom_fields')
-        .eq('project_id', params.id)
-        .single()
-
-      if (configData?.custom_fields) {
-        const labels = (configData.custom_fields as any[]).reduce((acc: Record<string, string>, field: any) => {
-          if (field?.id && field?.label) {
-            acc[field.id] = field.label
+      if (isOnline) {
+        // ============================================================
+        // ONLINE: cargar de Supabase, cachear en IndexedDB
+        // ============================================================
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) {
+            router.push('/login')
+            return
           }
-          return acc
-        }, {})
-        setCustomFieldLabels(labels)
+
+          // Obtener proyecto
+          const { data: projectData, error: projectError } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('id', params.id)
+            .single()
+
+          if (projectError || !projectData) {
+            console.error('Error loading project:', projectError)
+            router.push('/projects')
+            return
+          }
+
+          setProject(projectData)
+
+          // Cachear proyecto para uso offline
+          await cacheProjectConfig(params.id, 'template', { project_name: projectData.name, project_code: projectData.project_code })
+
+          // Obtener bitácoras del proyecto
+          const { data: logsData, error: logsError } = await supabase
+            .from('daily_logs')
+            .select(`
+              *,
+              created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)
+            `)
+            .eq('project_id', params.id)
+            .order('date', { ascending: false })
+
+          if (logsError) {
+            console.error('Error loading logs:', logsError)
+            setDailyLogs([])
+            return
+          }
+
+          // Convertir rutas de fotos a URLs públicas
+          const logsWithPublicUrls = logsData?.map((log: any) => {
+            if (log.photos && Array.isArray(log.photos) && log.photos.length > 0) {
+              const publicUrls = log.photos.map((photoPath: string) => {
+                if (photoPath.startsWith('http')) return photoPath
+                const { data: { publicUrl } } = supabase.storage
+                  .from('daily-logs-photos')
+                  .getPublicUrl(photoPath)
+                return publicUrl
+              })
+              return { ...log, photos: publicUrls }
+            }
+            return log
+          }) || []
+
+          // Cachear remotos en IndexedDB
+          await cacheDailyLogsFromRemote(params.id, logsWithPublicUrls)
+
+          // Merge: incluir registros offline pendientes que no están en remoto
+          const localLogs = await getLocalDailyLogsByProject(params.id)
+          const remoteIds = new Set(logsWithPublicUrls.map((l: any) => l.id))
+          const pendingLocalLogs = localLogs
+            .filter(l => !remoteIds.has(l.id) && l.sync_status !== 'synced')
+            .map(l => ({ ...l, _isLocal: true }))
+
+          setDailyLogs([...pendingLocalLogs, ...logsWithPublicUrls])
+
+          // Obtener y cachear labels de campos personalizados
+          const { data: configData } = await supabase
+            .from('daily_log_configs')
+            .select('custom_fields')
+            .eq('project_id', params.id)
+            .single()
+
+          if (configData?.custom_fields) {
+            const labels = (configData.custom_fields as any[]).reduce((acc: Record<string, string>, field: any) => {
+              if (field?.id && field?.label) {
+                acc[field.id] = field.label
+              }
+              return acc
+            }, {})
+            setCustomFieldLabels(labels)
+            await cacheProjectConfig(params.id, 'daily_log_config', configData)
+          } else {
+            setCustomFieldLabels({})
+          }
+
+        } catch (onlineError) {
+          console.warn('⚠️ Error online, cargando datos locales...', onlineError)
+          await loadOfflineData()
+        }
       } else {
-        setCustomFieldLabels({})
+        // ============================================================
+        // OFFLINE: cargar desde IndexedDB
+        // ============================================================
+        await loadOfflineData()
       }
     } catch (error) {
       console.error('Error in loadData:', error)
     } finally {
       setLoading(false)
     }
-  }, [params.id, router, supabase])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id, isOnline])
+
+  const loadOfflineData = async () => {
+    setIsOfflineMode(true)
+
+    // Cargar proyecto desde caché (guardado como tipo 'template')
+    const cachedTemplate = await getCachedProjectConfig(params.id, 'template')
+    if (cachedTemplate?.project_name) {
+      setProject({ id: params.id, name: cachedTemplate.project_name })
+    } else {
+      setProject({ id: params.id, name: 'Proyecto (offline)' })
+    }
+
+    // Cargar bitácoras locales
+    const localLogs = await getLocalDailyLogsByProject(params.id)
+    setDailyLogs(localLogs.map(l => ({ ...l, _isLocal: true })))
+
+    // Cargar labels cacheados
+    const cachedConfig = await getCachedProjectConfig(params.id, 'daily_log_config')
+    if (cachedConfig?.custom_fields) {
+      const labels = (cachedConfig.custom_fields as any[]).reduce((acc: Record<string, string>, field: any) => {
+        if (field?.id && field?.label) {
+          acc[field.id] = field.label
+        }
+        return acc
+      }, {})
+      setCustomFieldLabels(labels)
+    }
+  }
 
   useEffect(() => {
     loadData()
@@ -120,9 +250,39 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
   )
 
   const filteredLogs = useMemo(() => {
-    if (!selectedDate) return dailyLogs
-    return dailyLogs.filter(log => log.date === selectedDate)
-  }, [dailyLogs, selectedDate])
+    if (isInvalidRange) return []
+
+    let logs = dailyLogs
+
+    if (selectedDate) {
+      logs = logs.filter(log => log.date === selectedDate)
+    }
+
+    if (rangeStart) {
+      logs = logs.filter(log => log.date >= rangeStart)
+    }
+
+    if (rangeEnd) {
+      logs = logs.filter(log => log.date <= rangeEnd)
+    }
+
+    return logs
+  }, [dailyLogs, selectedDate, rangeStart, rangeEnd, isInvalidRange])
+
+  const allFilteredSelected = useMemo(
+    () => filteredLogs.length > 0 && filteredLogs.every(log => selectedIds.has(log.id)),
+    [filteredLogs, selectedIds]
+  )
+
+  useEffect(() => {
+    if (!selectionMode) return
+
+    const visibleIds = new Set(filteredLogs.map(log => log.id))
+    setSelectedIds(prev => {
+      const nextIds = Array.from(prev).filter(id => visibleIds.has(id))
+      return nextIds.length === prev.size ? prev : new Set(nextIds)
+    })
+  }, [filteredLogs, selectionMode])
 
   if (loading) {
     return (
@@ -144,6 +304,17 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Banner offline */}
+      {isOfflineMode && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-300 text-amber-800 px-4 py-3 rounded-lg mb-4">
+          <WifiOff className="h-5 w-5 flex-shrink-0" />
+          <div>
+            <p className="font-medium text-sm">Modo offline — datos locales</p>
+            <p className="text-xs text-amber-600">Mostrando bitácoras guardadas en el dispositivo. Se actualizarán al volver la conexión.</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
@@ -153,6 +324,14 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
           </p>
         </div>
         <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => selectionMode ? handleExitSelection() : setSelectionMode(true)}
+            className={`px-4 py-2 rounded-md flex items-center gap-2 text-sm ${selectionMode ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          >
+            <CheckSquare className="h-4 w-4" />
+            {selectionMode ? 'Cancelar selección' : 'Seleccionar'}
+          </button>
           {canConfigureDailyLogs && (
             <Link
               href={`/projects/${params.id}/daily-logs/settings`}
@@ -199,22 +378,143 @@ export default function DailyLogsPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
+          {selectionMode && (
+            <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="range-start" className="mb-1 block text-sm font-medium text-gray-700">
+                      Desde
+                    </label>
+                    <input
+                      id="range-start"
+                      type="date"
+                      value={rangeStart}
+                      onChange={(e) => handleRangeStartChange(e.target.value)}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="range-end" className="mb-1 block text-sm font-medium text-gray-700">
+                      Hasta
+                    </label>
+                    <input
+                      id="range-end"
+                      type="date"
+                      value={rangeEnd}
+                      onChange={(e) => handleRangeEndChange(e.target.value)}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSelectRange}
+                    disabled={!hasRangeFilter || isInvalidRange || filteredLogs.length === 0}
+                    className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                  >
+                    Seleccionar rango
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearRange}
+                    disabled={!hasRangeFilter}
+                    className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
+                  >
+                    Limpiar rango
+                  </button>
+                </div>
+              </div>
+
+              {isInvalidRange ? (
+                <p className="mt-3 text-sm text-red-600">La fecha inicial no puede ser mayor a la fecha final.</p>
+              ) : (
+                <p className="mt-3 text-sm text-gray-600">
+                  {hasRangeFilter
+                    ? `${filteredLogs.length} bitácora${filteredLogs.length === 1 ? '' : 's'} dentro del rango actual.`
+                    : 'Define un rango de fechas para seleccionar periodos largos y generar un solo PDF.'}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Lista de bitácoras */}
           {!filteredLogs || filteredLogs.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-500 mb-4">No hay bitácoras registradas</p>
-          <Link
-            href={`/projects/${params.id}/daily-logs/new`}
-            className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Crear Primera Bitácora
-          </Link>
+          <p className="text-gray-500 mb-4">
+            {dailyLogs.length === 0
+              ? 'No hay bitácoras registradas'
+              : 'No hay bitácoras dentro de los filtros seleccionados'}
+          </p>
+          {dailyLogs.length === 0 ? (
+            <Link
+              href={`/projects/${params.id}/daily-logs/new`}
+              className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Crear Primera Bitácora
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedDate(null)
+                setRangeStart('')
+                setRangeEnd('')
+              }}
+              className="inline-block px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            >
+              Limpiar filtros
+            </button>
+          )}
         </div>
           ) : (
-            <DailyLogsTimeline logs={filteredLogs} projectId={params.id} customFieldLabels={customFieldLabels} />
+            <DailyLogsTimeline
+              logs={filteredLogs}
+              projectId={params.id}
+              customFieldLabels={customFieldLabels}
+              selectable={selectionMode}
+              selectedIds={selectedIds}
+              onToggleSelect={handleToggleSelect}
+            />
           )}
         </div>
       </div>
+
+      {/* Barra de acción de selección */}
+      {selectionMode && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white border border-gray-200 shadow-2xl rounded-xl px-6 py-3 flex items-center gap-4">
+          <span className="text-sm font-medium text-gray-700">
+            {selectedIds.size} de {filteredLogs.length} visible{filteredLogs.length === 1 ? '' : 's'} seleccionada{selectedIds.size === 1 ? '' : 's'}
+          </span>
+          <button
+            type="button"
+            onClick={handleSelectAll}
+            disabled={filteredLogs.length === 0}
+            className="text-sm text-blue-600 hover:underline disabled:cursor-not-allowed disabled:text-gray-400"
+          >
+            {allFilteredSelected ? 'Deseleccionar todo' : 'Seleccionar todo'}
+          </button>
+          <button
+            type="button"
+            onClick={handlePrintSelected}
+            disabled={selectedIds.size === 0}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2 text-sm disabled:cursor-not-allowed disabled:bg-gray-300"
+          >
+            <Printer className="h-4 w-4" />
+            {hasRangeFilter && allFilteredSelected ? 'Generar / imprimir rango' : 'Generar / imprimir PDF'}
+          </button>
+          <button
+            type="button"
+            onClick={handleExitSelection}
+            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+            title="Cerrar selección"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Botón volver */}
       <div className="mt-6">

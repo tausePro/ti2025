@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { formatDateValue } from '@/lib/utils'
 
 interface ReportData {
   project: {
@@ -118,8 +119,8 @@ export class PDFGenerator {
     this.currentY += 10
     this.doc.setFont('helvetica', 'normal')
     
-    const startDate = new Date(data.report.period_start).toLocaleDateString('es-CO')
-    const endDate = new Date(data.report.period_end).toLocaleDateString('es-CO')
+    const startDate = formatDateValue(data.report.period_start)
+    const endDate = formatDateValue(data.report.period_end)
     
     this.doc.text(`Desde: ${startDate}`, this.margin, this.currentY)
     this.currentY += 7
@@ -139,7 +140,7 @@ export class PDFGenerator {
       this.checkPageBreak(50) // Ensure enough space for log entry
       
       this.doc.setFont('helvetica', 'bold')
-      const logDate = new Date(log.date).toLocaleDateString('es-CO')
+      const logDate = formatDateValue(log.date)
       this.doc.text(`${index + 1}. ${logDate}`, this.margin, this.currentY)
       
       this.currentY += 8

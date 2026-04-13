@@ -19,7 +19,9 @@ import {
   FileSpreadsheet,
   FilePlus,
   Search,
-  Filter
+  Filter,
+  Video,
+  FileType
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -32,7 +34,7 @@ interface ProjectDocument {
   project_id: string
   file_name: string
   file_url: string
-  file_type: 'logo' | 'contract' | 'report' | 'photo' | 'drawing' | 'other'
+  file_type: 'logo' | 'contract' | 'report' | 'photo' | 'drawing' | 'excel' | 'pdf' | 'video' | 'other'
   file_size: number
   mime_type: string
   uploaded_by: string
@@ -57,6 +59,9 @@ const FILE_TYPE_LABELS: Record<string, string> = {
   report: 'Reporte',
   photo: 'Foto',
   drawing: 'Plano',
+  excel: 'Excel',
+  pdf: 'PDF',
+  video: 'Video',
   other: 'Otro'
 }
 
@@ -66,6 +71,9 @@ const FILE_TYPE_COLORS: Record<string, string> = {
   report: 'bg-green-100 text-green-800',
   photo: 'bg-yellow-100 text-yellow-800',
   drawing: 'bg-orange-100 text-orange-800',
+  excel: 'bg-emerald-100 text-emerald-800',
+  pdf: 'bg-red-100 text-red-800',
+  video: 'bg-indigo-100 text-indigo-800',
   other: 'bg-gray-100 text-gray-800'
 }
 
@@ -200,10 +208,11 @@ export default function ProjectDocumentsPage() {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
   }
 
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return <FileImage className="h-5 w-5" />
-    if (mimeType.includes('pdf')) return <FileText className="h-5 w-5" />
-    if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return <FileSpreadsheet className="h-5 w-5" />
+  const getFileIcon = (mimeType: string, fileType?: string) => {
+    if (fileType === 'video' || mimeType?.startsWith('video/')) return <Video className="h-5 w-5" />
+    if (fileType === 'excel' || mimeType?.includes('spreadsheet') || mimeType?.includes('excel')) return <FileSpreadsheet className="h-5 w-5" />
+    if (fileType === 'pdf' || mimeType?.includes('pdf')) return <FileType className="h-5 w-5" />
+    if (mimeType?.startsWith('image/')) return <FileImage className="h-5 w-5" />
     return <File className="h-5 w-5" />
   }
 
@@ -213,7 +222,9 @@ export default function ProjectDocumentsPage() {
       contracts: documents.filter(d => d.file_type === 'contract').length,
       reports: documents.filter(d => d.file_type === 'report').length,
       photos: documents.filter(d => d.file_type === 'photo').length,
-      drawings: documents.filter(d => d.file_type === 'drawing').length,
+      excel: documents.filter(d => d.file_type === 'excel').length,
+      pdf: documents.filter(d => d.file_type === 'pdf').length,
+      videos: documents.filter(d => d.file_type === 'video').length,
     }
   }
 
@@ -258,59 +269,61 @@ export default function ProjectDocumentsPage() {
       </div>
 
       {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Total
-            </CardTitle>
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-xs font-medium text-gray-500">Total</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             <div className="text-2xl font-bold">{stats.total}</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Contratos
-            </CardTitle>
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-xs font-medium text-gray-500">Contratos</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             <div className="text-2xl font-bold">{stats.contracts}</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Reportes
-            </CardTitle>
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-xs font-medium text-gray-500">Reportes</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             <div className="text-2xl font-bold">{stats.reports}</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Fotos
-            </CardTitle>
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-xs font-medium text-gray-500">Fotos</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             <div className="text-2xl font-bold">{stats.photos}</div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              Planos
-            </CardTitle>
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-xs font-medium text-gray-500">Excel</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.drawings}</div>
+          <CardContent className="px-4 pb-4">
+            <div className="text-2xl font-bold">{stats.excel}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-xs font-medium text-gray-500">PDF</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="text-2xl font-bold">{stats.pdf}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardTitle className="text-xs font-medium text-gray-500">Videos</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="text-2xl font-bold">{stats.videos}</div>
           </CardContent>
         </Card>
       </div>
@@ -342,6 +355,9 @@ export default function ProjectDocumentsPage() {
                   <SelectItem value="report">Reportes</SelectItem>
                   <SelectItem value="photo">Fotos</SelectItem>
                   <SelectItem value="drawing">Planos</SelectItem>
+                  <SelectItem value="excel">Excel</SelectItem>
+                  <SelectItem value="pdf">PDF</SelectItem>
+                  <SelectItem value="video">Videos</SelectItem>
                   <SelectItem value="other">Otros</SelectItem>
                 </SelectContent>
               </Select>
@@ -387,7 +403,7 @@ export default function ProjectDocumentsPage() {
                 >
                   <div className="flex items-center space-x-4 flex-1">
                     <div className="text-gray-600">
-                      {getFileIcon(document.mime_type)}
+                      {getFileIcon(document.mime_type, document.file_type)}
                     </div>
                     
                     <div className="flex-1 min-w-0">

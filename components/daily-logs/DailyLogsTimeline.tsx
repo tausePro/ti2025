@@ -3,14 +3,19 @@
 import Link from 'next/link'
 import { PhotoGallery } from './PhotoGallery'
 import { Camera, Clock, MapPin, User, FileText, CheckCircle2, XCircle, AlertCircle, Settings } from 'lucide-react'
+import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
+import { SyncStatusBadge } from '@/components/shared/OfflineIndicator'
 
 interface DailyLogsTimelineProps {
   logs: any[]
   projectId: string
   customFieldLabels?: Record<string, string>
+  selectable?: boolean
+  selectedIds?: Set<string>
+  onToggleSelect?: (id: string) => void
 }
 
-export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: DailyLogsTimelineProps) {
+export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {}, selectable = false, selectedIds, onToggleSelect }: DailyLogsTimelineProps) {
   // Función para obtener resumen de checklists
   const getChecklistSummary = (log: any) => {
     if (!log.custom_fields?.checklists) return null
@@ -28,8 +33,16 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
   // Función para obtener campos personalizados (excluyendo checklists)
   const getCustomFields = (log: any) => {
     if (!log.custom_fields) return {}
-    const { checklists, ...customFields } = log.custom_fields
+    const { checklists, _field_labels, photo_count, photo_captions, ...customFields } = log.custom_fields
     return customFields
+  }
+
+  const getLogFieldLabels = (log: any) => {
+    const storedLabels = log?.custom_fields?._field_labels || {}
+    return getCustomFieldLabelsMap([], {
+      ...customFieldLabels,
+      ...storedLabels
+    })
   }
 
   // Agrupar bitácoras por día
@@ -59,7 +72,7 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
           {/* Fecha del día */}
           <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-50 to-white border-l-4 border-blue-500 py-3 px-4 mb-6 shadow-sm">
             <h2 className="text-xl font-bold text-gray-900">
-              {new Date(date).toLocaleDateString('es-CO', {
+              {formatDateValue(date, 'es-CO', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
@@ -89,7 +102,7 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                 </div>
 
                 {/* Card de la entrada */}
-                <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 ml-4">
+                <div className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 ml-4 ${selectable && selectedIds?.has(log.id) ? 'ring-2 ring-blue-500 bg-blue-50/30' : ''}`}>
                   {/* Header */}
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
@@ -106,17 +119,7 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                         </div>
 
                         {/* Estado de sincronización */}
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          log.sync_status === 'synced' 
-                            ? 'bg-green-100 text-green-800'
-                            : log.sync_status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {log.sync_status === 'synced' ? '✓ Sincronizado' : 
-                           log.sync_status === 'pending' ? '⏳ Pendiente' : 
-                           log.sync_status}
-                        </span>
+                        <SyncStatusBadge syncStatus={log.sync_status || 'synced'} />
 
                         {/* Ubicación GPS */}
                         {log.location && (
@@ -145,7 +148,17 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                     </div>
 
                     {/* Botones de acción */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                      {selectable && (
+                        <label className="flex items-center cursor-pointer mr-1" title="Seleccionar para imprimir">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds?.has(log.id) || false}
+                            onChange={() => onToggleSelect?.(log.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                      )}
                       <Link
                         href={`/projects/${projectId}/daily-logs/${log.id}`}
                         className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
@@ -188,39 +201,57 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                     )}
                   </div>
 
+                  {/* Frente de Trabajo y Elemento */}
+                  {(log.work_front || log.element) && (
+                    <div className="flex flex-wrap gap-4 text-sm mb-3">
+                      {log.work_front && (
+                        <div>
+                          <span className="text-gray-500">Frente:</span>{' '}
+                          <span className="font-medium text-blue-700">{log.work_front}</span>
+                        </div>
+                      )}
+                      {log.element && (
+                        <div>
+                          <span className="text-gray-500">Elemento:</span>{' '}
+                          <span className="font-medium text-blue-700">{log.element}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Actividades y detalles */}
                   {log.activities && (
                     <div className="mb-3">
                       <p className="text-sm font-medium text-gray-700 mb-1">Actividades:</p>
-                      <p className="text-sm text-gray-600">{log.activities}</p>
+                      <div className="text-sm text-gray-600 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.activities }} />
                     </div>
                   )}
 
                   {log.materials && (
                     <div className="mb-3">
                       <p className="text-sm font-medium text-gray-700 mb-1">Materiales:</p>
-                      <p className="text-sm text-gray-600">{log.materials}</p>
+                      <div className="text-sm text-gray-600 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.materials }} />
                     </div>
                   )}
 
                   {log.equipment && (
                     <div className="mb-3">
                       <p className="text-sm font-medium text-gray-700 mb-1">Equipos:</p>
-                      <p className="text-sm text-gray-600">{log.equipment}</p>
+                      <div className="text-sm text-gray-600 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.equipment }} />
                     </div>
                   )}
 
                   {log.observations && (
                     <div className="mb-3">
                       <p className="text-sm font-medium text-gray-700 mb-1">Observaciones:</p>
-                      <p className="text-sm text-gray-600">{log.observations}</p>
+                      <div className="text-sm text-gray-600 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.observations }} />
                     </div>
                   )}
 
                   {log.issues && (
                     <div className="mb-3">
                       <p className="text-sm font-medium text-red-700 mb-1">⚠️ Problemas:</p>
-                      <p className="text-sm text-red-600">{log.issues}</p>
+                      <div className="text-sm text-red-600 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: log.issues }} />
                     </div>
                   )}
 
@@ -258,6 +289,7 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                     const customFields = getCustomFields(log)
                     const entries = Object.entries(customFields)
                     if (entries.length === 0) return null
+                    const fieldLabels = getLogFieldLabels(log)
                     
                     return (
                       <div className="mb-3 p-3 bg-blue-50 rounded-lg">
@@ -269,7 +301,7 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                           {entries.map(([key, value]) => (
                             <div key={key} className="flex gap-2">
                               <span className="text-gray-600">
-                                {customFieldLabels[key] || key.replace(/_/g, ' ')}:
+                                {fieldLabels[key] || key.replace(/_/g, ' ')}:
                               </span>
                               <span className="font-medium text-gray-900">
                                 {Array.isArray(value) ? value.join(', ') : String(value)}
@@ -282,17 +314,34 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {} }: D
                   })()}
 
                   {/* Fotos */}
-                  {log.photos && log.photos.length > 0 && (
-                    <div className="mt-4 pt-4 border-t">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Camera className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium text-gray-700">
-                          {log.photos.length} {log.photos.length === 1 ? 'foto' : 'fotos'}
-                        </span>
+                  {log.photos && log.photos.length > 0 && (() => {
+                    const captions: string[] = log.custom_fields?.photo_captions || []
+                    return (
+                      <div className="mt-4 pt-4 border-t">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Camera className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm font-medium text-gray-700">
+                            {log.photos.length} {log.photos.length === 1 ? 'foto' : 'fotos'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {log.photos.map((photo: string, idx: number) => (
+                            <div key={idx} className="space-y-1">
+                              <div className="relative aspect-square rounded-lg overflow-hidden border">
+                                <img src={photo} alt={captions[idx] || `Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                                <span className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                                  {idx + 1}/{log.photos.length}
+                                </span>
+                              </div>
+                              {captions[idx] && (
+                                <p className="text-xs text-gray-500 italic truncate" title={captions[idx]}>{captions[idx]}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <PhotoGallery photos={log.photos} />
-                    </div>
-                  )}
+                    )
+                  })()}
 
                   {/* Firmas */}
                   {log.signatures && log.signatures.length > 0 && (

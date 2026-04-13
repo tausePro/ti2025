@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowLeft, Plus, Calendar } from 'lucide-react'
 import Link from 'next/link'
+import { getCurrentDateInputValue } from '@/lib/utils'
 
 interface Project {
   id: string
@@ -47,8 +48,9 @@ interface CustomFormData {
   [key: string]: any
 }
 
-export default function NewSamplePage({ params }: { params: { projectId: string } }) {
+export default function NewSamplePage() {
   const { profile } = useAuth()
+  const params = useParams<{ projectId: string }>()
   const router = useRouter()
   const supabase = createClient()
   
@@ -58,7 +60,7 @@ export default function NewSamplePage({ params }: { params: { projectId: string 
   const [customFormData, setCustomFormData] = useState<CustomFormData>({})
   const [sampleNumber, setSampleNumber] = useState('')
   const [sampleCode, setSampleCode] = useState('')
-  const [sampleDate, setSampleDate] = useState(new Date().toISOString().split('T')[0])
+  const [sampleDate, setSampleDate] = useState(getCurrentDateInputValue())
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(true)
@@ -176,8 +178,8 @@ export default function NewSamplePage({ params }: { params: { projectId: string 
               <SelectValue placeholder={`Seleccionar ${field.label}`} />
             </SelectTrigger>
             <SelectContent>
-              {field.options?.map((option: string) => (
-                <SelectItem key={option} value={option}>
+              {field.options?.map((option: string, index: number) => (
+                <SelectItem key={`${field.name}-select-${option}-${index}`} value={option}>
                   {option}
                 </SelectItem>
               ))}
@@ -271,27 +273,45 @@ export default function NewSamplePage({ params }: { params: { projectId: string 
       if (sampleError) throw sampleError
 
       // Crear ensayos programados según el template
-      const testsToCreate = selectedTemplate.test_configuration.test_periods.map((period: number) => ({
-        sample_id: sampleData.id,
-        test_name: selectedTemplate.test_configuration.test_name,
-        test_period: period,
-        test_date: new Date(sampleDate).getTime() + (period * 24 * 60 * 60 * 1000), // fecha + días
-        test_config: {
-          cylinders_count: selectedTemplate.test_configuration.samples_per_test
-        }
-      }))
+      const testPeriods = selectedTemplate.test_configuration?.test_periods
+      const testName = selectedTemplate.test_configuration?.test_name || 'Ensayo'
+      const samplesPerTest = selectedTemplate.test_configuration?.samples_per_test || 3
 
-      const { error: testsError } = await supabase
-        .from('quality_control_tests')
-        .insert(testsToCreate)
+      if (Array.isArray(testPeriods) && testPeriods.length > 0) {
+        const testsToCreate = testPeriods.map((period: number) => {
+          // Calcular fecha del ensayo sumando días a la fecha de muestra
+          const [year, month, day] = sampleDate.split('-').map(Number)
+          const baseDate = new Date(year, month - 1, day)
+          baseDate.setDate(baseDate.getDate() + period)
+          const testDate = `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}-${String(baseDate.getDate()).padStart(2, '0')}`
+          return {
+            sample_id: sampleData.id,
+            test_name: testName,
+            test_period: period,
+            test_date: testDate,
+            test_config: {
+              cylinders_count: samplesPerTest
+            }
+          }
+        })
 
-      if (testsError) throw testsError
+        const { error: testsError } = await supabase
+          .from('quality_control_tests')
+          .insert(testsToCreate)
+
+        if (testsError) throw testsError
+      }
 
       // Redirigir a detalles de la muestra
       router.push(`/quality-control/${params.projectId}/${sampleData.id}`)
     } catch (error: any) {
       console.error('Error saving sample:', error)
-      setError(error.message || 'Error al guardar la muestra')
+      const msg = error.message || ''
+      if (msg.includes('duplicate key') || msg.includes('unique constraint')) {
+        setError(`Ya existe una muestra con el número "${sampleNumber}" en este proyecto. Usa un número diferente.`)
+      } else {
+        setError(msg || 'Error al guardar la muestra')
+      }
     } finally {
       setSaving(false)
     }

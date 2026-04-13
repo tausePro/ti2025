@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // 1. Obtener plantilla - si se proporciona templateId, usar esa; sino buscar la default
     let template = null

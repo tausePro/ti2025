@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
@@ -7,13 +7,12 @@ import { WebVitalsProvider } from '@/components/providers/WebVitalsProvider'
 import Script from 'next/script'
 
 const inter = Inter({ subsets: ['latin'] })
+const isProduction = process.env.NODE_ENV === 'production'
 
 export const metadata: Metadata = {
   title: 'Talento Inmobiliario - Supervisión Técnica',
   description: 'Sistema de supervisión técnica para obras de construcción',
   manifest: '/manifest.json',
-  themeColor: '#9DC110',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -23,6 +22,13 @@ export const metadata: Metadata = {
     icon: '/favicon.ico',
     apple: '/icon-192x192.png'
   }
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#9DC110',
 }
 
 export default function RootLayout({
@@ -46,25 +52,27 @@ export default function RootLayout({
             {children}
           </AuthProvider>
         </ErrorBoundary>
-        <Script
-          id="register-sw"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                      console.log('SW registered: ', registration);
-                    })
-                    .catch(function(registrationError) {
-                      console.log('SW registration failed: ', registrationError);
-                    });
-                });
-              }
-            `,
-          }}
-        />
+        {isProduction && (
+          <Script
+            id="register-sw"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `
+                if ('serviceWorker' in navigator) {
+                  window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/sw.js')
+                      .then(function(registration) {
+                        console.log('SW registered: ', registration);
+                      })
+                      .catch(function(registrationError) {
+                        console.log('SW registration failed: ', registrationError);
+                      });
+                  });
+                }
+              `,
+            }}
+          />
+        )}
       </body>
     </html>
   )

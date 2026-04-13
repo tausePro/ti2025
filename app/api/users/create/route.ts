@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar que el usuario actual esté autenticado y tenga permisos
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user: currentUser } } = await supabase.auth.getUser()
     
     if (!currentUser) {

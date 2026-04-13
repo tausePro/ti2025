@@ -3,8 +3,8 @@ import { cookies } from 'next/headers'
 import type { Database } from '@/types/database.types'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
-export function createClient() {
-  const cookieStore = cookies()
+export async function createClient() {
+  const cookieStore = await cookies()
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,7 +53,7 @@ export function createAdminClient() {
 // Funciones para Server Components
 export const serverAuth = {
   getUser: async () => {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { data: { user }, error } = await supabase.auth.getUser()
     
     if (error || !user) {
@@ -75,7 +75,7 @@ export const serverAuth = {
   },
 
   getUserPermissions: async (userId: string) => {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Obtener rol del usuario
     const { data: userData, error: userError } = await supabase

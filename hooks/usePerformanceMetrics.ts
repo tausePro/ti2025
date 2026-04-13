@@ -208,7 +208,7 @@ export function usePerformanceMetrics() {
     company_id?: string,
     project_id?: string
   ) => {
-    if (!user) throw new Error('User not authenticated')
+    if (!user) return
 
     try {
       const { error } = await supabase
@@ -223,10 +223,11 @@ export function usePerformanceMetrics() {
           metadata: metadata || {}
         })
 
-      if (error) throw error
+      if (error && process.env.NODE_ENV === 'development') {
+        console.debug('[WebVitals] metric insert skipped:', error.message)
+      }
     } catch (err) {
-      console.error('Error recording metric:', err)
-      throw err
+      // Fail silently - web vitals tracking is non-critical telemetry
     }
   }
 

@@ -5,9 +5,13 @@
 
 import { 
   formatDailyLogsData, 
+  formatDailyLogChecklistSummary,
+  formatDailyLogChecklists,
+  formatDailyLogCustomFields,
   formatQualityControlData, 
   formatPhotosGallery 
 } from './data-collector'
+import { formatDateValue } from '@/lib/utils'
 
 interface ReplacementContext {
   project: any
@@ -44,12 +48,12 @@ export function replacePlaceholders(
   result = result.replace(/\{\{project_client\}\}/g, context.project?.client_name || 'N/A')
 
   // Placeholders de período
-  const startDate = new Date(context.periodStart).toLocaleDateString('es-CO', {
+  const startDate = formatDateValue(context.periodStart, 'es-CO', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   })
-  const endDate = new Date(context.periodEnd).toLocaleDateString('es-CO', {
+  const endDate = formatDateValue(context.periodEnd, 'es-CO', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
@@ -57,8 +61,8 @@ export function replacePlaceholders(
 
   result = result.replace(/\{\{period_start\}\}/g, startDate)
   result = result.replace(/\{\{period_end\}\}/g, endDate)
-  result = result.replace(/\{\{period_start_short\}\}/g, new Date(context.periodStart).toLocaleDateString('es-CO'))
-  result = result.replace(/\{\{period_end_short\}\}/g, new Date(context.periodEnd).toLocaleDateString('es-CO'))
+  result = result.replace(/\{\{period_start_short\}\}/g, formatDateValue(context.periodStart))
+  result = result.replace(/\{\{period_end_short\}\}/g, formatDateValue(context.periodEnd))
 
   // Placeholders de resumen
   result = result.replace(/\{\{total_days\}\}/g, String(context.summary?.totalDays || 0))
@@ -85,9 +89,14 @@ export function replacePlaceholders(
     ? Math.round(context.summary.totalWorkers / context.summary.totalDays)
     : 0
   result = result.replace(/\{\{bitacora\.personal\}\}/g, String(avgWorkers))
+  result = result.replace(/\{\{bitacora\.checklist_resumen\}\}/g, formatDailyLogChecklistSummary(context.dailyLogs))
+  result = result.replace(/\{\{bitacora\.checklist\}\}/g, formatDailyLogChecklists(context.dailyLogs))
+  result = result.replace(/\{\{bitacora\.checklists\}\}/g, formatDailyLogChecklists(context.dailyLogs))
+  result = result.replace(/\{\{bitacora\.campos_personalizados\}\}/g, formatDailyLogCustomFields(context.dailyLogs))
+  result = result.replace(/\{\{bitacora\.custom_fields\}\}/g, formatDailyLogCustomFields(context.dailyLogs))
 
   // Placeholders de bitacora diaria (registro puntual)
-  result = result.replace(/\{\{bitacora\.fecha\}\}/g, dailyLog?.date ? new Date(dailyLog.date).toLocaleDateString('es-CO') : 'N/A')
+  result = result.replace(/\{\{bitacora\.fecha\}\}/g, dailyLog?.date ? formatDateValue(dailyLog.date) : 'N/A')
   result = result.replace(/\{\{bitacora\.clima\}\}/g, dailyLog?.weather || 'N/A')
   result = result.replace(/\{\{bitacora\.personal_dia\}\}/g, String(dailyLog?.personnel_count ?? 0))
   result = result.replace(/\{\{bitacora\.actividades_dia\}\}/g, dailyLog?.activities || '')
@@ -191,6 +200,9 @@ export function getAvailablePlaceholders(): Array<{ placeholder: string, descrip
     { placeholder: '{{bitacora.tabla}}', description: 'Tabla de bitácoras', category: 'Bitácoras' },
     { placeholder: '{{bitacora.resumen}}', description: 'Resumen de actividades', category: 'Bitácoras' },
     { placeholder: '{{bitacora.personal}}', description: 'Personal promedio', category: 'Bitácoras' },
+    { placeholder: '{{bitacora.checklist_resumen}}', description: 'Resumen consolidado de checklist', category: 'Bitácoras' },
+    { placeholder: '{{bitacora.checklist}}', description: 'Detalle de checklist por bitácora', category: 'Bitácoras' },
+    { placeholder: '{{bitacora.campos_personalizados}}', description: 'Campos personalizados por bitácora', category: 'Bitácoras' },
     
     // Control de Calidad
     { placeholder: '{{qc.ensayos}}', description: 'Tabla de ensayos', category: 'Control de Calidad' },

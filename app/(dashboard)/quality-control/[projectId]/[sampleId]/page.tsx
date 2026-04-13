@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,7 @@ import {
   Plus
 } from 'lucide-react'
 import Link from 'next/link'
+import { formatDateValue } from '@/lib/utils'
 
 interface Project {
   id: string
@@ -56,22 +57,13 @@ interface QualityTest {
   test_date: string
   actual_test_date: string | null
   status: string
-  results: Array<{
-    id: string
-    specimen_number: number
-    result_value: number
-    meets_criteria: boolean | null
-    deviation_percentage: number | null
-    notes: string
-  }>
+  test_config: any
+  results: any[]
 }
 
-export default function SampleDetailsPage({ 
-  params 
-}: { 
-  params: { projectId: string; sampleId: string } 
-}) {
+export default function SampleDetailsPage() {
   const { profile, hasPermission } = useAuth()
+  const params = useParams<{ projectId: string; sampleId: string }>()
   const router = useRouter()
   const supabase = createClient()
   
@@ -264,10 +256,12 @@ export default function SampleDetailsPage({
             {getStatusBadge(sample.status)}
             {getResultBadge(sample.overall_result)}
             {canEdit && (
-              <Button variant="outline" size="sm">
-                <Edit className="w-4 h-4 mr-2" />
-                Editar
-              </Button>
+              <Link href={`/quality-control/${params.projectId}/${params.sampleId}/edit`}>
+                <Button variant="outline" size="sm">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Editar
+                </Button>
+              </Link>
             )}
           </div>
         </div>
@@ -295,7 +289,7 @@ export default function SampleDetailsPage({
                   <div>
                     <p className="text-sm text-gray-500">Fecha</p>
                     <p className="font-medium">
-                      {new Date(sample.sample_date).toLocaleDateString('es-CO')}
+                      {formatDateValue(sample.sample_date, 'es-CO')}
                     </p>
                   </div>
                 </div>
@@ -352,10 +346,12 @@ export default function SampleDetailsPage({
                   </CardDescription>
                 </div>
                 {canAddResults && (
-                  <Button size="sm">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Agregar Resultados
-                  </Button>
+                  <Link href={`/quality-control/${params.projectId}/${params.sampleId}/results`}>
+                    <Button size="sm">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Agregar Resultados
+                    </Button>
+                  </Link>
                 )}
               </div>
             </CardHeader>
@@ -374,7 +370,7 @@ export default function SampleDetailsPage({
                             {test.test_name} - {test.test_period} días
                           </h4>
                           <p className="text-sm text-gray-500">
-                            Programado: {new Date(test.test_date).toLocaleDateString('es-CO')}
+                            Programado: {formatDateValue(test.test_date, 'es-CO')}
                           </p>
                         </div>
                         {getStatusBadge(test.status)}
@@ -426,21 +422,27 @@ export default function SampleDetailsPage({
             </CardHeader>
             <CardContent className="space-y-2">
               {canEdit && (
-                <Button variant="outline" className="w-full justify-start">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar Muestra
-                </Button>
+                <Link href={`/quality-control/${params.projectId}/${params.sampleId}/edit`}>
+                  <Button variant="outline" className="w-full justify-start">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar Muestra
+                  </Button>
+                </Link>
               )}
               {canAddResults && (
-                <Button className="w-full justify-start">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Registrar Resultados
-                </Button>
+                <Link href={`/quality-control/${params.projectId}/${params.sampleId}/results`}>
+                  <Button className="w-full justify-start">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Registrar Resultados
+                  </Button>
+                </Link>
               )}
-              <Button variant="outline" className="w-full justify-start">
-                <FileText className="w-4 h-4 mr-2" />
+              <Link href={`/quality-control/reports/${params.sampleId}`}>
+                <Button variant="outline" className="w-full justify-start">
+                  <FileText className="w-4 h-4 mr-2" />
                   Generar Informe
-              </Button>
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 

@@ -27,7 +27,7 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Verificar que el usuario actual esté autenticado y tenga permisos
     const { data: { user: currentUser } } = await supabase.auth.getUser()

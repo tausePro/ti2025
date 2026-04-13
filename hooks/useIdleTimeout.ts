@@ -17,9 +17,9 @@ export function useIdleTimeout({
   const [showWarning, setShowWarning] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState(0)
   
-  const idleTimerRef = useRef<NodeJS.Timeout>()
-  const warningTimerRef = useRef<NodeJS.Timeout>()
-  const countdownRef = useRef<NodeJS.Timeout>()
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const resetTimer = () => {
     setIsIdle(false)

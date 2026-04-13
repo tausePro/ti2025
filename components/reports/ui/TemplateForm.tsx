@@ -1073,7 +1073,7 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
                           }))}
                         />
                         <p className="text-xs text-gray-400 mt-1">
-                          Placeholders: {`{{project_name}}, {{project_code}}, {{bitacora.fecha}}, {{bitacora.clima}}, {{bitacora.actividades_dia}}, {{bitacora.realizada_por}}, {{fotos.galeria}}`}
+                          Placeholders: {`{{project_name}}, {{project_code}}, {{bitacora.fecha}}, {{bitacora.clima}}, {{bitacora.actividades_dia}}, {{bitacora.checklist}}, {{bitacora.campos_personalizados}}, {{bitacora.realizada_por}}, {{fotos.galeria}}`}
                         </p>
                       </div>
                     )
@@ -1083,7 +1083,7 @@ export function TemplateForm({ template, companyId, userId }: TemplateFormProps)
 
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <p className="text-sm text-gray-600">
-                💡 <strong>Placeholders disponibles:</strong> {`{{project_name}} {{project_code}} {{project_location}} {{project_client}} {{bitacora.fecha}} {{bitacora.clima}} {{bitacora.personal_dia}} {{bitacora.actividades_dia}} {{bitacora.materiales}} {{bitacora.equipos}} {{bitacora.observaciones}} {{bitacora.novedades}} {{bitacora.recomendaciones}} {{bitacora.realizada_por}} {{fotos.galeria}}`}
+                💡 <strong>Placeholders disponibles:</strong> {`{{project_name}} {{project_code}} {{project_location}} {{project_client}} {{bitacora.fecha}} {{bitacora.clima}} {{bitacora.personal_dia}} {{bitacora.actividades_dia}} {{bitacora.materiales}} {{bitacora.equipos}} {{bitacora.observaciones}} {{bitacora.novedades}} {{bitacora.recomendaciones}} {{bitacora.checklist}} {{bitacora.checklist_resumen}} {{bitacora.campos_personalizados}} {{bitacora.realizada_por}} {{fotos.galeria}}`}
               </p>
             </div>
           </div>

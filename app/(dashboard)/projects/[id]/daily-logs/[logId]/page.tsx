@@ -1,73 +1,135 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { PhotoGallery } from '@/components/daily-logs/PhotoGallery'
-import { ArrowLeft, Calendar, Cloud, Users, Wrench, Package, FileText, Camera, Edit, Printer } from 'lucide-react'
+import { ArrowLeft, Calendar, Cloud, Users, Wrench, Package, FileText, Camera, Edit, Printer, Loader2, WifiOff, Trash2 } from 'lucide-react'
+import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
+import { SyncStatusBadge } from '@/components/shared/OfflineIndicator'
+import { useOnlineStatus } from '@/hooks/useOnlineStatus'
+import { getLocalDailyLog, getCachedProjectConfig } from '@/lib/offline/daily-log-service'
 
-export default async function DailyLogDetailPage({ 
-  params 
-}: { 
-  params: { id: string; logId: string } 
-}) {
+export default function DailyLogDetailPage() {
+  const params = useParams<{ id: string; logId: string }>()
+  const router = useRouter()
   const supabase = createClient()
+  const { profile } = useAuth()
+  const { isOnline } = useOnlineStatus()
 
-  // Verificar autenticación
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    redirect('/login')
-  }
+  const [log, setLog] = useState<any>(null)
+  const [project, setProject] = useState<any>(null)
+  const [assignedProfile, setAssignedProfile] = useState<any>(null)
+  const [customFieldLabels, setCustomFieldLabels] = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
+  const [isOfflineMode, setIsOfflineMode] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
-  // Obtener bitácora
-  const { data: log, error } = await (supabase
-    .from('daily_logs') as any)
-    .select(`
-      *,
-      created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)
-    `)
-    .eq('id', params.logId)
-    .single()
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true)
 
-  if (error || !log) {
-    redirect(`/projects/${params.id}/daily-logs`)
-  }
+      if (isOnline) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user) { router.push('/login'); return }
 
-  // Obtener proyecto
-  const { data: project } = await (supabase
-    .from('projects') as any)
-    .select('name')
-    .eq('id', params.id)
-    .single()
+          const { data: logData, error } = await (supabase
+            .from('daily_logs') as any)
+            .select(`*, created_by_profile:profiles!daily_logs_created_by_fkey(full_name, email)`)
+            .eq('id', params.logId)
+            .single()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, role, full_name, email')
-    .eq('id', user.id)
-    .single()
+          if (error || !logData) { router.push(`/projects/${params.id}/daily-logs`); return }
+          setLog(logData)
 
-  const { data: assignedProfile } = await supabase
-    .from('profiles')
-    .select('full_name, email')
-    .eq('id', log.assigned_to)
-    .maybeSingle()
+          const { data: projectData } = await (supabase.from('projects') as any)
+            .select('name').eq('id', params.id).single()
+          setProject(projectData)
 
-  const { data: configData } = await supabase
-    .from('daily_log_configs')
-    .select('custom_fields')
-    .eq('project_id', params.id)
-    .single()
+          if (logData.assigned_to) {
+            const { data: assigned } = await supabase.from('profiles')
+              .select('full_name, email').eq('id', logData.assigned_to).maybeSingle()
+            setAssignedProfile(assigned)
+          }
 
-  const storedLabels = (log.custom_fields as any)?._field_labels || {}
-  const customFieldLabels = (configData?.custom_fields || []).reduce(
-    (acc: Record<string, string>, field: any) => {
-      if (field?.id && field?.label) {
-        acc[field.id] = field.label
+          const { data: configData } = await supabase.from('daily_log_configs')
+            .select('custom_fields').eq('project_id', params.id).single()
+
+          const storedLabels = (logData.custom_fields as any)?._field_labels || {}
+          setCustomFieldLabels(getCustomFieldLabelsMap(
+            (configData?.custom_fields || []) as Array<{ id?: string; label?: string }>,
+            storedLabels
+          ))
+        } catch {
+          await loadOffline()
+        }
+      } else {
+        await loadOffline()
       }
-      return acc
-    },
-    { ...storedLabels }
-  )
 
-  const canEdit = user.id === log.created_by || ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile?.role || '')
+      setLoading(false)
+    }
+
+    async function loadOffline() {
+      setIsOfflineMode(true)
+      const localLog = await getLocalDailyLog(params.logId)
+      if (!localLog) { router.push(`/projects/${params.id}/daily-logs`); return }
+
+      setLog(localLog)
+      setProject({ name: 'Proyecto (offline)' })
+
+      const cachedConfig = await getCachedProjectConfig(params.id, 'daily_log_config')
+      const storedLabels = (localLog.custom_fields as any)?._field_labels || {}
+      setCustomFieldLabels(getCustomFieldLabelsMap(
+        (cachedConfig?.custom_fields || []) as Array<{ id?: string; label?: string }>,
+        storedLabels
+      ))
+    }
+
+    loadData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id, params.logId, isOnline])
+
+  const handleDelete = async () => {
+    if (!confirm('¿Estás seguro de eliminar esta bitácora? Esta acción no se puede deshacer.')) return
+    setDeleting(true)
+    try {
+      if (isOnline && !params.logId.startsWith('offline_')) {
+        const { error } = await supabase.from('daily_logs').delete().eq('id', params.logId)
+        if (error) throw error
+      }
+      // Eliminar también de IndexedDB
+      const { db } = await import('@/lib/db/schema')
+      await db.daily_logs.delete(params.logId)
+      await db.photos.where('daily_log_id').equals(params.logId).delete()
+
+      router.push(`/projects/${params.id}/daily-logs`)
+    } catch (err: any) {
+      console.error('Error eliminando bitácora:', err)
+      alert('Error al eliminar: ' + (err.message || 'Error desconocido'))
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
+
+  if (!log) return null
+
+  const isAdmin = ['admin', 'super_admin'].includes(profile?.role || '')
+  const isOwnerOrSupervisor = profile?.id === log.created_by || ['gerente', 'supervisor'].includes(profile?.role || '')
+  const hoursElapsed = (Date.now() - new Date(log.created_at).getTime()) / (1000 * 60 * 60)
+  const withinEditWindow = hoursElapsed <= 72
+  const canEdit = isAdmin || (isOwnerOrSupervisor && withinEditWindow)
 
   const checklistSections = (log.custom_fields?.checklists || [])
     .map((section: any) => ({
@@ -77,7 +139,8 @@ export default async function DailyLogDetailPage({
       )
     }))
     .filter((section: any) => section.items?.length)
-  const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => key !== 'checklists')
+  const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => !['checklists', '_field_labels', 'photo_count', 'photo_captions'].includes(key))
+  const photoCaptions: string[] = log.custom_fields?.photo_captions || []
 
   const getWeatherLabel = (weather: string) => {
     switch (weather) {
@@ -92,6 +155,14 @@ export default async function DailyLogDetailPage({
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Banner offline */}
+      {isOfflineMode && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-300 text-amber-800 px-4 py-3 rounded-lg mb-4">
+          <WifiOff className="h-5 w-5 flex-shrink-0" />
+          <p className="text-sm font-medium">Mostrando datos locales — sin conexión</p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6">
         <Link
@@ -105,7 +176,7 @@ export default async function DailyLogDetailPage({
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              Bitácora del {new Date(log.date).toLocaleDateString('es-CO', {
+              Bitácora del {formatDateValue(log.date, 'es-CO', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
@@ -117,26 +188,48 @@ export default async function DailyLogDetailPage({
             </p>
           </div>
           
-          {canEdit && (
-            <Link
-              href={`/projects/${params.id}/daily-logs/${params.logId}/edit`}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
-            </Link>
-          )}
-          <Link
-            href={`/print/daily-log/${params.logId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2 border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 flex items-center"
-          >
-            <Printer className="h-4 w-4 mr-2" />
-            Imprimir
-          </Link>
+          <div className="flex gap-2 flex-shrink-0">
+            {canEdit && !isOfflineMode && (
+              <Link
+                href={`/projects/${params.id}/daily-logs/${params.logId}/edit`}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Editar
+              </Link>
+            )}
+            {!isOfflineMode && (
+              <Link
+                href={`/print/daily-log/${params.logId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 flex items-center"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir
+              </Link>
+            )}
+            {canEdit && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-4 py-2 border border-red-200 text-red-600 rounded-md hover:bg-red-50 flex items-center disabled:opacity-50"
+              >
+                {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                Eliminar
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Aviso de ventana expirada */}
+      {!canEdit && isOwnerOrSupervisor && !withinEditWindow && (
+        <div className="text-xs text-gray-400 mb-2">
+          La ventana de edición de 72 horas ha expirado. Contacta a un administrador si necesitas modificar esta bitácora.
+        </div>
+      )}
 
       {/* Contenido */}
       <div className="bg-white rounded-lg shadow-lg p-6 space-y-6">
@@ -168,15 +261,27 @@ export default async function DailyLogDetailPage({
           
           <div>
             <p className="text-sm text-gray-500">Estado</p>
-            <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-              log.sync_status === 'synced' 
-                ? 'bg-green-100 text-green-800'
-                : 'bg-yellow-100 text-yellow-800'
-            }`}>
-              {log.sync_status === 'synced' ? '✓ Sincronizado' : '⏳ Pendiente'}
-            </span>
+            <SyncStatusBadge syncStatus={log.sync_status || 'synced'} />
           </div>
         </div>
+
+        {/* Frente de Trabajo y Elemento */}
+        {(log.work_front || log.element) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b">
+            {log.work_front && (
+              <div>
+                <p className="text-sm text-gray-500">Frente de Trabajo</p>
+                <p className="text-lg font-medium text-gray-900">{log.work_front}</p>
+              </div>
+            )}
+            {log.element && (
+              <div>
+                <p className="text-sm text-gray-500">Elemento</p>
+                <p className="text-lg font-medium text-gray-900">{log.element}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Actividades */}
         {log.activities && (
@@ -185,9 +290,7 @@ export default async function DailyLogDetailPage({
               <FileText className="h-5 w-5 mr-2 text-blue-600" />
               Actividades Realizadas
             </h2>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.activities}</p>
-            </div>
+            <div className="bg-gray-50 rounded-lg p-4 prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: log.activities }} />
           </div>
         )}
 
@@ -198,9 +301,7 @@ export default async function DailyLogDetailPage({
               <Package className="h-5 w-5 mr-2 text-blue-600" />
               Materiales Utilizados
             </h2>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.materials}</p>
-            </div>
+            <div className="bg-gray-50 rounded-lg p-4 prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: log.materials }} />
           </div>
         )}
 
@@ -211,9 +312,7 @@ export default async function DailyLogDetailPage({
               <Wrench className="h-5 w-5 mr-2 text-blue-600" />
               Equipos Utilizados
             </h2>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.equipment}</p>
-            </div>
+            <div className="bg-gray-50 rounded-lg p-4 prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: log.equipment }} />
           </div>
         )}
 
@@ -223,9 +322,7 @@ export default async function DailyLogDetailPage({
             <h2 className="text-xl font-semibold text-gray-900 mb-3">
               Observaciones
             </h2>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.observations}</p>
-            </div>
+            <div className="bg-gray-50 rounded-lg p-4 prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: log.observations }} />
           </div>
         )}
 
@@ -235,9 +332,7 @@ export default async function DailyLogDetailPage({
             <h2 className="text-xl font-semibold text-gray-900 mb-3">
               Problemas Encontrados
             </h2>
-            <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.issues}</p>
-            </div>
+            <div className="bg-red-50 rounded-lg p-4 border border-red-200 prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: log.issues }} />
           </div>
         )}
 
@@ -247,9 +342,7 @@ export default async function DailyLogDetailPage({
             <h2 className="text-xl font-semibold text-gray-900 mb-3">
               Recomendaciones
             </h2>
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <p className="text-gray-700 whitespace-pre-wrap">{log.recommendations}</p>
-            </div>
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: log.recommendations }} />
           </div>
         )}
 
@@ -288,7 +381,12 @@ export default async function DailyLogDetailPage({
                   <p className="text-xs text-gray-500 capitalize">{signature.user_role}</p>
                   {signature.signed_at && (
                     <p className="text-xs text-gray-400">
-                      {new Date(signature.signed_at).toLocaleDateString('es-CO')}
+                      {formatDateValue(signature.signed_at, 'es-CO', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
                     </p>
                   )}
                 </div>
@@ -346,7 +444,25 @@ export default async function DailyLogDetailPage({
               <Camera className="h-5 w-5 mr-2 text-blue-600" />
               Fotos del Día ({log.photos.length})
             </h2>
-            <PhotoGallery photos={log.photos} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {log.photos.map((photo: string, idx: number) => (
+                <div key={idx} className="space-y-2">
+                  <div className="relative aspect-video rounded-lg overflow-hidden border">
+                    <img
+                      src={photo}
+                      alt={photoCaptions[idx] || `Foto ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
+                      {idx + 1}/{log.photos.length}
+                    </span>
+                  </div>
+                  {photoCaptions[idx] && (
+                    <p className="text-sm text-gray-600 italic px-1">{photoCaptions[idx]}</p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
