@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { DailyLogsTimeline } from '@/components/daily-logs/DailyLogsTimeline'
 import { DailyLogsCalendar } from '@/components/daily-logs/DailyLogsCalendar'
-import { Loader2, Settings, WifiOff, Printer, CheckSquare, X } from 'lucide-react'
+import { Loader2, Settings, WifiOff, Printer, CheckSquare, X, Download } from 'lucide-react'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import {
   getLocalDailyLogsByProject,
@@ -30,6 +30,7 @@ export default function DailyLogsPage() {
   const [isOfflineMode, setIsOfflineMode] = useState(false)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
   const [rangeStart, setRangeStart] = useState('')
   const [rangeEnd, setRangeEnd] = useState('')
   const hasRangeFilter = Boolean(rangeStart || rangeEnd)
@@ -55,19 +56,39 @@ export default function DailyLogsPage() {
     }
   }
 
-  const handlePrintSelected = () => {
+  const handlePrintSelected = async () => {
     if (selectedIds.size === 0) return
 
-    if (hasRangeFilter && allFilteredSelected) {
-      const queryParams = new URLSearchParams({ projectId: params.id })
-      if (rangeStart) queryParams.set('start', rangeStart)
-      if (rangeEnd) queryParams.set('end', rangeEnd)
-      window.open(`/print/daily-logs/batch?${queryParams.toString()}`, '_blank')
-      return
-    }
+    try {
+      setDownloadingPdf(true)
+      let url = '/api/print/daily-logs-batch?'
 
-    const ids = Array.from(selectedIds).join(',')
-    window.open(`/print/daily-logs/batch?ids=${ids}`, '_blank')
+      if (hasRangeFilter && allFilteredSelected) {
+        const queryParams = new URLSearchParams({ projectId: params.id })
+        if (rangeStart) queryParams.set('start', rangeStart)
+        if (rangeEnd) queryParams.set('end', rangeEnd)
+        url += queryParams.toString()
+      } else {
+        url += `ids=${Array.from(selectedIds).join(',')}`
+      }
+
+      const response = await fetch(url)
+      if (!response.ok) throw new Error('Error generando PDF')
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || 'Bitacoras.pdf'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(blobUrl)
+    } catch (error) {
+      console.error('Error descargando PDF batch:', error)
+      alert('Error generando el PDF. Intenta de nuevo.')
+    } finally {
+      setDownloadingPdf(false)
+    }
   }
 
   const handleExitSelection = () => {
@@ -499,11 +520,11 @@ export default function DailyLogsPage() {
           <button
             type="button"
             onClick={handlePrintSelected}
-            disabled={selectedIds.size === 0}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2 text-sm disabled:cursor-not-allowed disabled:bg-gray-300"
+            disabled={selectedIds.size === 0 || downloadingPdf}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2 text-sm disabled:cursor-not-allowed disabled:bg-gray-300"
           >
-            <Printer className="h-4 w-4" />
-            {hasRangeFilter && allFilteredSelected ? 'Generar / imprimir rango' : 'Generar / imprimir PDF'}
+            {downloadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {downloadingPdf ? 'Generando...' : 'Descargar PDF'}
           </button>
           <button
             type="button"

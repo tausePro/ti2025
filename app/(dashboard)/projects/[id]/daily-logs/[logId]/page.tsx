@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { PhotoGallery } from '@/components/daily-logs/PhotoGallery'
-import { ArrowLeft, Calendar, Cloud, Users, Wrench, Package, FileText, Camera, Edit, Printer, Loader2, WifiOff, Trash2 } from 'lucide-react'
+import { ArrowLeft, Calendar, Cloud, Users, Wrench, Package, FileText, Camera, Edit, Printer, Loader2, WifiOff, Trash2, Download } from 'lucide-react'
 import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
 import { SyncStatusBadge } from '@/components/shared/OfflineIndicator'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
@@ -26,6 +26,29 @@ export default function DailyLogDetailPage() {
   const [loading, setLoading] = useState(true)
   const [isOfflineMode, setIsOfflineMode] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
+
+  const handleDownloadPdf = async () => {
+    try {
+      setDownloadingPdf(true)
+      const response = await fetch(`/api/print/daily-log?logId=${params.logId}`)
+      if (!response.ok) throw new Error('Error generando PDF')
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = response.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || `Bitacora_${params.logId}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error descargando PDF:', error)
+      alert('Error generando el PDF. Intenta de nuevo.')
+    } finally {
+      setDownloadingPdf(false)
+    }
+  }
 
   useEffect(() => {
     async function loadData() {
@@ -199,15 +222,26 @@ export default function DailyLogDetailPage() {
               </Link>
             )}
             {!isOfflineMode && (
-              <Link
-                href={`/print/daily-log/${params.logId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 flex items-center"
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                Imprimir
-              </Link>
+              <>
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  disabled={downloadingPdf}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center disabled:opacity-50"
+                >
+                  {downloadingPdf ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+                  {downloadingPdf ? 'Generando...' : 'Descargar PDF'}
+                </button>
+                <Link
+                  href={`/print/daily-log/${params.logId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 border border-gray-200 text-gray-700 rounded-md hover:bg-gray-50 flex items-center"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Vista previa
+                </Link>
+              </>
             )}
             {canEdit && (
               <button

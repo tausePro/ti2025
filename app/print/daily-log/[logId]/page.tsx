@@ -227,15 +227,13 @@ export default async function DailyLogPrintPage({
           </div>
         </div>
       ) : (
-        <div className="membrete-page max-w-[210mm] mx-auto">
-          {/* ===== HEADER FIJO: Logo ===== */}
-          <header className="membrete-header">
-            <img
-              src="/brand/logo-header.png"
-              alt="Talento Inmobiliario"
-              className="h-14 object-contain"
-            />
-          </header>
+        <div className="membrete-page max-w-[215.9mm] mx-auto">
+          {/* ===== FONDO JPG FIJO ===== */}
+          <img
+            src="/brand/Membrete%20Talento%20Inmobiliario.jpg"
+            alt=""
+            className="membrete-bg"
+          />
 
           {/* ===== CONTENIDO ===== */}
           <main className="membrete-body px-10">
@@ -460,83 +458,38 @@ export default async function DailyLogPrintPage({
       )}
 
       <style>{`
-        /* ===== MEMBRETE HTML/CSS — Replica el Word oficial ===== */
+        /* ===== MEMBRETE CON JPG OFICIAL DE FONDO ===== */
         .membrete-page {
           position: relative;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
+          min-height: 279.4mm;
+          max-width: 215.9mm;
+          margin: 0 auto;
         }
-        .membrete-header {
-          padding: 20px 40px 10px 40px;
-        }
-        .membrete-body {
-          flex: 1;
-          padding-top: 10px;
-          padding-bottom: 80px;
-        }
-        .membrete-footer {
+        .membrete-bg {
           position: fixed;
-          bottom: 0;
+          top: 0;
           left: 0;
-          right: 0;
-          padding: 0 40px 12px 40px;
+          width: 215.9mm;
+          height: 279.4mm;
+          z-index: 0;
+          pointer-events: none;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
-        .membrete-footer-line {
-          height: 2px;
-          background: linear-gradient(to right, #8BC34A, #E53935);
-          margin-bottom: 8px;
+        .membrete-header { display: none; }
+        .membrete-footer { display: none; }
+        .membrete-corner-decoration { display: none; }
+        .membrete-footer-line { display: none; }
+        .membrete-footer-content { display: none; }
+        .membrete-body {
+          position: relative;
+          z-index: 1;
+          padding: 26mm 18mm 32mm 18mm;
         }
-        .membrete-footer-content {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-end;
-        }
-        .membrete-footer-contact {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          font-size: 11px;
-          color: #555;
-        }
-        .membrete-footer-contact span {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-        .membrete-corner-decoration {
-          position: fixed;
-          bottom: 0;
-          right: 0;
-          width: 80px;
-          height: 120px;
-          overflow: hidden;
-        }
-        .membrete-corner-decoration::before,
-        .membrete-corner-decoration::after {
-          content: '';
-          position: absolute;
-          right: -20px;
-          width: 60px;
-          height: 140px;
-          transform: rotate(-20deg);
-        }
-        .membrete-corner-decoration::before {
-          background: #8BC34A;
-          bottom: -30px;
-          right: -10px;
-        }
-        .membrete-corner-decoration::after {
-          background: #689F38;
-          bottom: -30px;
-          right: 15px;
-          opacity: 0.7;
-        }
-
         @media print {
           @page {
-            size: A4;
-            margin: 10mm 10mm 15mm 10mm;
+            size: letter;
+            margin: 0;
           }
           * {
             -webkit-print-color-adjust: exact !important;
@@ -547,37 +500,33 @@ export default async function DailyLogPrintPage({
             margin: 0 !important;
             padding: 0 !important;
           }
-          .membrete-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 10;
-          }
-          .membrete-body {
-            padding-top: 80px;
-          }
-          .membrete-footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 10;
+          .membrete-bg {
+            position: fixed !important;
           }
           .print-avoid-break {
             break-inside: avoid;
             page-break-inside: avoid;
           }
-          h2 {
-            page-break-after: avoid;
-          }
-          table {
-            page-break-inside: avoid;
-          }
-          p {
-            orphans: 3;
-            widows: 3;
-          }
+          h2 { page-break-after: avoid; }
+          table { page-break-inside: avoid; }
+          p { orphans: 3; widows: 3; }
+        }
+        /* Tipografía profesional */
+        .membrete-body h2 {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          color: #4a7c10;
+          border-left: 3px solid #8BC34A;
+          padding-left: 8px;
+          margin-bottom: 6px;
+        }
+        .membrete-body section { margin-bottom: 16px; }
+        .membrete-body .prose, .membrete-body .text-gray-700 {
+          text-align: justify;
+          font-size: 11.5px;
+          line-height: 1.6;
         }
         .prose table {
           border-collapse: collapse;
