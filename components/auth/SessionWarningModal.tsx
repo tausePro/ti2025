@@ -30,16 +30,18 @@ export function SessionWarningModal({ open, timeRemaining, onContinue }: Session
             <Clock className="h-5 w-5 text-orange-600" />
             Tu sesión está por expirar
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-2">
-            <p>
-              Por seguridad, tu sesión se cerrará automáticamente por inactividad.
-            </p>
-            <p className="text-lg font-semibold text-orange-600">
-              Tiempo restante: {minutes}:{seconds.toString().padStart(2, '0')}
-            </p>
-            <p className="text-sm text-gray-600">
-              Haz clic en "Continuar" para mantener tu sesión activa.
-            </p>
+          <AlertDialogDescription asChild>
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p>
+                Por seguridad, tu sesión se cerrará automáticamente por inactividad.
+              </p>
+              <p className="text-lg font-semibold text-orange-600">
+                Tiempo restante: {minutes}:{seconds.toString().padStart(2, '0')}
+              </p>
+              <p className="text-sm text-gray-600">
+                Haz clic en &quot;Continuar&quot; para mantener tu sesión activa.
+              </p>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
