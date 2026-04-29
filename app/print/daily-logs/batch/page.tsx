@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
+import { getPhotoCaptions } from '@/lib/photo-captions'
 
 interface DailyLog {
   id: string
@@ -224,11 +225,11 @@ function BatchPrintContent() {
       {/* Cada bitácora como página separada */}
       {logs.map((log, index) => {
         const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => !['checklists', '_field_labels', 'photo_count', 'photo_captions', 'work_front', 'element'].includes(key))
-        const photoCaptions: string[] = Array.isArray(log.custom_fields?.photo_captions)
-          ? log.custom_fields.photo_captions
-          : typeof log.custom_fields?.photo_captions === 'string'
-            ? log.custom_fields.photo_captions.split(',')
-            : []
+        const photoCaptions = getPhotoCaptions(
+          log.custom_fields?.photo_captions,
+          Array.isArray(log.photos) ? log.photos.length : 0,
+          log.photos
+        )
         const storedLabels = log.custom_fields?._field_labels || {}
         const fieldLabels = getCustomFieldLabelsMap([], storedLabels)
         const checklistSections = (log.custom_fields?.checklists || [])
@@ -381,7 +382,7 @@ function BatchPrintContent() {
                         alt={photoCaptions[idx] || `Foto ${idx + 1}`}
                         className="w-full h-auto max-h-60 object-contain rounded border border-gray-200 bg-white"
                       />
-                      {photoCaptions[idx] && (
+                      {photoCaptions[idx]?.trim() && (
                         <p className="text-xs text-gray-600 text-center mt-1 italic">
                           {photoCaptions[idx]}
                         </p>

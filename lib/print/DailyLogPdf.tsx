@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 import { formatDateValue } from '@/lib/utils'
+import { getPhotoCaptions } from '@/lib/photo-captions'
 
 const LETTER_W = 612
 const LETTER_H = 792
@@ -150,22 +151,23 @@ const s = StyleSheet.create({
   },
   photoItem: {
     width: '48%',
-    marginBottom: 6,
+    marginBottom: 10,
   },
   photoImg: {
     width: '100%',
-    maxHeight: 180,
+    height: 160,
     objectFit: 'contain',
     borderWidth: 0.5,
     borderColor: '#ddd',
     borderRadius: 2,
   },
   photoCaption: {
-    fontSize: 7.5,
-    color: '#666',
+    fontSize: 8,
+    color: '#333',
     fontStyle: 'italic',
     textAlign: 'center',
-    marginTop: 2,
+    marginTop: 4,
+    lineHeight: 1.25,
   },
   signatureName: {
     fontWeight: 'bold',
@@ -256,11 +258,8 @@ export function DailyLogPdf({
       !['checklists', '_field_labels', 'photo_count', 'photo_captions', 'work_front', 'element'].includes(key)
   )
 
-  const photoCaptions: string[] = Array.isArray(log.custom_fields?.photo_captions)
-    ? log.custom_fields.photo_captions
-    : typeof log.custom_fields?.photo_captions === 'string'
-      ? log.custom_fields.photo_captions.split(',')
-      : []
+  const photos: string[] = Array.isArray(log.photos) ? log.photos : []
+  const photoCaptions = getPhotoCaptions(log.custom_fields?.photo_captions, photos.length, log.photos)
 
   const checklistSections = (log.custom_fields?.checklists || [])
     .map((section: any) => ({
@@ -270,8 +269,6 @@ export function DailyLogPdf({
       ),
     }))
     .filter((section: any) => section.items?.length)
-
-  const photos: string[] = log.photos || []
 
   return (
     <Document
@@ -396,7 +393,7 @@ export function DailyLogPdf({
                 {photos.map((photo: string, index: number) => (
                   <View key={`photo-${index}`} style={s.photoItem} wrap={false}>
                     <Image src={photo} style={s.photoImg} />
-                    {photoCaptions[index] && (
+                    {photoCaptions[index]?.trim() && (
                       <Text style={s.photoCaption}>{photoCaptions[index]}</Text>
                     )}
                   </View>
