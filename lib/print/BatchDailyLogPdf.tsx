@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer'
 import { formatDateValue } from '@/lib/utils'
+import { getPhotoCaptions } from '@/lib/photo-captions'
 
 const LETTER_W = 612
 const LETTER_H = 792
@@ -182,22 +183,23 @@ const s = StyleSheet.create({
   },
   photoItem: {
     width: '48%',
-    marginBottom: 4,
+    marginBottom: 9,
   },
   photoImg: {
     width: '100%',
-    maxHeight: 160,
+    height: 150,
     objectFit: 'contain',
     borderWidth: 0.5,
     borderColor: '#ddd',
     borderRadius: 2,
   },
   photoCaption: {
-    fontSize: 7,
-    color: '#666',
+    fontSize: 7.5,
+    color: '#333',
     fontStyle: 'italic',
     textAlign: 'center',
-    marginTop: 2,
+    marginTop: 4,
+    lineHeight: 1.25,
   },
   signatureName: {
     fontWeight: 'bold',
@@ -315,11 +317,8 @@ export function BatchDailyLogPdf({
           ([key]) => !['checklists', '_field_labels', 'photo_count', 'photo_captions', 'work_front', 'element'].includes(key)
         )
 
-        const photoCaptions: string[] = Array.isArray(log.custom_fields?.photo_captions)
-          ? log.custom_fields.photo_captions
-          : typeof log.custom_fields?.photo_captions === 'string'
-            ? log.custom_fields.photo_captions.split(',')
-            : []
+        const photos: string[] = Array.isArray(log.photos) ? log.photos : []
+        const photoCaptions = getPhotoCaptions(log.custom_fields?.photo_captions, photos.length, log.photos)
 
         const checklistSections = (log.custom_fields?.checklists || [])
           .map((section: any) => ({
@@ -329,8 +328,6 @@ export function BatchDailyLogPdf({
             ),
           }))
           .filter((section: any) => section.items?.length)
-
-        const photos: string[] = log.photos || []
 
         const dateFormatted = formatDateValue(log.date, 'es-CO', {
           weekday: 'long',
@@ -442,7 +439,7 @@ export function BatchDailyLogPdf({
                     {photos.map((photo: string, idx: number) => (
                       <View key={`photo-${idx}`} style={s.photoItem} wrap={false}>
                         <Image src={photo} style={s.photoImg} />
-                        {photoCaptions[idx] && (
+                        {photoCaptions[idx]?.trim() && (
                           <Text style={s.photoCaption}>{photoCaptions[idx]}</Text>
                         )}
                       </View>

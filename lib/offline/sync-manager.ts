@@ -7,6 +7,7 @@ import {
   getLocalPhotos,
 } from './daily-log-service'
 import { createClient } from '@/lib/supabase/client'
+import { getPhotoCaptions } from '@/lib/photo-captions'
 
 const MAX_ATTEMPTS = 5
 let isSyncing = false
@@ -163,7 +164,14 @@ async function syncDailyLog(supabase: any, op: SyncQueue): Promise<void> {
     await markDailyLogSynced(localLog.id, data.id, data)
 
     // Sincronizar fotos asociadas
-    await syncPhotosForLog(supabase, localLog.id, data.id, data.created_by, data.project_id)
+    await syncPhotosForLog(
+      supabase,
+      localLog.id,
+      data.id,
+      data.created_by,
+      data.project_id,
+      localLog.custom_fields?.photo_captions
+    )
 
   } else if (op.operation === 'update') {
     if (isOfflineId) {
@@ -193,7 +201,8 @@ async function syncPhotosForLog(
   localLogId: string,
   remoteLogId: string,
   userId: string,
-  projectId: string
+  projectId: string,
+  captionSource?: unknown
 ): Promise<void> {
   const pendingPhotos = await getLocalPhotos(localLogId)
   const unsyncedPhotos = pendingPhotos.filter(p => !p.synced)
@@ -242,16 +251,27 @@ async function syncPhotosForLog(
     // Obtener fotos existentes en el registro remoto
     const { data: remoteLog } = await supabase
       .from('daily_logs')
-      .select('photos')
+      .select('photos, custom_fields')
       .eq('id', remoteLogId)
       .single()
 
     const existingPhotos = remoteLog?.photos || []
     const allPhotos = [...existingPhotos, ...photoUrls]
+    const allCaptions = getPhotoCaptions(
+      remoteLog?.custom_fields?.photo_captions ?? captionSource,
+      allPhotos.length,
+      allPhotos
+    )
 
     await supabase
       .from('daily_logs')
-      .update({ photos: allPhotos })
+      .update({
+        photos: allPhotos,
+        custom_fields: {
+          ...(remoteLog?.custom_fields || {}),
+          photo_captions: allCaptions,
+        },
+      })
       .eq('id', remoteLogId)
   }
 }

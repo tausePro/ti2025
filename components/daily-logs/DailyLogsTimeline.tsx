@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { PhotoGallery } from './PhotoGallery'
 import { Camera, Clock, MapPin, User, FileText, CheckCircle2, XCircle, AlertCircle, Settings } from 'lucide-react'
 import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
+import { getPhotoCaptions } from '@/lib/photo-captions'
 import { SyncStatusBadge } from '@/components/shared/OfflineIndicator'
 
 interface DailyLogsTimelineProps {
@@ -315,7 +316,7 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {}, sel
 
                   {/* Fotos */}
                   {log.photos && log.photos.length > 0 && (() => {
-                    const captions: string[] = log.custom_fields?.photo_captions || []
+                    const captions = getPhotoCaptions(log.custom_fields?.photo_captions, log.photos.length, log.photos)
                     return (
                       <div className="mt-4 pt-4 border-t">
                         <div className="flex items-center gap-2 mb-3">
@@ -333,7 +334,7 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {}, sel
                                   {idx + 1}/{log.photos.length}
                                 </span>
                               </div>
-                              {captions[idx] && (
+                              {captions[idx]?.trim() && (
                                 <p className="text-xs text-gray-500 italic truncate" title={captions[idx]}>{captions[idx]}</p>
                               )}
                             </div>

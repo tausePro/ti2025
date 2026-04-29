@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { AutoPrint } from '@/components/print/AutoPrint'
 import { replacePlaceholders } from '@/lib/reports/placeholder-replacer'
 import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
+import { getPhotoCaptions } from '@/lib/photo-captions'
 
 export default async function DailyLogPrintPage({
   params
@@ -89,11 +90,11 @@ export default async function DailyLogPrintPage({
     }))
     .filter((section: any) => section.items?.length)
   const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => !['checklists', '_field_labels', 'photo_count', 'photo_captions', 'work_front', 'element'].includes(key))
-  const photoCaptions: string[] = Array.isArray(log.custom_fields?.photo_captions)
-    ? log.custom_fields.photo_captions
-    : typeof log.custom_fields?.photo_captions === 'string'
-      ? log.custom_fields.photo_captions.split(',')
-      : []
+  const photoCaptions = getPhotoCaptions(
+    log.custom_fields?.photo_captions,
+    Array.isArray(log.photos) ? log.photos.length : 0,
+    log.photos
+  )
 
   const getWeatherLabel = (weather: string) => {
     switch (weather) {
@@ -396,7 +397,7 @@ export default async function DailyLogPrintPage({
                         alt={photoCaptions[index] || `Foto ${index + 1}`}
                         className="w-full h-auto max-h-72 object-contain rounded-lg border border-gray-200 bg-white"
                       />
-                      {photoCaptions[index] && (
+                      {photoCaptions[index]?.trim() && (
                         <p className="text-xs text-gray-600 text-center mt-1 italic">
                           {photoCaptions[index]}
                         </p>
