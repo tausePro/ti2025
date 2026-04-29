@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { PhotoGallery } from '@/components/daily-logs/PhotoGallery'
 import { ArrowLeft, Calendar, Cloud, Users, Wrench, Package, FileText, Camera, Edit, Printer, Loader2, WifiOff, Trash2, Download } from 'lucide-react'
 import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
+import { getPhotoCaptions } from '@/lib/photo-captions'
 import { SyncStatusBadge } from '@/components/shared/OfflineIndicator'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import { getLocalDailyLog, getCachedProjectConfig } from '@/lib/offline/daily-log-service'
@@ -163,7 +164,11 @@ export default function DailyLogDetailPage() {
     }))
     .filter((section: any) => section.items?.length)
   const customFields = Object.entries({ ...(log.custom_fields || {}) }).filter(([key]) => !['checklists', '_field_labels', 'photo_count', 'photo_captions'].includes(key))
-  const photoCaptions: string[] = log.custom_fields?.photo_captions || []
+  const photoCaptions = getPhotoCaptions(
+    log.custom_fields?.photo_captions,
+    Array.isArray(log.photos) ? log.photos.length : 0,
+    log.photos
+  )
 
   const getWeatherLabel = (weather: string) => {
     switch (weather) {
@@ -491,7 +496,7 @@ export default function DailyLogDetailPage() {
                       {idx + 1}/{log.photos.length}
                     </span>
                   </div>
-                  {photoCaptions[idx] && (
+                  {photoCaptions[idx]?.trim() && (
                     <p className="text-sm text-gray-600 italic px-1">{photoCaptions[idx]}</p>
                   )}
                 </div>

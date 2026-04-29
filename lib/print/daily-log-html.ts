@@ -1,4 +1,5 @@
 import { formatDateValue } from '@/lib/utils'
+import { getPhotoCaptions } from '@/lib/photo-captions'
 
 interface PrintData {
   log: any
@@ -48,11 +49,11 @@ export function generateDailyLogHtml(data: PrintData): string {
   const customFields = Object.entries({ ...(log.custom_fields || {}) })
     .filter(([key]) => !['checklists', '_field_labels', 'photo_count', 'photo_captions', 'work_front', 'element'].includes(key))
 
-  const photoCaptions: string[] = Array.isArray(log.custom_fields?.photo_captions)
-    ? log.custom_fields.photo_captions
-    : typeof log.custom_fields?.photo_captions === 'string'
-      ? log.custom_fields.photo_captions.split(',')
-      : []
+  const photoCaptions = getPhotoCaptions(
+    log.custom_fields?.photo_captions,
+    Array.isArray(log.photos) ? log.photos.length : 0,
+    log.photos
+  )
 
   const elaboradoPor = assignedProfile?.full_name || assignedProfile?.email || log.created_by_profile?.full_name || 'Usuario'
 
@@ -122,7 +123,7 @@ export function generateDailyLogHtml(data: PrintData): string {
         ${log.photos.map((photo: string, index: number) => `
           <div class="photo-item">
             <img src="${photo}" alt="Foto ${index + 1}" />
-            ${photoCaptions[index] ? `<p class="photo-caption">${esc(photoCaptions[index])}</p>` : ''}
+            ${photoCaptions[index]?.trim() ? `<p class="photo-caption">${esc(photoCaptions[index])}</p>` : ''}
           </div>
         `).join('')}
       </div>

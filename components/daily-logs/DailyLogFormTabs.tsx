@@ -25,6 +25,7 @@ import { MapPin, Clock, User, Loader2, CheckCircle2, XCircle, AlertCircle, WifiO
 import { CustomField, DailyLogConfig } from '@/types/daily-log-config'
 import { useAuth } from '@/contexts/AuthContext'
 import { getCurrentDateInputValue } from '@/lib/utils'
+import { getPhotoCaptions } from '@/lib/photo-captions'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import { saveLocalDailyLog, replaceLocalPendingPhotos, clearLocalPendingPhotos, cacheProjectConfig, getCachedProjectConfig } from '@/lib/offline/daily-log-service'
 
@@ -74,12 +75,8 @@ function buildOfflinePhotoFile(photo: {
   )
 }
 
-function normalizePhotoCaptions(captions: unknown, totalPhotos: number): string[] {
-  const source = Array.isArray(captions) ? captions : []
-  return Array.from({ length: totalPhotos }, (_, index) => {
-    const value = source[index]
-    return typeof value === 'string' ? value : ''
-  })
+function normalizePhotoCaptions(captions: unknown, totalPhotos: number, photos?: unknown): string[] {
+  return getPhotoCaptions(captions, totalPhotos, photos)
 }
 
 export default function DailyLogFormTabs({ projectId, templateId, logId, onSuccess }: DailyLogFormTabsProps) {
@@ -239,7 +236,8 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
             .map(buildOfflinePhotoFile)
           const nextPhotoCaptions = normalizePhotoCaptions(
             logData.custom_fields?.photo_captions,
-            storedPhotoUrls.length + pendingLocalFiles.length
+            storedPhotoUrls.length + pendingLocalFiles.length,
+            logData.photos
           )
 
           setFormData({
@@ -470,6 +468,10 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
       const mergedFieldLabels = logId
         ? { ...customFieldLabels, ...storedFieldLabels }
         : customFieldLabels
+      const normalizedPhotoCaptions = normalizePhotoCaptions(
+        photoCaptions,
+        existingPhotos.length + formData.photos.length
+      )
 
       // Construir firma con datos del perfil del AuthContext
       const autoSignature: Signature = {
@@ -505,7 +507,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
           ...formData.custom_fields,
           checklists: normalizedChecklists,
           _field_labels: mergedFieldLabels,
-          photo_captions: photoCaptions
+          photo_captions: normalizedPhotoCaptions
         },
       }
 
@@ -567,20 +569,28 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
               photoUrls.push(publicUrl)
             }
             finalPhotoUrls = [...existingPhotos, ...photoUrls]
+            const finalPhotoCaptions = normalizePhotoCaptions(normalizedPhotoCaptions, finalPhotoUrls.length)
             if (photoUrls.length > 0 || existingPhotos.length > 0) {
               await supabase
                 .from('daily_logs')
-                .update({ photos: finalPhotoUrls })
+                .update({
+                  photos: finalPhotoUrls,
+                  custom_fields: {
+                    ...(data.custom_fields || {}),
+                    photo_captions: finalPhotoCaptions,
+                  },
+                })
                 .eq('id', data.id)
             }
           }
+          const finalPhotoCaptions = normalizePhotoCaptions(normalizedPhotoCaptions, finalPhotoUrls.length)
           if (data) {
             data = {
               ...data,
               photos: finalPhotoUrls,
               custom_fields: {
                 ...data.custom_fields,
-                photo_captions: photoCaptions,
+                photo_captions: finalPhotoCaptions,
               },
             }
           }
