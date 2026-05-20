@@ -93,6 +93,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
   const [userRoleInProject, setUserRoleInProject] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('basica')
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
+  const [savingTemplate, setSavingTemplate] = useState(false)
   
   // Estado del formulario
   const [formData, setFormData] = useState<DailyLogFormData>({
@@ -274,7 +275,24 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
       } else {
         setExistingPhotos([])
         setPhotoCaptions([])
-        // Modo creación: inicializar campos custom con defaults
+
+        // Modo creación: si el proyecto tiene una plantilla de checklists
+        // configurada, úsala. Si no, fallback al hardcoded CHECKLIST_SECTIONS.
+        const projectChecklistTemplate = Array.isArray(configData?.custom_checklists)
+          ? (configData!.custom_checklists as ChecklistSection[])
+          : []
+        const initialChecklists: ChecklistSection[] = projectChecklistTemplate.length > 0
+          ? projectChecklistTemplate.map((section) => ({
+              ...section,
+              items: (section.items || []).map((item) => ({
+                ...item,
+                status: null,
+                observations: ''
+              }))
+            }))
+          : CHECKLIST_SECTIONS
+
+        // Inicializar campos custom con defaults
         if (configData?.custom_fields) {
           const customFieldsData: Record<string, any> = {}
           configData.custom_fields.forEach((field: CustomField) => {
@@ -282,12 +300,18 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
           })
           setFormData(prev => ({
             ...prev,
-            custom_fields: customFieldsData
+            custom_fields: customFieldsData,
+            checklists: initialChecklists
+          }))
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            checklists: initialChecklists
           }))
         }
 
         setCollapsedSections(
-          CHECKLIST_SECTIONS.reduce((acc, section) => {
+          initialChecklists.reduce((acc, section) => {
             acc[section.id] = true
             return acc
           }, {} as Record<string, boolean>)
@@ -389,6 +413,69 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
       ...prev,
       checklists: [...prev.checklists, newSection]
     }))
+  }
+
+  const saveChecklistAsProjectTemplate = async () => {
+    if (!isOnline) {
+      setError('Necesitas conexión para guardar la plantilla del proyecto.')
+      return
+    }
+
+    if (formData.checklists.length === 0) {
+      setError('No hay categorías en el checklist para guardar como plantilla.')
+      return
+    }
+
+    const confirmed = window.confirm(
+      'Esto reemplazará la plantilla de checklist del proyecto. Las próximas bitácoras la traerán por defecto.\n\n¿Deseas continuar?'
+    )
+    if (!confirmed) return
+
+    setSavingTemplate(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      // Limpiamos status y observations: la plantilla solo guarda estructura.
+      const cleanedChecklists = formData.checklists.map((section) => ({
+        id: section.id,
+        title: section.title,
+        items: section.items.map((item) => ({
+          id: item.id,
+          description: item.description,
+          status: null,
+          observations: ''
+        }))
+      }))
+
+      const { data, error: rpcError } = await supabase.rpc(
+        'update_project_checklist_template',
+        {
+          p_project_id: projectId,
+          p_checklists: cleanedChecklists
+        }
+      )
+
+      if (rpcError) throw rpcError
+
+      // Actualizar caché local del config para que offline también vea la nueva plantilla.
+      if (data) {
+        setConfig(data as DailyLogConfig)
+        try {
+          await cacheProjectConfig(projectId, 'daily_log_config', data)
+        } catch (cacheErr) {
+          console.warn('No se pudo cachear el config actualizado', cacheErr)
+        }
+      }
+
+      setSuccess('Plantilla del proyecto actualizada. Las próximas bitácoras la traerán por defecto.')
+      window.setTimeout(() => setSuccess(null), 4000)
+    } catch (err: any) {
+      console.error('Error guardando plantilla del proyecto:', err)
+      setError(err?.message || 'No se pudo guardar la plantilla del proyecto.')
+    } finally {
+      setSavingTemplate(false)
+    }
   }
 
   const addChecklistItem = (sectionId: string) => {
@@ -952,7 +1039,16 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={saveChecklistAsProjectTemplate}
+              disabled={savingTemplate || !isOnline}
+              title={!isOnline ? 'Necesitas conexión para guardar la plantilla' : 'Guardar el checklist actual como plantilla del proyecto'}
+              className="text-xs px-3 py-2 rounded border border-blue-200 text-blue-700 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {savingTemplate ? 'Guardando plantilla…' : 'Guardar como plantilla del proyecto'}
+            </button>
             <button
               type="button"
               onClick={addChecklistSection}
