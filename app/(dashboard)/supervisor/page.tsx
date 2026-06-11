@@ -111,12 +111,12 @@ export default function SupervisorDashboardPage() {
       // Calcular estadísticas
       const activeProjects = projects.filter((p: any) => p.status === 'activo').length
 
-      // Contar reportes pendientes de revisión
+      // Contar informes quincenales pendientes de revisión
       const { count: pendingReportsCount } = await supabase
-        .from('reports')
+        .from('biweekly_reports')
         .select('*', { count: 'exact', head: true })
         .in('project_id', projectIds)
-        .in('status', ['pending_review', 'corrections'])
+        .eq('status', 'pending_review')
 
       // Contar miembros del equipo en todos los proyectos
       const { count: teamMembersCount } = await supabase
