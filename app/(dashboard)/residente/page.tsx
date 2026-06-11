@@ -110,13 +110,13 @@ export default function ResidenteDashboardPage() {
         .eq('created_by', profile!.id)
         .gte('date', startOfMonth.toISOString())
 
-      // Contar reportes pendientes de corrección
+      // Contar informes quincenales devueltos para corrección
       const { count: reportsCount } = await supabase
-        .from('reports')
+        .from('biweekly_reports')
         .select('*', { count: 'exact', head: true })
         .in('project_id', projectIds)
         .eq('created_by', profile!.id)
-        .eq('status', 'corrections')
+        .eq('status', 'rejected')
 
       // Días laborables del mes (aproximado: 22 días)
       const today = new Date()
