@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Camera, Pencil, X, Image as ImageIcon, AlertCircle } from 'lucide-react'
+import { Camera, Pencil, X, Image as ImageIcon, AlertCircle, Loader2 } from 'lucide-react'
 import { PhotoEditorDialog } from './PhotoEditorDialog'
+import { compressImageFiles } from '@/lib/image-compression'
 
 interface PhotoUploadProps {
   photos: File[]
@@ -32,6 +33,7 @@ export function PhotoUpload({
 }: PhotoUploadProps) {
   const [error, setError] = useState<string>('')
   const [previews, setPreviews] = useState<string[]>([])
+  const [compressing, setCompressing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const totalPhotos = existingPhotos.length + photos.length
@@ -70,9 +72,16 @@ export function PhotoUpload({
     }
   }, [editingIndex, photos.length])
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     setError('')
+
+    // Limpiar input cuanto antes para permitir reseleccionar el mismo archivo
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+
+    if (files.length === 0) return
 
     // Validar número de fotos
     if (totalPhotos + files.length > maxPhotos) {
@@ -80,25 +89,39 @@ export function PhotoUpload({
       return
     }
 
-    // Validar tamaño y tipo
-    const validFiles: File[] = []
-    const maxSizeBytes = maxSizeMB * 1024 * 1024
-
+    // Validar tipo (solo imágenes)
+    const imageFiles: File[] = []
     for (const file of files) {
-      // Validar tipo
       if (!file.type.startsWith('image/')) {
         setError(`${file.name} no es una imagen válida`)
         continue
       }
-
-      // Validar tamaño
-      if (file.size > maxSizeBytes) {
-        setError(`${file.name} excede el tamaño máximo de ${maxSizeMB}MB`)
-        continue
-      }
-
-      validFiles.push(file)
+      imageFiles.push(file)
     }
+
+    if (imageFiles.length === 0) return
+
+    // Comprimir/redimensionar en el navegador antes de validar el tamaño final.
+    // Esto reduce drásticamente el peso de carga y del PDF exportado.
+    setCompressing(true)
+    let processedFiles: File[]
+    try {
+      processedFiles = await compressImageFiles(imageFiles)
+    } catch {
+      processedFiles = imageFiles
+    } finally {
+      setCompressing(false)
+    }
+
+    // Validar tamaño final (tras compresión) contra el límite del bucket
+    const maxSizeBytes = maxSizeMB * 1024 * 1024
+    const validFiles = processedFiles.filter((file) => {
+      if (file.size > maxSizeBytes) {
+        setError(`${file.name} excede el tamaño máximo de ${maxSizeMB}MB incluso tras comprimir`)
+        return false
+      }
+      return true
+    })
 
     if (validFiles.length > 0) {
       onPhotosChange([...photos, ...validFiles])
@@ -108,11 +131,6 @@ export function PhotoUpload({
         const newCaptions = [...captions, ...validFiles.map(() => '')]
         onCaptionsChange(newCaptions)
       }
-    }
-
-    // Limpiar input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
     }
   }
 
@@ -193,11 +211,20 @@ export function PhotoUpload({
           type="button"
           variant="outline"
           onClick={handleButtonClick}
-          disabled={disabled || totalPhotos >= maxPhotos}
+          disabled={disabled || compressing || totalPhotos >= maxPhotos}
           className="flex items-center gap-2"
         >
-          <Camera className="h-4 w-4" />
-          Agregar Fotos
+          {compressing ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Optimizando...
+            </>
+          ) : (
+            <>
+              <Camera className="h-4 w-4" />
+              Agregar Fotos
+            </>
+          )}
         </Button>
 
         {totalPhotos > 0 && (

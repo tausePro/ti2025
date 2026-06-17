@@ -261,6 +261,23 @@ export function BatchDailyLogPdf({
   customFieldLabels,
   membreteSrc,
 }: BatchDailyLogPdfProps) {
+  const longDate = (value: string) =>
+    formatDateValue(value, 'es-CO', { year: 'numeric', month: 'long', day: 'numeric' })
+
+  const firstDate = logs.length > 0 ? longDate(logs[0].date) : ''
+  const lastDate = logs.length > 0 ? longDate(logs[logs.length - 1].date) : ''
+  const rangeLabel =
+    logs.length === 0
+      ? ''
+      : logs.length === 1 || firstDate === lastDate
+        ? firstDate
+        : `Del ${firstDate} al ${lastDate}`
+
+  // "Actividades" = bitácoras que registraron actividades del día.
+  const totalActividades = logs.filter(
+    (log) => log.activities && String(log.activities).trim()
+  ).length
+
   return (
     <Document
       title={`Bitácoras - ${project?.name || ''}`}
@@ -282,15 +299,16 @@ export function BatchDailyLogPdf({
             </>
           )}
           <View style={s.coverBox}>
-            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#222' }}>
-              {logs.length} bitácora{logs.length > 1 ? 's' : ''} incluida{logs.length > 1 ? 's' : ''}
-            </Text>
-            {logs.length > 0 && (
-              <Text style={{ fontSize: 9, color: '#555', marginTop: 3 }}>
-                {formatDateValue(logs[0].date, 'es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}
-                {logs.length > 1 && ` al ${formatDateValue(logs[logs.length - 1].date, 'es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}`}
+            {rangeLabel !== '' && (
+              <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#222' }}>
+                {rangeLabel}
               </Text>
             )}
+            <Text style={{ fontSize: 9, color: '#555', marginTop: 3 }}>
+              {logs.length} bitácora{logs.length !== 1 ? 's' : ''}
+              {' · '}
+              {totalActividades} actividad{totalActividades !== 1 ? 'es' : ''} registrada{totalActividades !== 1 ? 's' : ''}
+            </Text>
           </View>
           <Text style={{ fontSize: 8, color: '#999', marginTop: 12 }}>
             Generado: {new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -344,7 +362,7 @@ export function BatchDailyLogPdf({
 
             <View style={s.body}>
               <View style={s.docHeader}>
-                <Text style={s.docType}>Bitácora #{index + 1} de {logs.length}</Text>
+                <Text style={s.docType}>Reporte Diario</Text>
                 <Text style={s.docTitle}>{dateFormatted}</Text>
                 <Text style={s.docSubtitle}>
                   <Text style={{ fontWeight: 'bold' }}>Proyecto: </Text>

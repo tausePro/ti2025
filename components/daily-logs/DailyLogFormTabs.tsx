@@ -753,6 +753,10 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
     }
   }
 
+  // Límite de fotos: configurable por proyecto (settings.max_photos),
+  // con un piso de 30 para no quedar limitado al antiguo máximo de 10.
+  const maxPhotos = Math.max(config?.settings?.max_photos ?? 0, 30)
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Banner de estado offline */}
@@ -1172,7 +1176,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
           <Card>
             <CardHeader>
               <CardTitle>Fotos del Día</CardTitle>
-              <CardDescription>Sube hasta 10 fotos (máx. 10MB cada una)</CardDescription>
+              <CardDescription>Sube hasta {maxPhotos} fotos. Se optimizan automáticamente al subirlas para aligerar la carga y el PDF.</CardDescription>
             </CardHeader>
             <CardContent>
               <PhotoUpload
@@ -1182,7 +1186,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
                 onExistingPhotosChange={setExistingPhotos}
                 captions={photoCaptions}
                 onCaptionsChange={setPhotoCaptions}
-                maxPhotos={10}
+                maxPhotos={maxPhotos}
                 maxSizeMB={10}
                 disabled={loading}
               />
