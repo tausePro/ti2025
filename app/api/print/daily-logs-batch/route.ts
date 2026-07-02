@@ -54,17 +54,24 @@ export async function GET(request: NextRequest) {
       created_by_profile: Array.isArray(log.created_by_profile) ? log.created_by_profile[0] : log.created_by_profile,
     }))
 
-    // Convertir fotos a URLs públicas
+    // Convertir fotos y videos a URLs públicas
     const logsWithUrls = normalizedLogs.map((log: any) => {
+      const next = { ...log }
       if (log.photos && Array.isArray(log.photos) && log.photos.length > 0) {
-        const publicUrls = log.photos.map((p: string) => {
+        next.photos = log.photos.map((p: string) => {
           if (p.startsWith('http')) return p
           const { data: { publicUrl } } = supabase.storage.from('daily-logs-photos').getPublicUrl(p)
           return publicUrl
         })
-        return { ...log, photos: publicUrls }
       }
-      return log
+      if (log.videos && Array.isArray(log.videos) && log.videos.length > 0) {
+        next.videos = log.videos.map((v: string) => {
+          if (v.startsWith('http')) return v
+          const { data: { publicUrl } } = supabase.storage.from('daily-logs-videos').getPublicUrl(v)
+          return publicUrl
+        })
+      }
+      return next
     })
 
     // Cargar proyecto

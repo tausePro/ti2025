@@ -408,6 +408,22 @@ export default async function DailyLogPrintPage({
               </section>
             )}
 
+            {log.videos && log.videos.length > 0 && (
+              <section className="mb-6 print-avoid-break">
+                <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-3">Anexos - Videos</h2>
+                <ul className="space-y-1 text-sm">
+                  {log.videos.map((video: string, index: number) => (
+                    <li key={`${video}-${index}`}>
+                      Video {index + 1}:{' '}
+                      <a href={video} className="text-blue-600 underline break-all" target="_blank" rel="noopener noreferrer">
+                        {video}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
             {residentProfile && (
               <section className="mb-6 print-avoid-break">
                 <h2 className="text-sm uppercase tracking-[0.18em] text-gray-500 mb-3">Realizada por</h2>

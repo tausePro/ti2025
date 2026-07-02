@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import Link from 'next/link'
 import { PhotoGallery } from '@/components/daily-logs/PhotoGallery'
-import { ArrowLeft, Calendar, Cloud, Users, Wrench, Package, FileText, Camera, Edit, Printer, Loader2, WifiOff, Trash2, Download } from 'lucide-react'
+import { ArrowLeft, Calendar, Cloud, Users, Wrench, Package, FileText, Camera, Film, Edit, Printer, Loader2, WifiOff, Trash2, Download } from 'lucide-react'
 import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
 import { getPhotoCaptions } from '@/lib/photo-captions'
 import { SyncStatusBadge } from '@/components/shared/OfflineIndicator'
@@ -499,6 +499,31 @@ export default function DailyLogDetailPage() {
                   {photoCaptions[idx]?.trim() && (
                     <p className="text-sm text-gray-600 italic px-1">{photoCaptions[idx]}</p>
                   )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Videos */}
+        {log.videos && log.videos.length > 0 && (
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
+              <Film className="h-5 w-5 mr-2 text-blue-600" />
+              Videos del Día ({log.videos.length})
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {log.videos.map((video: string, idx: number) => (
+                <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border bg-black">
+                  <video
+                    src={video}
+                    controls
+                    preload="metadata"
+                    className="w-full h-full object-contain"
+                  />
+                  <span className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
+                    {idx + 1}/{log.videos.length}
+                  </span>
                 </div>
               ))}
             </div>

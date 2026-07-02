@@ -24,6 +24,7 @@ interface DailyLog {
   work_front: string | null
   element: string | null
   photos: string[] | null
+  videos: string[] | null
   custom_fields: any
   created_by: string
   assigned_to: string | null
@@ -132,17 +133,24 @@ function BatchPrintContent() {
         assigned_to_profile: Array.isArray(log.assigned_to_profile) ? log.assigned_to_profile[0] : log.assigned_to_profile,
       }))
 
-      // Convertir fotos a URLs públicas
+      // Convertir fotos y videos a URLs públicas
       const logsWithUrls = normalized.map((log: any) => {
+        const next = { ...log }
         if (log.photos && Array.isArray(log.photos) && log.photos.length > 0) {
-          const publicUrls = log.photos.map((p: string) => {
+          next.photos = log.photos.map((p: string) => {
             if (p.startsWith('http')) return p
             const { data: { publicUrl } } = supabase.storage.from('daily-logs-photos').getPublicUrl(p)
             return publicUrl
           })
-          return { ...log, photos: publicUrls }
         }
-        return log
+        if (log.videos && Array.isArray(log.videos) && log.videos.length > 0) {
+          next.videos = log.videos.map((v: string) => {
+            if (v.startsWith('http')) return v
+            const { data: { publicUrl } } = supabase.storage.from('daily-logs-videos').getPublicUrl(v)
+            return publicUrl
+          })
+        }
+        return next
       })
 
       setLogs(logsWithUrls)
@@ -390,6 +398,22 @@ function BatchPrintContent() {
                     </div>
                   ))}
                 </div>
+              </section>
+            )}
+
+            {log.videos && log.videos.length > 0 && (
+              <section className="mb-4">
+                <h3 className="text-sm uppercase tracking-widest text-gray-500 mb-2">Anexos - Videos</h3>
+                <ul className="space-y-1 text-sm">
+                  {log.videos.map((video: string, idx: number) => (
+                    <li key={`${video}-${idx}`}>
+                      Video {idx + 1}:{' '}
+                      <a href={video} className="text-blue-600 underline break-all" target="_blank" rel="noopener noreferrer">
+                        {video}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
               </section>
             )}
           </div>
