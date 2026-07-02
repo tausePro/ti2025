@@ -35,6 +35,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Bitácora no encontrada' }, { status: 404 })
     }
 
+    // Convertir rutas de video a URLs públicas (por robustez; normalmente ya son URLs http)
+    if (log.videos && Array.isArray(log.videos) && log.videos.length > 0) {
+      log.videos = log.videos.map((v: string) => {
+        if (v.startsWith('http')) return v
+        const { data: { publicUrl } } = supabase.storage.from('daily-logs-videos').getPublicUrl(v)
+        return publicUrl
+      })
+    }
+
     const { data: project } = await supabase
       .from('projects')
       .select('*')

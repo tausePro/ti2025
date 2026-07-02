@@ -5,6 +5,7 @@ import {
   Text,
   View,
   Image,
+  Link,
   StyleSheet,
 } from '@react-pdf/renderer'
 import { formatDateValue } from '@/lib/utils'
@@ -337,6 +338,7 @@ export function BatchDailyLogPdf({
 
         const photos: string[] = Array.isArray(log.photos) ? log.photos : []
         const photoCaptions = getPhotoCaptions(log.custom_fields?.photo_captions, photos.length, log.photos)
+        const videos: string[] = Array.isArray(log.videos) ? log.videos : []
 
         const checklistSections = (log.custom_fields?.checklists || [])
           .map((section: any) => ({
@@ -463,6 +465,20 @@ export function BatchDailyLogPdf({
                       </View>
                     ))}
                   </View>
+                </View>
+              )}
+
+              {videos.length > 0 && (
+                <View wrap={false} style={{ marginTop: 10 }}>
+                  <Text style={s.sectionTitle}>Anexos - Videos</Text>
+                  {videos.map((video: string, idx: number) => (
+                    <Text key={`video-${idx}`} style={{ fontSize: 9, marginBottom: 3 }}>
+                      {`Video ${idx + 1}: `}
+                      <Link src={video} style={{ color: '#2563eb', textDecoration: 'underline' }}>
+                        {video}
+                      </Link>
+                    </Text>
+                  ))}
                 </View>
               )}
 
