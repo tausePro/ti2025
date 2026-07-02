@@ -12,6 +12,7 @@ import {
   Location
 } from '@/types/daily-log'
 import { PhotoUpload } from './PhotoUpload'
+import { VideoUpload } from './VideoUpload'
 import { CustomFieldRenderer } from './CustomFieldRenderer'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -119,6 +120,9 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
   })
   const [existingPhotos, setExistingPhotos] = useState<string[]>([])
   const [photoCaptions, setPhotoCaptions] = useState<string[]>([])
+  // Videos (solo online en v1): nuevos a subir + URLs ya almacenadas
+  const [videos, setVideos] = useState<File[]>([])
+  const [existingVideos, setExistingVideos] = useState<string[]>([])
 
   // Hook de geolocalización
   const { location, error: gpsError, loading: gpsLoading, requestLocation } = useGeolocation()
@@ -264,6 +268,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
           })
           setExistingPhotos(storedPhotoUrls)
           setPhotoCaptions(nextPhotoCaptions)
+          setExistingVideos(Array.isArray(logData.videos) ? logData.videos : [])
 
           setCollapsedSections(
             (loadedChecklists as ChecklistSection[]).reduce((acc, section) => {
@@ -275,6 +280,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
       } else {
         setExistingPhotos([])
         setPhotoCaptions([])
+        setExistingVideos([])
 
         // Modo creación: si el proyecto tiene una plantilla de checklists
         // configurada, úsala. Si no, fallback al hardcoded CHECKLIST_SECTIONS.
@@ -590,6 +596,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
         location: formData.location || null,
         signatures: logId ? formData.signatures : [autoSignature],
         photos: existingPhotos,
+        videos: existingVideos,
         custom_fields: {
           ...formData.custom_fields,
           checklists: normalizedChecklists,
@@ -682,6 +689,35 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
             }
           }
 
+          // Upload de videos online (v1: sin flujo offline para videos)
+          if (videos.length > 0 && data) {
+            const uploadedVideoUrls: string[] = []
+            for (let i = 0; i < videos.length; i++) {
+              const file = videos[i]
+              const fileExt = file.name.split('.').pop()
+              const fileName = `${profile?.id}/${projectId}/${data.id}/${Date.now()}_${i}.${fileExt}`
+              const { error: uploadError } = await supabase.storage
+                .from('daily-logs-videos')
+                .upload(fileName, file)
+              if (uploadError) {
+                console.error(`❌ Error subiendo video ${i}:`, uploadError)
+                continue
+              }
+              const { data: { publicUrl } } = supabase.storage
+                .from('daily-logs-videos')
+                .getPublicUrl(fileName)
+              uploadedVideoUrls.push(publicUrl)
+            }
+            if (uploadedVideoUrls.length > 0) {
+              const finalVideoUrls = [...existingVideos, ...uploadedVideoUrls]
+              await supabase
+                .from('daily_logs')
+                .update({ videos: finalVideoUrls })
+                .eq('id', data.id)
+              data = { ...data, videos: finalVideoUrls }
+            }
+          }
+
           if (logId) {
             await clearLocalPendingPhotos(logId)
           }
@@ -722,10 +758,13 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
         console.log(`📸 ${formData.photos.length} fotos guardadas localmente`)
       }
 
+      const videosSkippedNote = videos.length > 0
+        ? ' Los videos no se guardaron porque requieren conexión: vuelve a agregarlos al editar con internet.'
+        : ''
       setSuccess(
-        isOnline
+        (isOnline
           ? '⚠️ Error de red. Bitácora guardada localmente — se sincronizará automáticamente.'
-          : '📱 Bitácora guardada localmente — se sincronizará cuando haya conexión.'
+          : '📱 Bitácora guardada localmente — se sincronizará cuando haya conexión.') + videosSkippedNote
       )
       console.log('✅ Bitácora guardada offline:', localLog.id)
 
@@ -752,6 +791,10 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
         return <div className="h-5 w-5 border-2 border-gray-300 rounded" />
     }
   }
+
+  // Límite de fotos: configurable por proyecto (settings.max_photos),
+  // con un piso de 30 para no quedar limitado al antiguo máximo de 10.
+  const maxPhotos = Math.max(config?.settings?.max_photos ?? 0, 30)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -1172,7 +1215,7 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
           <Card>
             <CardHeader>
               <CardTitle>Fotos del Día</CardTitle>
-              <CardDescription>Sube hasta 10 fotos (máx. 10MB cada una)</CardDescription>
+              <CardDescription>Sube hasta {maxPhotos} fotos. Se optimizan automáticamente al subirlas para aligerar la carga y el PDF.</CardDescription>
             </CardHeader>
             <CardContent>
               <PhotoUpload
@@ -1182,9 +1225,30 @@ export default function DailyLogFormTabs({ projectId, templateId, logId, onSucce
                 onExistingPhotosChange={setExistingPhotos}
                 captions={photoCaptions}
                 onCaptionsChange={setPhotoCaptions}
-                maxPhotos={10}
+                maxPhotos={maxPhotos}
                 maxSizeMB={10}
                 disabled={loading}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Videos del Día</CardTitle>
+              <CardDescription>
+                Clips cortos de obra (máx. 50MB c/u). Requieren conexión y se adjuntan como enlace en el PDF.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <VideoUpload
+                videos={videos}
+                onVideosChange={setVideos}
+                existingVideos={existingVideos}
+                onExistingVideosChange={setExistingVideos}
+                maxVideos={5}
+                maxSizeMB={50}
+                disabled={loading}
+                isOnline={isOnline}
               />
             </CardContent>
           </Card>

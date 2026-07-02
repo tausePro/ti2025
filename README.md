@@ -17,11 +17,13 @@ Sistema completo de supervisión técnica para obras de construcción con PWA, g
 
 ## 🛠️ Stack Tecnológico
 
-- **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS
+- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL, Auth, Storage, RLS)
-- **UI**: shadcn/ui, Radix UI, Lucide React
-- **PWA**: Workbox, Service Worker
+- **UI**: shadcn/ui, Radix UI, Lucide React, Tiptap
+- **PWA**: Workbox, Service Worker, Dexie (offline-first)
+- **PDF**: @react-pdf/renderer
 - **Validación**: Zod, React Hook Form
+- **Tests**: Vitest
 - **Logging**: Sistema estructurado personalizado
 - **Despliegue**: Vercel, GitHub Actions
 - **Base de Datos**: PostgreSQL con Row Level Security
@@ -64,7 +66,7 @@ npm run dev
 
 > **📖 Ver [SETUP.md](SETUP.md)** para instrucciones detalladas paso a paso, incluyendo:
 > - Instalación local
-> - Configuración de Supabase (12 migraciones)
+> - Configuración de Supabase (90 migraciones, ver [supabase/migrations/README.md](supabase/migrations/README.md))
 > - Configuración de Storage
 > - Creación de usuario super admin
 > - Despliegue a producción
@@ -105,17 +107,15 @@ npm run dev
 │   └── supabase/         # Clientes Supabase
 ├── types/                # Tipos TypeScript
 ├── supabase/             # Migraciones de BD
-│   ├── migrations/       # 12 migraciones SQL
-│   └── fixes-history/    # Scripts históricos
+│   ├── migrations/       # 90 migraciones SQL (ver README.md interno)
+│   └── fixes-history/    # Scripts históricos y de debug
 ├── scripts/              # Scripts de utilidad
 │   └── verification/     # Scripts de verificación
 ├── docs/                 # Documentación adicional
 │   ├── LOGGING_GUIDE.md  # Guía de logging
 │   └── archive/          # Documentación histórica
 ├── .github/workflows/    # GitHub Actions (CI/CD)
-├── SETUP.md             # Guía completa de configuración
-├── TODO.md              # Lista de tareas pendientes
-└── CLEANUP_REPORT.md    # Reporte de limpieza del proyecto
+└── SETUP.md             # Guía completa de configuración
 ```
 
 ## 🔄 CI/CD Pipeline
@@ -153,15 +153,16 @@ npm run build        # Construcción para producción
 npm run start        # Servidor de producción
 npm run lint         # Linter de código
 npm run type-check   # Verificación de tipos
+npm test             # Tests (Vitest)
 ```
 
 ## 📚 Documentación
 
 - **[SETUP.md](SETUP.md)** - Guía completa de instalación y configuración
-- **[TODO.md](TODO.md)** - Lista de tareas pendientes y roadmap
-- **[CLEANUP_REPORT.md](CLEANUP_REPORT.md)** - Reporte de organización del proyecto
 - **[docs/LOGGING_GUIDE.md](docs/LOGGING_GUIDE.md)** - Guía del sistema de logging
+- **[supabase/migrations/README.md](supabase/migrations/README.md)** - Orden canónico de migraciones
 - **[supabase/migrations/README_FIDUCIARY.md](supabase/migrations/README_FIDUCIARY.md)** - Sistema fiduciario
+- **[docs/archive/](docs/archive/)** - Documentación histórica
 
 ## 🐛 Troubleshooting
 
