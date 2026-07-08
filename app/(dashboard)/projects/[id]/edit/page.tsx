@@ -31,6 +31,7 @@ type ProjectFormData = {
   intervention_types_other?: string
   budget?: number
   description?: string
+  progress_percentage?: number
 }
 
 export default function EditProjectPage() {
@@ -93,6 +94,7 @@ export default function EditProjectPage() {
           intervention_types: data.intervention_types,
           budget: data.budget || null,
           description: data.description || null,
+          progress_percentage: typeof data.progress_percentage === 'number' ? data.progress_percentage : (project.progress_percentage ?? 0),
           logo_url: (data as any).logo_url || null
         })
         .eq('id', params.id)
@@ -197,6 +199,7 @@ export default function EditProjectPage() {
             intervention_types_other: project.intervention_types_other || '',
             budget: project.budget || undefined,
             description: project.description || '',
+            progress_percentage: project.progress_percentage ?? 0,
             logo_url: project.logo_url || undefined
           }}
         />

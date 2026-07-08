@@ -38,6 +38,10 @@ const projectSchema = z.object({
   intervention_types_other: z.string().optional(),
   budget: z.number().optional(),
   description: z.string().optional(),
+  progress_percentage: z.preprocess(
+    (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
+    z.number().min(0, 'El avance mínimo es 0%').max(100, 'El avance máximo es 100%').optional()
+  ),
   enable_financial_intervention: z.boolean().default(false)
 }).refine((data) => {
   // Si tiene interventoría de desembolsos, el presupuesto es requerido
@@ -85,6 +89,7 @@ interface ProjectFormWithFinancialProps {
     intervention_types_other?: string
     budget?: number
     description?: string
+    progress_percentage?: number
     logo_url?: string
   }
   submitButtonText?: string
@@ -130,6 +135,7 @@ export function ProjectFormWithFinancial({
       intervention_types_other: initialData?.intervention_types_other || '',
       budget: initialData?.budget || undefined,
       description: initialData?.description || '',
+      progress_percentage: initialData?.progress_percentage ?? 0,
       enable_financial_intervention: false
     }
   })
@@ -557,6 +563,29 @@ export function ProjectFormWithFinancial({
               )}
             </div>
           </div>
+
+          {/* Avance de obra (solo en edición) */}
+          {isEditMode && (
+            <div className="space-y-2">
+              <Label htmlFor="progress_percentage">Avance de Obra (%)</Label>
+              <Input
+                id="progress_percentage"
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                {...register('progress_percentage', { valueAsNumber: true })}
+                disabled={loading}
+                className={errors.progress_percentage ? 'border-red-500' : ''}
+              />
+              {errors.progress_percentage && (
+                <p className="text-sm text-red-500">{errors.progress_percentage.message}</p>
+              )}
+              <p className="text-xs text-gray-500">
+                Porcentaje de avance físico reportado por el residente/supervisor. Se muestra en el dashboard, las tarjetas de proyecto y los informes.
+              </p>
+            </div>
+          )}
 
           {/* Presupuesto */}
           {hasInterventoriaDesembolsos && (
