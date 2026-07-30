@@ -1,8 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Building2,
   Calendar,
@@ -12,8 +15,15 @@ import {
   FileText,
   TrendingUp,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Pencil,
+  Check,
+  X,
+  Loader2
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
+import { toast } from 'sonner'
 
 interface ProjectOverviewProps {
   project: {
@@ -40,7 +50,46 @@ interface ProjectOverviewProps {
   }
 }
 
+const PROGRESS_EDIT_ROLES = ['admin', 'super_admin', 'gerente', 'supervisor', 'residente']
+
 export function ProjectOverview({ project }: ProjectOverviewProps) {
+  const { profile } = useAuth()
+  const supabase = createClient()
+  const [progress, setProgress] = useState<number>(project.progress_percentage ?? 0)
+  const [editingProgress, setEditingProgress] = useState(false)
+  const [progressInput, setProgressInput] = useState<string>(String(project.progress_percentage ?? 0))
+  const [savingProgress, setSavingProgress] = useState(false)
+
+  const canEditProgress = !!profile?.role && PROGRESS_EDIT_ROLES.includes(profile.role)
+
+  const handleSaveProgress = async () => {
+    const value = Number(progressInput)
+    if (Number.isNaN(value) || value < 0 || value > 100) {
+      toast.error('El avance debe ser un número entre 0 y 100')
+      return
+    }
+
+    setSavingProgress(true)
+    try {
+      const { error } = await supabase.rpc('update_project_progress', {
+        p_project_id: project.id,
+        p_percentage: Math.round(value)
+      })
+
+      if (error) throw error
+
+      setProgress(Math.round(value))
+      setEditingProgress(false)
+      toast.success('Avance de obra actualizado')
+    } catch (error: unknown) {
+      console.error('Error updating progress:', error)
+      const message = error instanceof Error ? error.message : 'Error al actualizar el avance'
+      toast.error(message)
+    } finally {
+      setSavingProgress(false)
+    }
+  }
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       activo: 'bg-green-100 text-green-800',
@@ -116,9 +165,66 @@ export function ProjectOverview({ project }: ProjectOverviewProps) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-gray-700">Progreso del Proyecto</span>
-              <span className="text-sm font-bold text-talento-green">{project.progress_percentage}%</span>
+              {editingProgress ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={progressInput}
+                    onChange={(e) => setProgressInput(e.target.value)}
+                    className="h-8 w-20 text-right"
+                    disabled={savingProgress}
+                    autoFocus
+                  />
+                  <span className="text-sm text-gray-500">%</span>
+                  <Button
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleSaveProgress}
+                    disabled={savingProgress}
+                  >
+                    {savingProgress ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      setEditingProgress(false)
+                      setProgressInput(String(progress))
+                    }}
+                    disabled={savingProgress}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-talento-green">{progress}%</span>
+                  {canEditProgress && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => {
+                        setProgressInput(String(progress))
+                        setEditingProgress(true)
+                      }}
+                      title="Actualizar avance de obra"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
-            <Progress value={project.progress_percentage} className="h-3" />
+            <Progress value={progress} className="h-3" />
           </div>
         </CardContent>
       </Card>
