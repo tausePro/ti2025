@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Save, CheckCircle, Clock, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { formatDateValue } from '@/lib/utils'
+import { evaluateTestResults } from '@/lib/quality-control/evaluation'
 
 interface QualityTest {
   id: string
@@ -56,6 +57,29 @@ export default function RegisterResultsPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
+  const expectedValue =
+    sample?.custom_data?.resistencia_esperada ??
+    selectedTest?.test_config?.expected_resistance ??
+    null
+
+  const resultUnits = sample?.template?.test_configuration?.units || ''
+
+  const evaluation = useMemo(() => {
+    if (!selectedTest) return null
+
+    const specimens = results
+      .filter(r => r.result_value.trim() !== '' && !isNaN(Number(r.result_value)))
+      .map(r => ({ specimenNumber: r.specimen_number, value: Number(r.result_value) }))
+
+    return evaluateTestResults({
+      specimens,
+      expectedValue,
+      period: selectedTest.test_period,
+      testConfiguration: sample?.template?.test_configuration,
+      validationRules: sample?.template?.validation_rules
+    })
+  }, [selectedTest, results, expectedValue, sample])
+
   useEffect(() => {
     loadData()
   }, [])
@@ -66,7 +90,7 @@ export default function RegisterResultsPage() {
         .from('quality_control_samples')
         .select(`
           *,
-          template:quality_control_templates(template_name, template_type, test_configuration)
+          template:quality_control_templates(template_name, template_type, test_configuration, validation_rules)
         `)
         .eq('id', params.sampleId)
         .single()
@@ -144,10 +168,6 @@ export default function RegisterResultsPage() {
       setError(null)
       setSuccess(null)
 
-      // Obtener resistencia esperada del sample custom_data
-      const expectedResistance = sample?.custom_data?.resistencia_esperada || 
-        sample?.template?.test_configuration?.acceptance_criteria?.min_value || null
-
       // Si ya existen resultados, eliminar los anteriores
       if (selectedTest.results.length > 0) {
         const { error: deleteError } = await supabase
@@ -160,22 +180,16 @@ export default function RegisterResultsPage() {
 
       // Insertar resultados
       const resultsToInsert = filledResults.map(r => {
-        const value = Number(r.result_value)
-        let meetsCriteria: boolean | null = null
-        let deviationPercentage: number | null = null
-
-        if (expectedResistance && expectedResistance > 0) {
-          const percentage = (value / expectedResistance) * 100
-          deviationPercentage = Math.round((percentage - 100) * 100) / 100
-          meetsCriteria = percentage >= 85 // Criterio estándar: >= 85% de resistencia esperada
-        }
+        const specimen = evaluation?.specimens.find(
+          s => s.specimenNumber === r.specimen_number
+        )
 
         return {
           test_id: selectedTest.id,
           specimen_number: r.specimen_number,
-          result_value: value,
-          meets_criteria: meetsCriteria,
-          deviation_percentage: deviationPercentage,
+          result_value: Number(r.result_value),
+          meets_criteria: evaluation?.meetsCriteria ?? null,
+          deviation_percentage: specimen?.deviationPercentage ?? null,
           notes: r.notes.trim() || null,
           tested_by: profile.id
         }
@@ -198,7 +212,15 @@ export default function RegisterResultsPage() {
 
       if (updateError) throw updateError
 
-      setSuccess(`Resultados guardados para ${selectedTest.test_name} - ${selectedTest.test_period} días`)
+      const verdict = evaluation?.evaluable
+        ? evaluation.meetsCriteria
+          ? 'CUMPLE'
+          : `NO CUMPLE (promedio ${evaluation.average} ${resultUnits} contra un mínimo de ${evaluation.threshold} ${resultUnits})`
+        : 'guardado sin evaluación automática'
+
+      setSuccess(
+        `Resultados guardados para ${selectedTest.test_name} - ${selectedTest.test_period} días: ${verdict}`
+      )
       
       // Recargar datos
       await loadData()
@@ -356,6 +378,64 @@ export default function RegisterResultsPage() {
                 </div>
               </div>
             ))}
+
+            {evaluation && evaluation.specimens.length > 0 && (
+              <div className="rounded-lg border p-4 bg-gray-50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">
+                    Promedio de {evaluation.specimens.length} probeta
+                    {evaluation.specimens.length > 1 ? 's' : ''}
+                  </span>
+                  <span className="font-semibold">
+                    {evaluation.average} {resultUnits}
+                  </span>
+                </div>
+
+                {evaluation.evaluable ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">
+                        Mínimo a {selectedTest.test_period} días ({evaluation.minPercentage}% de{' '}
+                        {expectedValue} {resultUnits})
+                      </span>
+                      <span className="font-semibold">
+                        {evaluation.threshold} {resultUnits}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <span className="text-sm text-gray-600">Resultado del ensayo</span>
+                      <Badge
+                        className={
+                          evaluation.meetsCriteria
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }
+                      >
+                        {evaluation.meetsCriteria ? 'CUMPLE' : 'NO CUMPLE'}
+                      </Badge>
+                    </div>
+                    {!evaluation.meetsCriteria && evaluation.message && (
+                      <p className="text-sm text-red-700">{evaluation.message}</p>
+                    )}
+                    {evaluation.specimens.some(s => s.meetsThreshold === false) && (
+                      <p className="text-sm text-amber-700">
+                        Probetas bajo el mínimo individual:{' '}
+                        {evaluation.specimens
+                          .filter(s => s.meetsThreshold === false)
+                          .map(s => s.specimenNumber)
+                          .join(', ')}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-amber-700">
+                    {evaluation.reason === 'sin_valor_esperado'
+                      ? 'La muestra no tiene resistencia esperada registrada, así que estos resultados se guardarán sin evaluación automática.'
+                      : `El período de ${selectedTest.test_period} días no tiene criterio de aceptación en la plantilla, así que estos resultados se guardarán sin evaluación automática.`}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="flex justify-end gap-3 pt-4 border-t">
               <Button 
