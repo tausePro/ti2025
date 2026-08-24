@@ -152,6 +152,35 @@ describe('evaluateTestResults', () => {
     expect(evaluation.averageDeviationPercentage).toBe(0)
   })
 
+  it('evalúa 56 días al 100% con resistencia esperada guardada como texto (select en MPa)', () => {
+    const evaluation = evaluateTestResults({
+      specimens: [
+        { specimenNumber: 1, value: 29 },
+        { specimenNumber: 2, value: 28.5 },
+        { specimenNumber: 3, value: 27.8 }
+      ],
+      expectedValue: '28',
+      period: 56,
+      testConfiguration: {
+        acceptance_criteria: { min_percentage_56d: 100 },
+        units: 'MPa'
+      },
+      validationRules: [
+        {
+          test_period: 56,
+          rule: 'average >= expected * 1.00',
+          message: 'No cumple resistencia mínima a 56 días (100%)'
+        }
+      ]
+    })
+
+    expect(evaluation.evaluable).toBe(true)
+    expect(evaluation.minPercentage).toBe(100)
+    expect(evaluation.threshold).toBe(28)
+    expect(evaluation.average).toBe(28.43)
+    expect(evaluation.meetsCriteria).toBe(true)
+  })
+
   it('no emite veredicto cuando falta el valor esperado', () => {
     const evaluation = evaluateTestResults({
       specimens: [{ specimenNumber: 1, value: 4200 }],

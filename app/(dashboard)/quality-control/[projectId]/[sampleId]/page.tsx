@@ -47,6 +47,9 @@ interface QualitySample {
       label: string
       unit?: string
     }>
+    test_configuration?: {
+      units?: string
+    }
   }
 }
 
@@ -97,7 +100,8 @@ export default function SampleDetailsPage() {
           template:quality_control_templates(
             template_name,
             template_type,
-            custom_fields
+            custom_fields,
+            test_configuration
           )
         `)
         .eq('id', params.sampleId)
@@ -389,6 +393,9 @@ export default function SampleDetailsPage() {
                                   </span>
                                   <span className="text-sm">
                                     {result.result_value}
+                                    {sample.template.test_configuration?.units
+                                      ? ` ${sample.template.test_configuration.units}`
+                                      : ''}
                                   </span>
                                 </div>
                                 {result.meets_criteria !== null && (
