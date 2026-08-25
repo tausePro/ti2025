@@ -41,6 +41,7 @@ interface QualityTemplate {
     test_name: string
     test_periods: number[]
     samples_per_test: number
+    optional_periods?: number[]
   }
 }
 
@@ -276,6 +277,7 @@ export default function NewSamplePage() {
       const testPeriods = selectedTemplate.test_configuration?.test_periods
       const testName = selectedTemplate.test_configuration?.test_name || 'Ensayo'
       const samplesPerTest = selectedTemplate.test_configuration?.samples_per_test || 3
+      const optionalPeriods = selectedTemplate.test_configuration?.optional_periods || []
 
       if (Array.isArray(testPeriods) && testPeriods.length > 0) {
         const testsToCreate = testPeriods.map((period: number) => {
@@ -290,7 +292,8 @@ export default function NewSamplePage() {
             test_period: period,
             test_date: testDate,
             test_config: {
-              cylinders_count: samplesPerTest
+              cylinders_count: samplesPerTest,
+              optional: optionalPeriods.includes(period)
             }
           }
         })
