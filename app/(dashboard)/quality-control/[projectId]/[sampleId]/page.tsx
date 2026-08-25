@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDateValue } from '@/lib/utils'
+import { findNamedTest, type NamedTestDefinition } from '@/lib/quality-control/metrics'
 
 interface Project {
   id: string
@@ -49,6 +50,7 @@ interface QualitySample {
     }>
     test_configuration?: {
       units?: string
+      named_tests?: NamedTestDefinition[]
     }
   }
 }
@@ -119,6 +121,7 @@ export default function SampleDetailsPage() {
             id,
             specimen_number,
             result_value,
+            result_data,
             meets_criteria,
             deviation_percentage,
             notes
@@ -366,12 +369,19 @@ export default function SampleDetailsPage() {
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {tests.map(test => (
+                  {tests.map(test => {
+                    const namedTest = findNamedTest(
+                      sample.template.test_configuration,
+                      test.test_config?.named_test_key
+                    )
+                    const specimensLabel = namedTest?.specimens_label || 'Cilindro'
+                    return (
                     <div key={test.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div>
                           <h4 className="font-medium">
-                            {test.test_name} - {test.test_period} días
+                            {test.test_name}
+                            {test.test_period > 0 ? ` - ${test.test_period} días` : ''}
                           </h4>
                           <p className="text-sm text-gray-500">
                             Programado: {formatDateValue(test.test_date, 'es-CO')}
@@ -384,19 +394,32 @@ export default function SampleDetailsPage() {
                       {test.results.length > 0 ? (
                         <div className="space-y-2">
                           <p className="text-sm font-medium text-gray-700">Resultados:</p>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <div className={`grid grid-cols-1 gap-2 ${namedTest ? '' : 'md:grid-cols-3'}`}>
                             {test.results.map(result => (
                               <div key={result.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                   <span className="text-sm font-medium">
-                                    Cilindro {result.specimen_number}
+                                    {specimensLabel} {result.specimen_number}
                                   </span>
-                                  <span className="text-sm">
-                                    {result.result_value}
-                                    {sample.template.test_configuration?.units
-                                      ? ` ${sample.template.test_configuration.units}`
-                                      : ''}
-                                  </span>
+                                  {namedTest ? (
+                                    namedTest.metrics.map(metric => {
+                                      const value = result.result_data?.metrics?.[metric.key]
+                                      if (value === undefined || value === null) return null
+                                      return (
+                                        <span key={metric.key} className="text-sm text-gray-700">
+                                          {metric.label}: {value}
+                                          {metric.unit ? ` ${metric.unit}` : ''}
+                                        </span>
+                                      )
+                                    })
+                                  ) : (
+                                    <span className="text-sm">
+                                      {result.result_value}
+                                      {sample.template.test_configuration?.units
+                                        ? ` ${sample.template.test_configuration.units}`
+                                        : ''}
+                                    </span>
+                                  )}
                                 </div>
                                 {result.meets_criteria !== null && (
                                   <Badge variant={result.meets_criteria ? 'default' : 'destructive'} className="text-xs">
@@ -413,7 +436,8 @@ export default function SampleDetailsPage() {
                         </p>
                       )}
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
