@@ -15,6 +15,12 @@ import { ArrowLeft, Save, CheckCircle, Clock, AlertTriangle } from 'lucide-react
 import Link from 'next/link'
 import { formatDateValue } from '@/lib/utils'
 import { evaluateTestResults } from '@/lib/quality-control/evaluation'
+import {
+  evaluateNamedTest,
+  findNamedTest,
+  describeCriterion,
+  resolveMetricCriterion
+} from '@/lib/quality-control/metrics'
 
 interface QualityTest {
   id: string
@@ -26,11 +32,13 @@ interface QualityTest {
   test_config: {
     cylinders_count?: number
     expected_resistance?: number
+    named_test_key?: string
   }
   results: Array<{
     id: string
     specimen_number: number
     result_value: number
+    result_data: { metrics?: Record<string, number> } | null
     meets_criteria: boolean | null
     notes: string
   }>
@@ -39,6 +47,7 @@ interface QualityTest {
 interface ResultEntry {
   specimen_number: number
   result_value: string
+  metric_values: Record<string, string>
   notes: string
 }
 
@@ -64,8 +73,37 @@ export default function RegisterResultsPage() {
 
   const resultUnits = sample?.template?.test_configuration?.units || ''
 
+  const namedTest = useMemo(
+    () =>
+      findNamedTest(
+        sample?.template?.test_configuration,
+        selectedTest?.test_config?.named_test_key
+      ),
+    [sample, selectedTest]
+  )
+
+  const specimensLabel =
+    namedTest?.specimens_label ||
+    sample?.template?.test_configuration?.specimens_label ||
+    'Cilindro'
+
+  const namedEvaluation = useMemo(() => {
+    if (!namedTest) return null
+
+    const specimens = results.map(r => ({
+      specimenNumber: r.specimen_number,
+      values: Object.fromEntries(
+        Object.entries(r.metric_values)
+          .filter(([, value]) => value.trim() !== '' && !isNaN(Number(value)))
+          .map(([key, value]) => [key, Number(value)])
+      )
+    }))
+
+    return evaluateNamedTest(specimens, namedTest, sample?.custom_data)
+  }, [namedTest, results, sample])
+
   const evaluation = useMemo(() => {
-    if (!selectedTest) return null
+    if (!selectedTest || namedTest) return null
 
     const specimens = results
       .filter(r => r.result_value.trim() !== '' && !isNaN(Number(r.result_value)))
@@ -78,7 +116,7 @@ export default function RegisterResultsPage() {
       testConfiguration: sample?.template?.test_configuration,
       validationRules: sample?.template?.validation_rules
     })
-  }, [selectedTest, results, expectedValue, sample])
+  }, [selectedTest, namedTest, results, expectedValue, sample])
 
   useEffect(() => {
     loadData()
@@ -103,7 +141,7 @@ export default function RegisterResultsPage() {
         .select(`
           *,
           results:quality_control_results(
-            id, specimen_number, result_value, meets_criteria, notes
+            id, specimen_number, result_value, result_data, meets_criteria, notes
           )
         `)
         .eq('sample_id', params.sampleId)
@@ -128,6 +166,12 @@ export default function RegisterResultsPage() {
       setResults(test.results.map(r => ({
         specimen_number: r.specimen_number,
         result_value: r.result_value.toString(),
+        metric_values: Object.fromEntries(
+          Object.entries(r.result_data?.metrics || {}).map(([key, value]) => [
+            key,
+            String(value)
+          ])
+        ),
         notes: r.notes || ''
       })))
     } else {
@@ -135,31 +179,59 @@ export default function RegisterResultsPage() {
       const count = test.test_config?.cylinders_count || 3
       const entries: ResultEntry[] = []
       for (let i = 1; i <= count; i++) {
-        entries.push({ specimen_number: i, result_value: '', notes: '' })
+        entries.push({ specimen_number: i, result_value: '', metric_values: {}, notes: '' })
       }
       setResults(entries)
     }
   }
 
-  const updateResult = (index: number, field: keyof ResultEntry, value: string) => {
+  const updateResult = (index: number, field: 'result_value' | 'notes', value: string) => {
     setResults(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r))
+  }
+
+  const updateMetricValue = (index: number, metricKey: string, value: string) => {
+    setResults(prev => prev.map((r, i) =>
+      i === index
+        ? { ...r, metric_values: { ...r.metric_values, [metricKey]: value } }
+        : r
+    ))
   }
 
   const handleSave = async () => {
     if (!selectedTest || !profile) return
 
-    // Validar que al menos un resultado tenga valor
-    const filledResults = results.filter(r => r.result_value.trim() !== '')
-    if (filledResults.length === 0) {
-      setError('Ingresa al menos un resultado')
-      return
-    }
-
-    // Validar que los valores sean números válidos
-    for (const r of filledResults) {
-      if (isNaN(Number(r.result_value))) {
-        setError(`El valor del cilindro ${r.specimen_number} no es un número válido`)
+    // Validar según tipo de ensayo
+    let filledResults: ResultEntry[]
+    if (namedTest) {
+      filledResults = results.filter(r =>
+        Object.values(r.metric_values).some(v => v.trim() !== '')
+      )
+      if (filledResults.length === 0) {
+        setError('Ingresa al menos un valor de métrica')
         return
+      }
+      for (const r of filledResults) {
+        for (const [key, value] of Object.entries(r.metric_values)) {
+          if (value.trim() !== '' && isNaN(Number(value))) {
+            const metric = namedTest.metrics.find(m => m.key === key)
+            setError(
+              `El valor de "${metric?.label || key}" de la ${specimensLabel.toLowerCase()} ${r.specimen_number} no es un número válido`
+            )
+            return
+          }
+        }
+      }
+    } else {
+      filledResults = results.filter(r => r.result_value.trim() !== '')
+      if (filledResults.length === 0) {
+        setError('Ingresa al menos un resultado')
+        return
+      }
+      for (const r of filledResults) {
+        if (isNaN(Number(r.result_value))) {
+          setError(`El valor del cilindro ${r.specimen_number} no es un número válido`)
+          return
+        }
       }
     }
 
@@ -180,6 +252,38 @@ export default function RegisterResultsPage() {
 
       // Insertar resultados
       const resultsToInsert = filledResults.map(r => {
+        if (namedTest) {
+          const specimenEval = namedEvaluation?.specimens.find(
+            s => s.specimenNumber === r.specimen_number
+          )
+          const metrics: Record<string, number> = {}
+          for (const [key, value] of Object.entries(r.metric_values)) {
+            if (value.trim() !== '' && !isNaN(Number(value))) {
+              metrics[key] = Number(value)
+            }
+          }
+          // Persistir también las métricas calculadas
+          for (const metricEval of specimenEval?.metrics || []) {
+            if (metricEval.computed && metricEval.value !== null) {
+              metrics[metricEval.key] = metricEval.value
+            }
+          }
+          const primaryMetric = namedTest.metrics.find(
+            m => !m.computed && metrics[m.key] !== undefined
+          )
+
+          return {
+            test_id: selectedTest.id,
+            specimen_number: r.specimen_number,
+            result_value: primaryMetric ? metrics[primaryMetric.key] : 0,
+            result_data: { metrics },
+            meets_criteria: specimenEval?.meetsCriteria ?? null,
+            deviation_percentage: null,
+            notes: r.notes.trim() || null,
+            tested_by: profile.id
+          }
+        }
+
         const specimen = evaluation?.specimens.find(
           s => s.specimenNumber === r.specimen_number
         )
@@ -212,15 +316,23 @@ export default function RegisterResultsPage() {
 
       if (updateError) throw updateError
 
-      const verdict = evaluation?.evaluable
-        ? evaluation.meetsCriteria
-          ? 'CUMPLE'
-          : `NO CUMPLE (promedio ${evaluation.average} ${resultUnits} contra un mínimo de ${evaluation.threshold} ${resultUnits})`
-        : 'guardado sin evaluación automática'
+      const verdict = namedTest
+        ? namedEvaluation?.meetsCriteria === null || namedEvaluation === null
+          ? 'guardado sin evaluación automática'
+          : namedEvaluation.meetsCriteria
+            ? 'CUMPLE'
+            : `NO CUMPLE (${namedEvaluation.failures.length} criterio${namedEvaluation.failures.length > 1 ? 's' : ''} incumplido${namedEvaluation.failures.length > 1 ? 's' : ''})`
+        : evaluation?.evaluable
+          ? evaluation.meetsCriteria
+            ? 'CUMPLE'
+            : `NO CUMPLE (promedio ${evaluation.average} ${resultUnits} contra un mínimo de ${evaluation.threshold} ${resultUnits})`
+          : 'guardado sin evaluación automática'
 
-      setSuccess(
-        `Resultados guardados para ${selectedTest.test_name} - ${selectedTest.test_period} días: ${verdict}`
-      )
+      const testLabel = selectedTest.test_period > 0
+        ? `${selectedTest.test_name} - ${selectedTest.test_period} días`
+        : selectedTest.test_name
+
+      setSuccess(`Resultados guardados para ${testLabel}: ${verdict}`)
       
       // Recargar datos
       await loadData()
@@ -316,7 +428,8 @@ export default function RegisterResultsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="font-medium">
-                        {test.test_name} &mdash; {test.test_period} días
+                        {test.test_name}
+                        {test.test_period > 0 ? ` — ${test.test_period} días` : ''}
                       </h4>
                       <p className="text-sm text-gray-500">
                         Programado: {formatDateValue(test.test_date, 'es-CO')}
@@ -343,16 +456,121 @@ export default function RegisterResultsPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {selectedTest.test_name} &mdash; {selectedTest.test_period} días
+              {selectedTest.test_name}
+              {selectedTest.test_period > 0 ? ` — ${selectedTest.test_period} días` : ''}
             </CardTitle>
             <CardDescription>
-              {selectedTest.results.length > 0 
-                ? 'Editando resultados existentes' 
-                : 'Ingresa los valores obtenidos para cada cilindro/probeta'}
+              {selectedTest.results.length > 0
+                ? 'Editando resultados existentes'
+                : `Ingresa los valores obtenidos para cada ${specimensLabel.toLowerCase()}`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {results.map((result, index) => (
+            {namedTest && results.map((result, index) => {
+              const specimenEval = namedEvaluation?.specimens.find(
+                s => s.specimenNumber === result.specimen_number
+              )
+              return (
+                <div key={index} className="p-4 border rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">
+                      {specimensLabel} {result.specimen_number}
+                    </span>
+                    {specimenEval?.meetsCriteria !== null && specimenEval !== undefined && (
+                      <Badge
+                        className={
+                          specimenEval.meetsCriteria
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }
+                      >
+                        {specimenEval.meetsCriteria ? 'CUMPLE' : 'NO CUMPLE'}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {namedTest.metrics.map(metric => {
+                      const metricEval = specimenEval?.metrics.find(m => m.key === metric.key)
+                      const criterion = resolveMetricCriterion(metric, sample?.custom_data)
+                      const criterionLabel = describeCriterion(criterion, metric.unit)
+                      return (
+                        <div key={metric.key}>
+                          <Label className="text-sm font-medium">
+                            {metric.label}
+                            {metric.unit ? ` (${metric.unit})` : ''}
+                            {criterionLabel && (
+                              <span className="ml-1 text-xs text-gray-500 font-normal">
+                                criterio {criterionLabel}
+                              </span>
+                            )}
+                          </Label>
+                          {metric.computed ? (
+                            <div
+                              className={`mt-1 px-3 py-2 border rounded-lg text-sm bg-gray-50 ${
+                                metricEval?.meets === false
+                                  ? 'border-red-300 text-red-700'
+                                  : metricEval?.meets === true
+                                    ? 'border-green-300 text-green-700'
+                                    : 'text-gray-500'
+                              }`}
+                            >
+                              {metricEval?.value !== null && metricEval?.value !== undefined
+                                ? metricEval.value
+                                : 'Se calcula automáticamente'}
+                            </div>
+                          ) : (
+                            <Input
+                              type="number"
+                              step="0.001"
+                              value={result.metric_values[metric.key] ?? ''}
+                              onChange={(e) => updateMetricValue(index, metric.key, e.target.value)}
+                              placeholder={metric.unit ? `Valor en ${metric.unit}` : 'Valor obtenido'}
+                              className={`mt-1 ${
+                                metricEval?.meets === false ? 'border-red-400' : ''
+                              }`}
+                            />
+                          )}
+                          {metricEval?.message && (
+                            <p className="mt-1 text-xs text-red-700">{metricEval.message}</p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Observaciones</Label>
+                    <Input
+                      value={result.notes}
+                      onChange={(e) => updateResult(index, 'notes', e.target.value)}
+                      placeholder="Observaciones (opcional)"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              )
+            })}
+
+            {namedTest && namedEvaluation && namedEvaluation.meetsCriteria !== null && (
+              <div className="rounded-lg border p-4 bg-gray-50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Resultado del ensayo</span>
+                  <Badge
+                    className={
+                      namedEvaluation.meetsCriteria
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }
+                  >
+                    {namedEvaluation.meetsCriteria ? 'CUMPLE' : 'NO CUMPLE'}
+                  </Badge>
+                </div>
+                {namedEvaluation.failures.map((failure, i) => (
+                  <p key={i} className="text-sm text-red-700">{failure}</p>
+                ))}
+              </div>
+            )}
+
+            {!namedTest && results.map((result, index) => (
               <div key={index} className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 border rounded-lg">
                 <div>
                   <Label className="text-sm font-medium">
