@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowLeft, Plus, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { getCurrentDateInputValue } from '@/lib/utils'
+import type { NamedTestDefinition } from '@/lib/quality-control/metrics'
 
 interface Project {
   id: string
@@ -39,9 +40,10 @@ interface QualityTemplate {
   }>
   test_configuration: {
     test_name: string
-    test_periods: number[]
-    samples_per_test: number
+    test_periods?: number[]
+    samples_per_test?: number
     optional_periods?: number[]
+    named_tests?: NamedTestDefinition[]
   }
 }
 
@@ -274,12 +276,38 @@ export default function NewSamplePage() {
       if (sampleError) throw sampleError
 
       // Crear ensayos programados según el template
+      const namedTests = selectedTemplate.test_configuration?.named_tests
       const testPeriods = selectedTemplate.test_configuration?.test_periods
       const testName = selectedTemplate.test_configuration?.test_name || 'Ensayo'
       const samplesPerTest = selectedTemplate.test_configuration?.samples_per_test || 3
       const optionalPeriods = selectedTemplate.test_configuration?.optional_periods || []
 
-      if (Array.isArray(testPeriods) && testPeriods.length > 0) {
+      if (Array.isArray(namedTests) && namedTests.length > 0) {
+        const testsToCreate = namedTests.map(namedTest => {
+          const period = namedTest.period ?? 0
+          const [year, month, day] = sampleDate.split('-').map(Number)
+          const baseDate = new Date(year, month - 1, day)
+          baseDate.setDate(baseDate.getDate() + period)
+          const testDate = `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}-${String(baseDate.getDate()).padStart(2, '0')}`
+          return {
+            sample_id: sampleData.id,
+            test_name: namedTest.name,
+            test_period: period,
+            test_date: testDate,
+            test_config: {
+              named_test_key: namedTest.key,
+              cylinders_count: namedTest.samples_per_test || 1,
+              optional: Boolean(namedTest.optional)
+            }
+          }
+        })
+
+        const { error: testsError } = await supabase
+          .from('quality_control_tests')
+          .insert(testsToCreate)
+
+        if (testsError) throw testsError
+      } else if (Array.isArray(testPeriods) && testPeriods.length > 0) {
         const testsToCreate = testPeriods.map((period: number) => {
           // Calcular fecha del ensayo sumando días a la fecha de muestra
           const [year, month, day] = sampleDate.split('-').map(Number)
