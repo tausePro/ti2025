@@ -357,15 +357,23 @@ export default function RegisterResultsPage() {
                 <div>
                   <Label className="text-sm font-medium">
                     Cilindro {result.specimen_number}
+                    {resultUnits ? ` (${resultUnits})` : ''}
                   </Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={result.result_value}
-                    onChange={(e) => updateResult(index, 'result_value', e.target.value)}
-                    placeholder="Valor obtenido"
-                    className="mt-1"
-                  />
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={result.result_value}
+                      onChange={(e) => updateResult(index, 'result_value', e.target.value)}
+                      placeholder={resultUnits ? `Valor obtenido en ${resultUnits}` : 'Valor obtenido'}
+                      className="flex-1"
+                    />
+                    {resultUnits && (
+                      <span className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm">
+                        {resultUnits}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="sm:col-span-2">
                   <Label className="text-sm font-medium">Observaciones</Label>
