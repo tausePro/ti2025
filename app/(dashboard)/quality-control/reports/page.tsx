@@ -428,12 +428,13 @@ export default function QualityReportsPage() {
                           >
                             Ver Informe
                           </Link>
-                          <button
+                          <a
+                            href={`/api/print/quality-report?sampleId=${sample.id}`}
                             className="text-green-600 hover:text-green-900 flex items-center gap-1"
                             title="Descargar PDF"
                           >
                             <Download className="w-4 h-4" />
-                          </button>
+                          </a>
                         </div>
                       </td>
                     </tr>
