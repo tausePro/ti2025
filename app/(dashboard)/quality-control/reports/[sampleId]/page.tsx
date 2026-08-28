@@ -104,10 +104,20 @@ export default function SampleReportPage() {
       if (projectError) throw projectError
       setProject(projectData)
 
-      // Cargar ensayos
+      // Cargar ensayos con resultados
       const { data: testsData, error: testsError } = await supabase
         .from('quality_control_tests')
-        .select('*')
+        .select(`
+          *,
+          results:quality_control_results(
+            specimen_number,
+            result_value,
+            result_data,
+            meets_criteria,
+            deviation_percentage,
+            notes
+          )
+        `)
         .eq('sample_id', params.sampleId)
         .order('test_period', { ascending: true })
 
@@ -215,13 +225,13 @@ export default function SampleReportPage() {
             <ArrowLeft className="w-4 h-4 mr-1" />
             Volver a Informes
           </Link>
-          <button
+          <a
+            href={`/api/print/quality-report?sampleId=${params.sampleId}`}
             className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-            onClick={() => alert('Funcionalidad de PDF en desarrollo')}
           >
             <Download className="w-4 h-4 mr-2" />
             Descargar PDF
-          </button>
+          </a>
         </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Informe de Control de Calidad</h1>
         <p className="text-gray-600">Vista preliminar del informe técnico</p>
@@ -364,7 +374,7 @@ export default function SampleReportPage() {
                       {test.test_name}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">
-                      {test.test_period} días
+                      {test.test_period > 0 ? `${test.test_period} días` : '—'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-900">
                       {new Date(test.test_date).toLocaleDateString('es-CO')}
@@ -386,9 +396,14 @@ export default function SampleReportPage() {
                     <td className="px-4 py-3 text-sm text-gray-900">
                       {test.results && test.results.length > 0 ? (
                         <div className="space-y-1">
-                          {test.results.map((r, i) => (
+                          {test.results.map((r: any, i) => (
                             <div key={i} className="text-xs">
-                              #{r.specimen_number}: {r.result_value}
+                              #{r.specimen_number}:{' '}
+                              {r.result_data?.metrics
+                                ? Object.entries(r.result_data.metrics)
+                                    .map(([k, v]) => `${k} ${v}`)
+                                    .join(', ')
+                                : r.result_value}
                             </div>
                           ))}
                         </div>
