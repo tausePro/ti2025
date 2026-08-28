@@ -13,8 +13,8 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 | 5 | Acero NTC-2289: físico (fluencia 420–540, tracción ≥550, fu/fy ≥1.25, alargamiento 14/12% según diámetro) | ✅ En producción | v0.0.15 | 097 | Pendiente |
 | 6 | Acero: análisis químico de colada (máx. C 0.33, Mn 1.56, P 0.043, S 0.053, Si 0.55 %) | ✅ En producción | v0.0.15 | 097 | Pendiente |
 | 7 | Mallas electrosoldadas NTC-5806 (fluencia ≥485, tracción ≥550) | ✅ En producción | v0.0.15 | 097 | Pendiente |
-| 8 | PDF del informe de control de calidad | 🔧 En desarrollo | — | — | — |
-| 9 | Ola 1 formatos: morteros, muretes, unidades de mampostería (absorción ≤ NTC-4205) | ⏳ Pendiente | — | — | — |
+| 8 | PDF del informe de control de calidad | ✅ En producción | v0.0.16 | — | Pendiente |
+| 9 | Ola 1 formatos: morteros, muretes, unidades de mampostería (absorción ≤ NTC-4205) | 🔧 En desarrollo | — | 098 | — |
 | 10 | Veredicto concreto: ¿promedio o por probeta individual? | ❓ Decisión de Santi | — | — | — |
 | 11 | Ola 2 formatos: presurización agua/gas y estanqueidad (lecturas pareadas + fotos) | ⏳ Pendiente | — | — | — |
 | 12 | UI admin de plantillas de calidad (sin migraciones) | ⏳ Pendiente | — | — | — |
@@ -26,6 +26,8 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 - **Acero evalúa por probeta individual** (exigencia de norma); concreto sigue por promedio hasta decisión de Santi (punto 10).
 - **Veredicto por edad decisiva** (migración 096): manda el ensayo completado de mayor edad con resultados.
 - **Ensayos nombrados** (`test_configuration.named_tests`): reemplazan a `test_periods` cuando existen; el código soporta ambos formatos.
+- **Criterios por especificación del proyecto** (`value_from`): las unidades de mampostería no usan límites fijos de norma; el residente ingresa resistencia mínima y absorción máxima de la especificación al crear la muestra y el motor evalúa contra esos valores.
+- **Mortero de pega**: 75% de f'cp a 7 días y 100% a 28 días — el 75% es supuesto razonable pendiente de confirmación de Santi (pregunta abierta 2).
 
 ## Registro de validaciones
 
