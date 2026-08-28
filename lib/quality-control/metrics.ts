@@ -3,8 +3,11 @@ export type MetricOperator = '>=' | '<=' | 'range'
 export interface MetricCriterion {
   operator: MetricOperator
   value?: number
+  value_from?: string
   min?: number
+  min_from?: string
   max?: number
+  max_from?: string
   when?: Record<string, string[]>
   message?: string | null
 }
@@ -88,6 +91,18 @@ function matchesCondition(
   })
 }
 
+function resolveBound(
+  fixed: number | undefined,
+  fromField: string | undefined,
+  customData: Record<string, unknown> | null | undefined
+): number | undefined {
+  if (fromField) {
+    const fromValue = toFiniteNumber(customData?.[fromField])
+    return fromValue === null ? undefined : fromValue
+  }
+  return fixed
+}
+
 export function resolveMetricCriterion(
   metric: MetricDefinition,
   customData: Record<string, unknown> | null | undefined
@@ -95,9 +110,19 @@ export function resolveMetricCriterion(
   if (!Array.isArray(metric.criteria)) return null
 
   for (const criterion of metric.criteria) {
-    if (matchesCondition(criterion.when, customData)) {
-      return criterion
+    if (!matchesCondition(criterion.when, customData)) continue
+
+    const value = resolveBound(criterion.value, criterion.value_from, customData)
+    const min = resolveBound(criterion.min, criterion.min_from, customData)
+    const max = resolveBound(criterion.max, criterion.max_from, customData)
+
+    if (criterion.operator === 'range') {
+      if (min === undefined || max === undefined) return null
+    } else if (value === undefined) {
+      return null
     }
+
+    return { ...criterion, value, min, max }
   }
 
   return null

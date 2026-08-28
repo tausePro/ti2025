@@ -374,7 +374,10 @@ export default function SampleDetailsPage() {
                       sample.template.test_configuration,
                       test.test_config?.named_test_key
                     )
-                    const specimensLabel = namedTest?.specimens_label || 'Cilindro'
+                    const specimensLabel =
+                      namedTest?.specimens_label ||
+                      (sample.template.test_configuration as { specimens_label?: string } | undefined)?.specimens_label ||
+                      'Cilindro'
                     return (
                     <div key={test.id} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">

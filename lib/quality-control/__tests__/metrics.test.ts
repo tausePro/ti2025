@@ -258,3 +258,85 @@ describe('findNamedTest', () => {
     expect(findNamedTest(null, 'fisico')).toBeNull()
   })
 })
+
+describe('criterios con value_from (unidades de mampostería)', () => {
+  const unidadTest: NamedTestDefinition = {
+    key: 'unidad',
+    name: 'Ensayo de unidades de mampostería',
+    specimens_label: 'Unidad',
+    metrics: [
+      {
+        key: 'compresion',
+        label: 'Resistencia a la compresión',
+        unit: 'MPa',
+        criteria: [
+          {
+            operator: '>=',
+            value_from: 'resistencia_minima',
+            message: 'Resistencia menor a la mínima especificada'
+          }
+        ]
+      },
+      {
+        key: 'absorcion',
+        label: 'Absorción de agua',
+        unit: '%',
+        criteria: [
+          {
+            operator: '<=',
+            value_from: 'absorcion_maxima',
+            message: 'Absorción mayor a la máxima especificada'
+          }
+        ]
+      }
+    ]
+  }
+
+  it('resuelve el valor del criterio desde custom_data', () => {
+    const criterion = resolveMetricCriterion(unidadTest.metrics[0], {
+      resistencia_minima: 18
+    })
+    expect(criterion?.value).toBe(18)
+    expect(describeCriterion(criterion, 'MPa')).toBe('≥ 18 MPa')
+  })
+
+  it('acepta valores como texto (inputs de formulario)', () => {
+    const criterion = resolveMetricCriterion(unidadTest.metrics[1], {
+      absorcion_maxima: '13.5'
+    })
+    expect(criterion?.value).toBe(13.5)
+  })
+
+  it('devuelve null cuando el campo de referencia no existe', () => {
+    expect(resolveMetricCriterion(unidadTest.metrics[0], {})).toBeNull()
+    expect(resolveMetricCriterion(unidadTest.metrics[0], null)).toBeNull()
+  })
+
+  it('evalúa compresión y absorción contra los valores de la muestra', () => {
+    const customData = { resistencia_minima: 18, absorcion_maxima: 13.5 }
+
+    const cumple = evaluateNamedTest(
+      [{ specimenNumber: 1, values: { compresion: 20.5, absorcion: 11.2 } }],
+      unidadTest,
+      customData
+    )
+    expect(cumple.meetsCriteria).toBe(true)
+
+    const falla = evaluateNamedTest(
+      [{ specimenNumber: 1, values: { compresion: 20.5, absorcion: 15.1 } }],
+      unidadTest,
+      customData
+    )
+    expect(falla.meetsCriteria).toBe(false)
+    expect(falla.failures.some(f => f.includes('Absorción'))).toBe(true)
+  })
+
+  it('queda sin evaluar cuando la muestra no define los límites', () => {
+    const result = evaluateNamedTest(
+      [{ specimenNumber: 1, values: { compresion: 20.5, absorcion: 11.2 } }],
+      unidadTest,
+      {}
+    )
+    expect(result.meetsCriteria).toBeNull()
+  })
+})
