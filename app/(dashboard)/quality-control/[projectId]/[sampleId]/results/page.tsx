@@ -229,7 +229,7 @@ export default function RegisterResultsPage() {
       }
       for (const r of filledResults) {
         if (isNaN(Number(r.result_value))) {
-          setError(`El valor del cilindro ${r.specimen_number} no es un número válido`)
+          setError(`El valor de ${specimensLabel.toLowerCase()} ${r.specimen_number} no es un número válido`)
           return
         }
       }
@@ -574,7 +574,7 @@ export default function RegisterResultsPage() {
               <div key={index} className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 border rounded-lg">
                 <div>
                   <Label className="text-sm font-medium">
-                    Cilindro {result.specimen_number}
+                    {specimensLabel} {result.specimen_number}
                     {resultUnits ? ` (${resultUnits})` : ''}
                   </Label>
                   <div className="flex gap-2 mt-1">
@@ -598,7 +598,7 @@ export default function RegisterResultsPage() {
                   <Input
                     value={result.notes}
                     onChange={(e) => updateResult(index, 'notes', e.target.value)}
-                    placeholder="Observaciones del cilindro (opcional)"
+                    placeholder="Observaciones (opcional)"
                     className="mt-1"
                   />
                 </div>
