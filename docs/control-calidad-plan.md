@@ -14,7 +14,7 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 | 6 | Acero: análisis químico de colada (máx. C 0.33, Mn 1.56, P 0.043, S 0.053, Si 0.55 %) | ✅ En producción | v0.0.15 | 097 | Pendiente |
 | 7 | Mallas electrosoldadas NTC-5806 (fluencia ≥485, tracción ≥550) | ✅ En producción | v0.0.15 | 097 | Pendiente |
 | 8 | PDF del informe de control de calidad | ✅ En producción | v0.0.16 | — | Pendiente |
-| 9 | Ola 1 formatos: morteros, muretes, unidades de mampostería (absorción ≤ NTC-4205) | 🔧 En desarrollo | — | 098 | — |
+| 9 | Ola 1 formatos: morteros, muretes, unidades de mampostería (absorción ≤ NTC-4205) | ✅ En producción | v0.0.17 | 098 | Pendiente |
 | 10 | Veredicto concreto: ¿promedio o por probeta individual? | ❓ Decisión de Santi | — | — | — |
 | 11 | Ola 2 formatos: presurización agua/gas y estanqueidad (lecturas pareadas + fotos) | ⏳ Pendiente | — | — | — |
 | 12 | UI admin de plantillas de calidad (sin migraciones) | ⏳ Pendiente | — | — | — |
@@ -34,6 +34,7 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 | Fecha | Qué se validó | Quién | Resultado |
 |-------|---------------|-------|-----------|
 | 2026-08-24 | Migraciones 095, 096, 097 aplicadas en Supabase | Felipe | OK — verificación SQL correcta |
+| 2026-08-28 | Migración 098 aplicada: 3 plantillas de Ola 1 creadas | Felipe | OK — verificación SQL correcta |
 | — | Flujo de acero en producción (crear muestra, físico, químico, malla) | Santi/Felipe | Pendiente |
 | — | Concreto: 56 días y veredicto por edad decisiva con muestra real | Santi | Pendiente |
 
