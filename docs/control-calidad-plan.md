@@ -35,6 +35,7 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 |-------|---------------|-------|-----------|
 | 2026-08-24 | Migraciones 095, 096, 097 aplicadas en Supabase | Felipe | OK — verificación SQL correcta |
 | 2026-08-28 | Migración 098 aplicada: 3 plantillas de Ola 1 creadas | Felipe | OK — verificación SQL correcta |
+| 2026-08-28 | Formatos de acero de Santi (químico por diámetro y mallas NTC-5806): límites químicos y criterios de malla (tracción ≥550, fluencia ≥485, resultado único) coinciden con lo implementado en v0.0.15 | Santi (pantallazos) | OK — solo faltaban las designaciones D-50 a D-335 (migración 099) |
 | — | Flujo de acero en producción (crear muestra, físico, químico, malla) | Santi/Felipe | Pendiente |
 | — | Concreto: 56 días y veredicto por edad decisiva con muestra real | Santi | Pendiente |
 
