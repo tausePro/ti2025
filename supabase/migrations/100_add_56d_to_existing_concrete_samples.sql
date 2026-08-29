@@ -5,7 +5,8 @@
 -- migración 095 no tienen el ensayo de 56 días. Se agrega como ensayo
 -- opcional (no bloquea el cierre de la muestra, migración 096) a toda
 -- muestra de concreto activa que no lo tenga.
--- Copia nombre y número de cilindros del ensayo de mayor edad existente.
+-- Copia nombre y número de cilindros del ensayo de mayor edad existente;
+-- si la muestra no tiene ensayos, usa la configuración de la plantilla.
 -- Idempotente: no duplica si la muestra ya tiene ensayo a 56 días.
 
 INSERT INTO quality_control_tests (
@@ -18,25 +19,33 @@ INSERT INTO quality_control_tests (
 )
 SELECT
   s.id,
-  ref.test_name,
+  COALESCE(
+    ref.test_name,
+    t.test_configuration->>'test_name',
+    'Ensayo a compresión'
+  ),
   56,
   (s.sample_date + INTERVAL '56 days')::date,
   'pending',
   jsonb_build_object(
-    'cylinders_count', COALESCE((ref.test_config->>'cylinders_count')::int, 3),
+    'cylinders_count', COALESCE(
+      (ref.test_config->>'cylinders_count')::int,
+      (t.test_configuration->>'samples_per_test')::int,
+      3
+    ),
     'optional', true
   )
 FROM quality_control_samples s
 JOIN quality_control_templates t
   ON t.id = s.template_id
  AND t.template_type = 'concrete'
-CROSS JOIN LATERAL (
+LEFT JOIN LATERAL (
   SELECT qct.test_name, qct.test_config
   FROM quality_control_tests qct
   WHERE qct.sample_id = s.id
   ORDER BY qct.test_period DESC
   LIMIT 1
-) ref
+) ref ON true
 WHERE s.status != 'cancelled'
   AND NOT EXISTS (
     SELECT 1
