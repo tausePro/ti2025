@@ -292,7 +292,7 @@ export default function RegisterResultsPage() {
           test_id: selectedTest.id,
           specimen_number: r.specimen_number,
           result_value: Number(r.result_value),
-          meets_criteria: evaluation?.meetsCriteria ?? null,
+          meets_criteria: specimen?.meetsThreshold ?? null,
           deviation_percentage: specimen?.deviationPercentage ?? null,
           notes: r.notes.trim() || null,
           tested_by: profile.id
