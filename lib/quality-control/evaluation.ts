@@ -188,7 +188,12 @@ export function evaluateTestResults(input: EvaluateTestResultsInput): TestEvalua
   }
 
   const threshold = roundTo(expectedValue! * (criterion.minPercentage / 100), 4)
-  const meetsCriteria = rawAverage >= threshold - COMPARISON_TOLERANCE
+  // Veredicto por probeta individual (decisión de supervisión):
+  // el ensayo cumple solo si TODAS las probetas alcanzan el umbral.
+  const evaluatedSpecimens = describeSpecimens(threshold)
+  const meetsCriteria = evaluatedSpecimens.every(
+    specimen => specimen.meetsThreshold === true
+  )
 
   return {
     evaluable: true,
@@ -199,6 +204,6 @@ export function evaluateTestResults(input: EvaluateTestResultsInput): TestEvalua
     averageDeviationPercentage,
     meetsCriteria,
     message: meetsCriteria ? null : criterion.message,
-    specimens: describeSpecimens(threshold)
+    specimens: evaluatedSpecimens
   }
 }

@@ -14,8 +14,10 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 | 6 | Acero: análisis químico de colada (máx. C 0.33, Mn 1.56, P 0.043, S 0.053, Si 0.55 %) | ✅ En producción | v0.0.15 | 097 | Pendiente |
 | 7 | Mallas electrosoldadas NTC-5806 (fluencia ≥485, tracción ≥550) | ✅ En producción | v0.0.15 | 097 | Pendiente |
 | 8 | PDF del informe de control de calidad | ✅ En producción | v0.0.16 | — | Pendiente |
-| 9 | Ola 1 formatos: morteros, muretes, unidades de mampostería (absorción ≤ NTC-4205) | 🔧 En desarrollo | — | 098 | — |
-| 10 | Veredicto concreto: ¿promedio o por probeta individual? | ❓ Decisión de Santi | — | — | — |
+| 9 | Ola 1 formatos: morteros, muretes, unidades de mampostería (absorción ≤ NTC-4205) | ✅ En producción | v0.0.17 | 098 | Pendiente |
+| 10 | Veredicto concreto: por cilindro individual (decisión 2026-08-28) | 🔧 En desarrollo | — | — | — |
+| 14 | Designaciones de malla D-50 a D-335 en plantilla de acero | ✅ Migración aplicada | pendiente release | 099 | — |
+| 15 | Ensayo de 56 días en muestras de concreto existentes | 🔧 En desarrollo | — | 100 | — |
 | 11 | Ola 2 formatos: presurización agua/gas y estanqueidad (lecturas pareadas + fotos) | ⏳ Pendiente | — | — | — |
 | 12 | UI admin de plantillas de calidad (sin migraciones) | ⏳ Pendiente | — | — | — |
 | 13 | Ola 3 formatos: asentamientos (serie temporal) y avance de pilas (volumen teórico vs real) | ⏳ Pendiente | — | — | — |
@@ -23,22 +25,24 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 ## Decisiones técnicas
 
 - **Motor de métricas** (`lib/quality-control/metrics.ts`): criterios por operador (`>=`, `<=`, rango), condicionados por campos de la muestra (`when`), métricas calculadas (`ratio:a/b`). Reutilizable para absorción (≤) y presurizaciones.
-- **Acero evalúa por probeta individual** (exigencia de norma); concreto sigue por promedio hasta decisión de Santi (punto 10).
+- **Veredicto por probeta individual en todos los materiales** (decisión de Felipe/Santi 2026-08-28): un ensayo cumple solo si TODAS las probetas alcanzan el umbral; el promedio se muestra como información. `meets_criteria` se guarda por cilindro.
 - **Veredicto por edad decisiva** (migración 096): manda el ensayo completado de mayor edad con resultados.
 - **Ensayos nombrados** (`test_configuration.named_tests`): reemplazan a `test_periods` cuando existen; el código soporta ambos formatos.
 - **Criterios por especificación del proyecto** (`value_from`): las unidades de mampostería no usan límites fijos de norma; el residente ingresa resistencia mínima y absorción máxima de la especificación al crear la muestra y el motor evalúa contra esos valores.
-- **Mortero de pega**: 75% de f'cp a 7 días y 100% a 28 días — el 75% es supuesto razonable pendiente de confirmación de Santi (pregunta abierta 2).
+- **Mortero de pega**: 75% de f'cp a 7 días y 100% a 28 días — confirmado 2026-08-28 ("vamos con el de nosotros").
 
 ## Registro de validaciones
 
 | Fecha | Qué se validó | Quién | Resultado |
 |-------|---------------|-------|-----------|
 | 2026-08-24 | Migraciones 095, 096, 097 aplicadas en Supabase | Felipe | OK — verificación SQL correcta |
+| 2026-08-28 | Migración 098 aplicada: 3 plantillas de Ola 1 creadas | Felipe | OK — verificación SQL correcta |
+| 2026-08-28 | Formatos de acero de Santi (químico por diámetro y mallas NTC-5806): límites químicos y criterios de malla (tracción ≥550, fluencia ≥485, resultado único) coinciden con lo implementado en v0.0.15 | Santi (pantallazos) | OK — solo faltaban las designaciones D-50 a D-335 (migración 099) |
 | — | Flujo de acero en producción (crear muestra, físico, químico, malla) | Santi/Felipe | Pendiente |
 | — | Concreto: 56 días y veredicto por edad decisiva con muestra real | Santi | Pendiente |
 
 ## Preguntas abiertas para Santi
 
-1. Concreto: ¿el veredicto debe ser por promedio de cilindros (actual) o cada cilindro individual?
-2. Ola 1: criterios reales de morteros y muretes (¿qué resistencias y edades?).
-3. Presurizaciones: formato de lecturas (inicial/final, duración) y evidencia fotográfica requerida.
+1. ~~Concreto: ¿promedio o individual?~~ → Resuelto: por cilindro individual (2026-08-28).
+2. ~~Criterios de morteros/muretes~~ → Resuelto: se mantienen los nuestros (75%/100%).
+3. Presurizaciones: confirmado que se hacen (Ola 2); falta el detalle del formato de lecturas — pedir pantallazo del formato de Santi como los de acero.

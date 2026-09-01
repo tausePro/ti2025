@@ -120,7 +120,7 @@ describe('evaluateTestResults', () => {
     expect(evaluation.message).toBeNull()
   })
 
-  it('aprueba por promedio aunque una probeta quede bajo el umbral y la señala', () => {
+  it('rechaza el ensayo si una probeta queda bajo el umbral aunque el promedio cumpla', () => {
     const evaluation = evaluateTestResults({
       specimens: [
         { specimenNumber: 1, value: 2900 },
@@ -133,10 +133,28 @@ describe('evaluateTestResults', () => {
       validationRules: CONCRETE_VALIDATION_RULES
     })
 
-    expect(evaluation.meetsCriteria).toBe(true)
+    expect(evaluation.average).toBe(3016.67)
+    expect(evaluation.meetsCriteria).toBe(false)
     expect(evaluation.specimens[0].meetsThreshold).toBe(false)
     expect(evaluation.specimens[1].meetsThreshold).toBe(true)
     expect(evaluation.specimens[0].deviationPercentage).toBe(-3.33)
+  })
+
+  it('aprueba el ensayo cuando todas las probetas alcanzan el umbral', () => {
+    const evaluation = evaluateTestResults({
+      specimens: [
+        { specimenNumber: 1, value: 3000 },
+        { specimenNumber: 2, value: 3050 },
+        { specimenNumber: 3, value: 3100 }
+      ],
+      expectedValue: 3000,
+      period: 28,
+      testConfiguration: CONCRETE_TEST_CONFIGURATION,
+      validationRules: CONCRETE_VALIDATION_RULES
+    })
+
+    expect(evaluation.meetsCriteria).toBe(true)
+    expect(evaluation.specimens.every(s => s.meetsThreshold)).toBe(true)
   })
 
   it('acepta el promedio exactamente igual al umbral', () => {
@@ -157,7 +175,7 @@ describe('evaluateTestResults', () => {
       specimens: [
         { specimenNumber: 1, value: 29 },
         { specimenNumber: 2, value: 28.5 },
-        { specimenNumber: 3, value: 27.8 }
+        { specimenNumber: 3, value: 28.2 }
       ],
       expectedValue: '28',
       period: 56,
@@ -177,7 +195,7 @@ describe('evaluateTestResults', () => {
     expect(evaluation.evaluable).toBe(true)
     expect(evaluation.minPercentage).toBe(100)
     expect(evaluation.threshold).toBe(28)
-    expect(evaluation.average).toBe(28.43)
+    expect(evaluation.average).toBe(28.57)
     expect(evaluation.meetsCriteria).toBe(true)
   })
 
