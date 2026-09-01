@@ -211,6 +211,12 @@ export function usePerformanceMetrics() {
     if (!user) return
 
     try {
+      // El user del contexto puede estar desactualizado (sesión vencida al
+      // reabrir la PWA): validar la sesión real evita inserts anónimos que
+      // violan RLS (error 42501 en los logs de Postgres).
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) return
+
       const { error } = await supabase
         .from('performance_metrics')
         .insert({
@@ -219,7 +225,7 @@ export function usePerformanceMetrics() {
           value,
           company_id,
           project_id,
-          user_id: user.id,
+          user_id: session.user.id,
           metadata: metadata || {}
         })
 

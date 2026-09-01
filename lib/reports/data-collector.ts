@@ -22,6 +22,16 @@ interface CollectedData {
   }
 }
 
+// El trigger actual escribe CUMPLE/NO CUMPLE/SIN EVALUAR; muestras antiguas
+// pueden conservar aprobado/rechazado. Se aceptan ambos.
+function isPassedResult(value: unknown): boolean {
+  return value === 'CUMPLE' || value === 'aprobado'
+}
+
+function isFailedResult(value: unknown): boolean {
+  return value === 'NO CUMPLE' || value === 'rechazado'
+}
+
 function normalizeDailyLogPhotos(dailyLogs: any[] = []) {
   return dailyLogs.flatMap((log: any) => {
     const photos = Array.isArray(log.photos) ? log.photos : []
@@ -312,8 +322,8 @@ export async function collectReportData(
   }, 0) || 0
 
   const totalTests = qualityControl?.length || 0
-  const passedTests = qualityControl?.filter(qc => qc.overall_result === 'aprobado').length || 0
-  const failedTests = qualityControl?.filter(qc => qc.overall_result === 'rechazado').length || 0
+  const passedTests = qualityControl?.filter(qc => isPassedResult(qc.overall_result)).length || 0
+  const failedTests = qualityControl?.filter(qc => isFailedResult(qc.overall_result)).length || 0
 
   return {
     project: project || {},
@@ -383,8 +393,8 @@ export function formatQualityControlData(qualityControl: any[]): string {
   html += '</tr></thead><tbody>'
 
   qualityControl.forEach(qc => {
-    const resultClass = qc.overall_result === 'aprobado' ? 'text-green-600' : 
-                       qc.overall_result === 'rechazado' ? 'text-red-600' : ''
+    const resultClass = isPassedResult(qc.overall_result) ? 'text-green-600' :
+                       isFailedResult(qc.overall_result) ? 'text-red-600' : ''
     
     html += '<tr>'
     html += `<td class="border border-gray-300 px-4 py-2">${qc.sample_code}</td>`
