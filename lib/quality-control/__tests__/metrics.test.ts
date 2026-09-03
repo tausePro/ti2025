@@ -6,6 +6,7 @@ import {
   evaluateNamedTest,
   findNamedTest,
   resolveMetricCriterion,
+  resolveMetricUnit,
   type NamedTestDefinition
 } from '../metrics'
 
@@ -338,5 +339,108 @@ describe('criterios con value_from (unidades de mampostería)', () => {
       {}
     )
     expect(result.meetsCriteria).toBeNull()
+  })
+})
+
+describe('presurización: métrica diff y unidad dinámica (Ola 2)', () => {
+  const presurizacion: NamedTestDefinition = {
+    key: 'presurizacion',
+    name: 'Prueba de presurización',
+    samples_per_test: 1,
+    specimens_label: 'Prueba',
+    metrics: [
+      { key: 'presion_inicial', label: 'Presión inicial', unit_from: 'unidad_presion' },
+      { key: 'presion_final', label: 'Presión final', unit_from: 'unidad_presion' },
+      { key: 'duracion', label: 'Duración de la prueba', unit: 'horas' },
+      {
+        key: 'caida',
+        label: 'Caída de presión',
+        unit_from: 'unidad_presion',
+        computed: 'diff:presion_inicial/presion_final',
+        decimals: 2,
+        criteria: [
+          {
+            operator: '<=',
+            value: 0,
+            message: 'La presión cayó durante la prueba: no se admite ninguna caída'
+          }
+        ]
+      }
+    ]
+  }
+
+  it('calcula la resta con diff:a/b', () => {
+    expect(
+      computeMetricValue(presurizacion.metrics[3], {
+        presion_inicial: 100,
+        presion_final: 98.5
+      })
+    ).toBe(1.5)
+    expect(
+      computeMetricValue(presurizacion.metrics[3], {
+        presion_inicial: 100,
+        presion_final: 100
+      })
+    ).toBe(0)
+    expect(
+      computeMetricValue(presurizacion.metrics[3], { presion_inicial: 100 })
+    ).toBeNull()
+  })
+
+  it('resuelve la unidad desde el campo de la muestra (unit_from)', () => {
+    expect(
+      resolveMetricUnit(presurizacion.metrics[0], { unidad_presion: 'PSI' })
+    ).toBe('PSI')
+    expect(
+      resolveMetricUnit(presurizacion.metrics[0], { unidad_presion: 'bar' })
+    ).toBe('bar')
+    expect(resolveMetricUnit(presurizacion.metrics[0], {})).toBeNull()
+    expect(resolveMetricUnit(presurizacion.metrics[2], {})).toBe('horas')
+  })
+
+  it('cumple cuando la presión se mantiene igual', () => {
+    const result = evaluateNamedTest(
+      [
+        {
+          specimenNumber: 1,
+          values: { presion_inicial: 100, presion_final: 100, duracion: 24 }
+        }
+      ],
+      presurizacion,
+      { unidad_presion: 'PSI' }
+    )
+    expect(result.meetsCriteria).toBe(true)
+    expect(result.failures).toHaveLength(0)
+  })
+
+  it('no cumple con cualquier caída de presión, por mínima que sea', () => {
+    const result = evaluateNamedTest(
+      [
+        {
+          specimenNumber: 1,
+          values: { presion_inicial: 100, presion_final: 99.9, duracion: 24 }
+        }
+      ],
+      presurizacion,
+      { unidad_presion: 'PSI' }
+    )
+    expect(result.meetsCriteria).toBe(false)
+    expect(result.failures.some(f => f.includes('Caída de presión'))).toBe(true)
+  })
+
+  it('reporta la unidad dinámica en la evaluación de la métrica', () => {
+    const result = evaluateNamedTest(
+      [
+        {
+          specimenNumber: 1,
+          values: { presion_inicial: 100, presion_final: 100 }
+        }
+      ],
+      presurizacion,
+      { unidad_presion: 'bar' }
+    )
+    const caida = result.specimens[0].metrics.find(m => m.key === 'caida')
+    expect(caida?.unit).toBe('bar')
+    expect(caida?.criterionLabel).toBe('≤ 0 bar')
   })
 })

@@ -16,6 +16,7 @@ export interface MetricDefinition {
   key: string
   label: string
   unit?: string | null
+  unit_from?: string | null
   decimals?: number
   computed?: string | null
   criteria?: MetricCriterion[]
@@ -62,6 +63,7 @@ export interface NamedTestEvaluation {
 
 const COMPARISON_TOLERANCE = 1e-9
 const RATIO_PATTERN = /^ratio\s*:\s*([a-z0-9_]+)\s*\/\s*([a-z0-9_]+)$/i
+const DIFF_PATTERN = /^diff\s*:\s*([a-z0-9_]+)\s*\/\s*([a-z0-9_]+)$/i
 
 function roundTo(value: number, decimals: number): number {
   const factor = 10 ** decimals
@@ -128,6 +130,17 @@ export function resolveMetricCriterion(
   return null
 }
 
+export function resolveMetricUnit(
+  metric: MetricDefinition,
+  customData: Record<string, unknown> | null | undefined
+): string | null {
+  if (metric.unit_from) {
+    const value = customData?.[metric.unit_from]
+    if (typeof value === 'string' && value.trim() !== '') return value
+  }
+  return metric.unit ?? null
+}
+
 export function describeCriterion(criterion: MetricCriterion | null, unit?: string | null): string | null {
   if (!criterion) return null
   const suffix = unit ? ` ${unit}` : ''
@@ -175,14 +188,26 @@ export function computeMetricValue(
     return toFiniteNumber(values[metric.key])
   }
 
-  const match = RATIO_PATTERN.exec(metric.computed)
-  if (!match) return null
+  const ratioMatch = RATIO_PATTERN.exec(metric.computed)
+  if (ratioMatch) {
+    const numerator = toFiniteNumber(values[ratioMatch[1]])
+    const denominator = toFiniteNumber(values[ratioMatch[2]])
+    if (numerator === null || denominator === null || denominator === 0) return null
 
-  const numerator = toFiniteNumber(values[match[1]])
-  const denominator = toFiniteNumber(values[match[2]])
-  if (numerator === null || denominator === null || denominator === 0) return null
+    return roundTo(numerator / denominator, metric.decimals ?? 2)
+  }
 
-  return roundTo(numerator / denominator, metric.decimals ?? 2)
+  // diff:a/b = a - b (ej. caída de presión = inicial - final)
+  const diffMatch = DIFF_PATTERN.exec(metric.computed)
+  if (diffMatch) {
+    const first = toFiniteNumber(values[diffMatch[1]])
+    const second = toFiniteNumber(values[diffMatch[2]])
+    if (first === null || second === null) return null
+
+    return roundTo(first - second, metric.decimals ?? 2)
+  }
+
+  return null
 }
 
 export function evaluateSpecimenMetrics(
@@ -193,17 +218,18 @@ export function evaluateSpecimenMetrics(
   const metrics: MetricEvaluation[] = test.metrics.map(metric => {
     const value = computeMetricValue(metric, specimen.values)
     const criterion = resolveMetricCriterion(metric, customData)
+    const unit = resolveMetricUnit(metric, customData)
     const meets =
       value === null || criterion === null ? null : evaluateMetricValue(value, criterion)
 
     return {
       key: metric.key,
       label: metric.label,
-      unit: metric.unit ?? null,
+      unit,
       value,
       computed: Boolean(metric.computed),
       criterion,
-      criterionLabel: describeCriterion(criterion, metric.unit),
+      criterionLabel: describeCriterion(criterion, unit),
       meets,
       message: meets === false ? criterion?.message ?? null : null
     }

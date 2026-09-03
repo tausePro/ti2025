@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Save, CheckCircle, Clock, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Save, CheckCircle, Clock, AlertTriangle, Camera, X } from 'lucide-react'
 import Link from 'next/link'
 import { formatDateValue } from '@/lib/utils'
 import { evaluateTestResults } from '@/lib/quality-control/evaluation'
@@ -19,7 +19,8 @@ import {
   evaluateNamedTest,
   findNamedTest,
   describeCriterion,
-  resolveMetricCriterion
+  resolveMetricCriterion,
+  resolveMetricUnit
 } from '@/lib/quality-control/metrics'
 
 interface QualityTest {
@@ -38,7 +39,7 @@ interface QualityTest {
     id: string
     specimen_number: number
     result_value: number
-    result_data: { metrics?: Record<string, number> } | null
+    result_data: { metrics?: Record<string, number>; photos?: string[] } | null
     meets_criteria: boolean | null
     notes: string
   }>
@@ -49,6 +50,8 @@ interface ResultEntry {
   result_value: string
   metric_values: Record<string, string>
   notes: string
+  photos: File[]
+  existing_photos: string[]
 }
 
 export default function RegisterResultsPage() {
@@ -172,14 +175,23 @@ export default function RegisterResultsPage() {
             String(value)
           ])
         ),
-        notes: r.notes || ''
+        notes: r.notes || '',
+        photos: [],
+        existing_photos: Array.isArray(r.result_data?.photos) ? r.result_data.photos : []
       })))
     } else {
       // Inicializar formulario vacío
       const count = test.test_config?.cylinders_count || 3
       const entries: ResultEntry[] = []
       for (let i = 1; i <= count; i++) {
-        entries.push({ specimen_number: i, result_value: '', metric_values: {}, notes: '' })
+        entries.push({
+          specimen_number: i,
+          result_value: '',
+          metric_values: {},
+          notes: '',
+          photos: [],
+          existing_photos: []
+        })
       }
       setResults(entries)
     }
@@ -187,6 +199,47 @@ export default function RegisterResultsPage() {
 
   const updateResult = (index: number, field: 'result_value' | 'notes', value: string) => {
     setResults(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r))
+  }
+
+  const addPhotos = (index: number, files: File[]) => {
+    setResults(prev => prev.map((r, i) =>
+      i === index ? { ...r, photos: [...r.photos, ...files] } : r
+    ))
+  }
+
+  const removeNewPhoto = (index: number, photoIndex: number) => {
+    setResults(prev => prev.map((r, i) =>
+      i === index ? { ...r, photos: r.photos.filter((_, p) => p !== photoIndex) } : r
+    ))
+  }
+
+  const removeExistingPhoto = (index: number, photoIndex: number) => {
+    setResults(prev => prev.map((r, i) =>
+      i === index
+        ? { ...r, existing_photos: r.existing_photos.filter((_, p) => p !== photoIndex) }
+        : r
+    ))
+  }
+
+  const uploadResultPhotos = async (entry: ResultEntry): Promise<string[]> => {
+    const urls: string[] = [...entry.existing_photos]
+    for (let i = 0; i < entry.photos.length; i++) {
+      const file = entry.photos[i]
+      const fileExt = file.name.split('.').pop() || 'jpg'
+      const fileName = `${params.sampleId}/${selectedTest?.id}/${entry.specimen_number}_${Date.now()}_${i}.${fileExt}`
+      const { error: uploadError } = await supabase.storage
+        .from('quality-control-photos')
+        .upload(fileName, file)
+      if (uploadError) {
+        console.error('Error subiendo foto:', uploadError)
+        continue
+      }
+      const { data: { publicUrl } } = supabase.storage
+        .from('quality-control-photos')
+        .getPublicUrl(fileName)
+      urls.push(publicUrl)
+    }
+    return urls
   }
 
   const updateMetricValue = (index: number, metricKey: string, value: string) => {
@@ -250,8 +303,17 @@ export default function RegisterResultsPage() {
         if (deleteError) throw deleteError
       }
 
+      // Subir fotos de cada probeta/prueba antes de insertar
+      const photosByResult = new Map<number, string[]>()
+      for (const r of filledResults) {
+        if (r.photos.length > 0 || r.existing_photos.length > 0) {
+          photosByResult.set(r.specimen_number, await uploadResultPhotos(r))
+        }
+      }
+
       // Insertar resultados
       const resultsToInsert = filledResults.map(r => {
+        const photos = photosByResult.get(r.specimen_number)
         if (namedTest) {
           const specimenEval = namedEvaluation?.specimens.find(
             s => s.specimenNumber === r.specimen_number
@@ -276,7 +338,7 @@ export default function RegisterResultsPage() {
             test_id: selectedTest.id,
             specimen_number: r.specimen_number,
             result_value: primaryMetric ? metrics[primaryMetric.key] : 0,
-            result_data: { metrics },
+            result_data: photos ? { metrics, photos } : { metrics },
             meets_criteria: specimenEval?.meetsCriteria ?? null,
             deviation_percentage: null,
             notes: r.notes.trim() || null,
@@ -292,6 +354,7 @@ export default function RegisterResultsPage() {
           test_id: selectedTest.id,
           specimen_number: r.specimen_number,
           result_value: Number(r.result_value),
+          result_data: photos ? { photos } : null,
           meets_criteria: specimen?.meetsThreshold ?? null,
           deviation_percentage: specimen?.deviationPercentage ?? null,
           notes: r.notes.trim() || null,
@@ -492,12 +555,13 @@ export default function RegisterResultsPage() {
                     {namedTest.metrics.map(metric => {
                       const metricEval = specimenEval?.metrics.find(m => m.key === metric.key)
                       const criterion = resolveMetricCriterion(metric, sample?.custom_data)
-                      const criterionLabel = describeCriterion(criterion, metric.unit)
+                      const metricUnit = resolveMetricUnit(metric, sample?.custom_data)
+                      const criterionLabel = describeCriterion(criterion, metricUnit)
                       return (
                         <div key={metric.key}>
                           <Label className="text-sm font-medium">
                             {metric.label}
-                            {metric.unit ? ` (${metric.unit})` : ''}
+                            {metricUnit ? ` (${metricUnit})` : ''}
                             {criterionLabel && (
                               <span className="ml-1 text-xs text-gray-500 font-normal">
                                 criterio {criterionLabel}
@@ -524,7 +588,7 @@ export default function RegisterResultsPage() {
                               step="0.001"
                               value={result.metric_values[metric.key] ?? ''}
                               onChange={(e) => updateMetricValue(index, metric.key, e.target.value)}
-                              placeholder={metric.unit ? `Valor en ${metric.unit}` : 'Valor obtenido'}
+                              placeholder={metricUnit ? `Valor en ${metricUnit}` : 'Valor obtenido'}
                               className={`mt-1 ${
                                 metricEval?.meets === false ? 'border-red-400' : ''
                               }`}
@@ -545,6 +609,62 @@ export default function RegisterResultsPage() {
                       placeholder="Observaciones (opcional)"
                       className="mt-1"
                     />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium flex items-center gap-1">
+                      <Camera className="w-4 h-4" />
+                      Fotos de evidencia
+                    </Label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => {
+                        addPhotos(index, Array.from(e.target.files || []))
+                        e.target.value = ''
+                      }}
+                      className="mt-1"
+                    />
+                    {(result.existing_photos.length > 0 || result.photos.length > 0) && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {result.existing_photos.map((url, photoIndex) => (
+                          <div key={`existing-${photoIndex}`} className="relative">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={url}
+                              alt={`Foto ${photoIndex + 1}`}
+                              className="h-20 w-20 object-cover rounded border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeExistingPhoto(index, photoIndex)}
+                              className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-0.5"
+                              aria-label="Quitar foto"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                        {result.photos.map((file, photoIndex) => (
+                          <div key={`new-${photoIndex}`} className="relative">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={file.name}
+                              className="h-20 w-20 object-cover rounded border border-blue-300"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeNewPhoto(index, photoIndex)}
+                              className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-0.5"
+                              aria-label="Quitar foto"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )
@@ -601,6 +721,62 @@ export default function RegisterResultsPage() {
                     placeholder="Observaciones (opcional)"
                     className="mt-1"
                   />
+                </div>
+                <div className="sm:col-span-3">
+                  <Label className="text-sm font-medium flex items-center gap-1">
+                    <Camera className="w-4 h-4" />
+                    Fotos de evidencia
+                  </Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => {
+                      addPhotos(index, Array.from(e.target.files || []))
+                      e.target.value = ''
+                    }}
+                    className="mt-1"
+                  />
+                  {(result.existing_photos.length > 0 || result.photos.length > 0) && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {result.existing_photos.map((url, photoIndex) => (
+                        <div key={`existing-${photoIndex}`} className="relative">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt={`Foto ${photoIndex + 1}`}
+                            className="h-20 w-20 object-cover rounded border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeExistingPhoto(index, photoIndex)}
+                            className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-0.5"
+                            aria-label="Quitar foto"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      {result.photos.map((file, photoIndex) => (
+                        <div key={`new-${photoIndex}`} className="relative">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={file.name}
+                            className="h-20 w-20 object-cover rounded border border-blue-300"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeNewPhoto(index, photoIndex)}
+                            className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-0.5"
+                            aria-label="Quitar foto"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

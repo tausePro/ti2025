@@ -18,7 +18,7 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 | 10 | Veredicto concreto: por cilindro individual (decisión 2026-08-28) | 🔧 En desarrollo | — | — | — |
 | 14 | Designaciones de malla D-50 a D-335 en plantilla de acero | ✅ Migración aplicada | pendiente release | 099 | — |
 | 15 | Ensayo de 56 días en muestras de concreto existentes | 🔧 En desarrollo | — | 100 | — |
-| 11 | Ola 2 formatos: presurización agua/gas y estanqueidad (lecturas pareadas + fotos) | ⏳ Pendiente | — | — | — |
+| 11 | Ola 2 formatos: presurización agua/gas y estanqueidad (lecturas pareadas + fotos por prueba) | 🔧 En desarrollo | — | 102 | — |
 | 12 | UI admin de plantillas de calidad (sin migraciones) | ⏳ Pendiente | — | — | — |
 | 13 | Ola 3 formatos: asentamientos (serie temporal) y avance de pilas (volumen teórico vs real) | ⏳ Pendiente | — | — | — |
 
@@ -30,6 +30,8 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 - **Ensayos nombrados** (`test_configuration.named_tests`): reemplazan a `test_periods` cuando existen; el código soporta ambos formatos.
 - **Criterios por especificación del proyecto** (`value_from`): las unidades de mampostería no usan límites fijos de norma; el residente ingresa resistencia mínima y absorción máxima de la especificación al crear la muestra y el motor evalúa contra esos valores.
 - **Mortero de pega**: 75% de f'cp a 7 días y 100% a 28 días — confirmado 2026-08-28 ("vamos con el de nosotros").
+- **Presurizaciones (audio Santi 2026-09-03)**: se registra presión inicial, final y duración; criterio = NO se admite ninguna caída (lectura a 24h igual a la inicial); evidencia = foto del manómetro al inicio y al final. Implementado con métrica calculada `diff:inicial/final ≤ 0`, unidad dinámica (`unit_from`: PSI/bar/kPa elegida en la muestra) y fotos por resultado en `result_data.photos` (bucket `quality-control-photos`).
+- **Avance de pilas (confirmado)**: volumen m³ teórico versus volumen m³ real — Ola 3.
 
 ## Registro de validaciones
 
@@ -45,4 +47,5 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 
 1. ~~Concreto: ¿promedio o individual?~~ → Resuelto: por cilindro individual (2026-08-28).
 2. ~~Criterios de morteros/muretes~~ → Resuelto: se mantienen los nuestros (75%/100%).
-3. Presurizaciones: confirmado que se hacen (Ola 2); falta el detalle del formato de lecturas — pedir pantallazo del formato de Santi como los de acero.
+3. ~~Presurizaciones~~ → Resuelto por audio 2026-09-03 (lecturas pareadas, sin caída admisible, 2 fotos).
+4. Asentamientos (Santi pidió especificar la pregunta): ¿qué datos anota en cada visita de control? Propuesta para enviarle: "En tu planilla de asentamientos, ¿qué anotas por cada medición? Por ejemplo: fecha, punto/mojon de medición, cota o lectura en mm, asentamiento acumulado, y si hay un límite máximo permitido. Mándanos una foto de la planilla que usas hoy."

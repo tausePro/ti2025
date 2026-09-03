@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDateValue } from '@/lib/utils'
-import { findNamedTest, type NamedTestDefinition } from '@/lib/quality-control/metrics'
+import { findNamedTest, resolveMetricUnit, type NamedTestDefinition } from '@/lib/quality-control/metrics'
 
 interface Project {
   id: string
@@ -399,35 +399,52 @@ export default function SampleDetailsPage() {
                           <p className="text-sm font-medium text-gray-700">Resultados:</p>
                           <div className={`grid grid-cols-1 gap-2 ${namedTest ? '' : 'md:grid-cols-3'}`}>
                             {test.results.map(result => (
-                              <div key={result.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="text-sm font-medium">
-                                    {specimensLabel} {result.specimen_number}
-                                  </span>
-                                  {namedTest ? (
-                                    namedTest.metrics.map(metric => {
-                                      const value = result.result_data?.metrics?.[metric.key]
-                                      if (value === undefined || value === null) return null
-                                      return (
-                                        <span key={metric.key} className="text-sm text-gray-700">
-                                          {metric.label}: {value}
-                                          {metric.unit ? ` ${metric.unit}` : ''}
-                                        </span>
-                                      )
-                                    })
-                                  ) : (
-                                    <span className="text-sm">
-                                      {result.result_value}
-                                      {sample.template.test_configuration?.units
-                                        ? ` ${sample.template.test_configuration.units}`
-                                        : ''}
+                              <div key={result.id} className="p-2 bg-gray-50 rounded space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-sm font-medium">
+                                      {specimensLabel} {result.specimen_number}
                                     </span>
+                                    {namedTest ? (
+                                      namedTest.metrics.map(metric => {
+                                        const value = result.result_data?.metrics?.[metric.key]
+                                        if (value === undefined || value === null) return null
+                                        const metricUnit = resolveMetricUnit(metric, sample.custom_data)
+                                        return (
+                                          <span key={metric.key} className="text-sm text-gray-700">
+                                            {metric.label}: {value}
+                                            {metricUnit ? ` ${metricUnit}` : ''}
+                                          </span>
+                                        )
+                                      })
+                                    ) : (
+                                      <span className="text-sm">
+                                        {result.result_value}
+                                        {sample.template.test_configuration?.units
+                                          ? ` ${sample.template.test_configuration.units}`
+                                          : ''}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {result.meets_criteria !== null && (
+                                    <Badge variant={result.meets_criteria ? 'default' : 'destructive'} className="text-xs">
+                                      {result.meets_criteria ? 'OK' : 'NO'}
+                                    </Badge>
                                   )}
                                 </div>
-                                {result.meets_criteria !== null && (
-                                  <Badge variant={result.meets_criteria ? 'default' : 'destructive'} className="text-xs">
-                                    {result.meets_criteria ? 'OK' : 'NO'}
-                                  </Badge>
+                                {Array.isArray(result.result_data?.photos) && result.result_data.photos.length > 0 && (
+                                  <div className="flex flex-wrap gap-2">
+                                    {result.result_data.photos.map((url: string, photoIndex: number) => (
+                                      <a key={photoIndex} href={url} target="_blank" rel="noopener noreferrer">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                          src={url}
+                                          alt={`Evidencia ${photoIndex + 1}`}
+                                          className="h-16 w-16 object-cover rounded border hover:opacity-80"
+                                        />
+                                      </a>
+                                    ))}
+                                  </div>
                                 )}
                               </div>
                             ))}
