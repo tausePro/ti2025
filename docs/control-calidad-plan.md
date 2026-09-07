@@ -18,8 +18,9 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 | 10 | Veredicto concreto: por cilindro individual (decisión 2026-08-28) | 🔧 En desarrollo | — | — | — |
 | 14 | Designaciones de malla D-50 a D-335 en plantilla de acero | ✅ Migración aplicada | pendiente release | 099 | — |
 | 15 | Ensayo de 56 días en muestras de concreto existentes | 🔧 En desarrollo | — | 100 | — |
-| 11 | Ola 2 formatos: presurización agua/gas y estanqueidad (lecturas pareadas + fotos por prueba) | 🔧 En desarrollo | — | 102 | — |
-| 12 | UI admin de plantillas de calidad (sin migraciones) | ⏳ Pendiente | — | — | — |
+| 11 | Ola 2 formatos: presurización agua/gas y estanqueidad (lecturas pareadas + fotos por prueba) | ✅ En producción | v0.0.20 | 102 | Pendiente |
+| 16 | PDF del informe con fotos de evidencia y unidades dinámicas | 🔧 En develop | — | — | — |
+| 12 | UI admin de plantillas de calidad (sin migraciones) | 🔧 En develop | — | — | — |
 | 13 | Ola 3 formatos: asentamientos (serie temporal) y avance de pilas (volumen teórico vs real) | ⏳ Pendiente | — | — | — |
 
 ## Decisiones técnicas
