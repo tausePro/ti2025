@@ -10,6 +10,7 @@ import {
 import { formatDateValue } from '@/lib/utils'
 import {
   findNamedTest,
+  resolveMetricUnit,
   type NamedTestDefinition,
 } from '@/lib/quality-control/metrics'
 
@@ -193,6 +194,30 @@ const s = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
+  photosRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    padding: '3 8',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#f0f0f0',
+  },
+  photosLabel: {
+    fontSize: 7.5,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    color: '#888',
+    marginBottom: 2,
+    width: '100%',
+  },
+  photo: {
+    width: 90,
+    height: 68,
+    objectFit: 'cover',
+    borderRadius: 2,
+    marginRight: 4,
+    marginBottom: 4,
+  },
 })
 
 interface TemplateCustomField {
@@ -204,7 +229,7 @@ interface TemplateCustomField {
 interface QualityResult {
   specimen_number: number
   result_value: number
-  result_data?: { metrics?: Record<string, number> } | null
+  result_data?: { metrics?: Record<string, number>; photos?: string[] } | null
   meets_criteria: boolean | null
   deviation_percentage: number | null
   notes: string | null
@@ -399,8 +424,12 @@ export function QualityReportPdf({
                   ? `${test.test_name} — ${test.test_period} días`
                   : test.test_name
 
+              const hasPhotos = test.results.some(
+                r => Array.isArray(r.result_data?.photos) && r.result_data.photos.length > 0
+              )
+
               return (
-                <View key={test.id} style={s.testCard} wrap={false}>
+                <View key={test.id} style={s.testCard} wrap={hasPhotos}>
                   <View style={s.testHeader}>
                     <Text style={s.testHeaderTitle}>
                       {title}
@@ -421,43 +450,59 @@ export function QualityReportPdf({
                     </View>
                   ) : (
                     test.results.map(result => (
-                      <View key={result.specimen_number} style={s.resultRow}>
-                        <View style={s.resultDesc}>
-                          <Text style={{ fontWeight: 'bold' }}>
-                            {specimensLabel} {result.specimen_number}
-                          </Text>
-                          {namedTest ? (
-                            namedTest.metrics.map(metric => {
-                              const value = result.result_data?.metrics?.[metric.key]
-                              if (value === undefined || value === null) return null
-                              return (
-                                <Text key={metric.key} style={s.metricLine}>
-                                  {metric.label}: {value}
-                                  {metric.unit ? ` ${metric.unit}` : ''}
-                                </Text>
-                              )
-                            })
-                          ) : (
-                            <Text style={s.metricLine}>
-                              Valor: {result.result_value}
-                              {units ? ` ${units}` : ''}
-                              {result.deviation_percentage !== null
-                                ? `  (desviación ${result.deviation_percentage}%)`
-                                : ''}
+                      <React.Fragment key={result.specimen_number}>
+                        <View style={s.resultRow}>
+                          <View style={s.resultDesc}>
+                            <Text style={{ fontWeight: 'bold' }}>
+                              {specimensLabel} {result.specimen_number}
                             </Text>
+                            {namedTest ? (
+                              namedTest.metrics.map(metric => {
+                                const value = result.result_data?.metrics?.[metric.key]
+                                if (value === undefined || value === null) return null
+                                const metricUnit = resolveMetricUnit(metric, sample.custom_data)
+                                return (
+                                  <Text key={metric.key} style={s.metricLine}>
+                                    {metric.label}: {value}
+                                    {metricUnit ? ` ${metricUnit}` : ''}
+                                  </Text>
+                                )
+                              })
+                            ) : (
+                              <Text style={s.metricLine}>
+                                Valor: {result.result_value}
+                                {units ? ` ${units}` : ''}
+                                {result.deviation_percentage !== null
+                                  ? `  (desviación ${result.deviation_percentage}%)`
+                                  : ''}
+                              </Text>
+                            )}
+                            {result.notes ? (
+                              <Text style={s.metricLine}>Obs: {result.notes}</Text>
+                            ) : null}
+                          </View>
+                          {result.meets_criteria === null ? (
+                            <Text style={s.statusNeutral}>SIN EVALUAR</Text>
+                          ) : result.meets_criteria ? (
+                            <Text style={s.statusOk}>CUMPLE</Text>
+                          ) : (
+                            <Text style={s.statusFail}>NO CUMPLE</Text>
                           )}
-                          {result.notes ? (
-                            <Text style={s.metricLine}>Obs: {result.notes}</Text>
-                          ) : null}
                         </View>
-                        {result.meets_criteria === null ? (
-                          <Text style={s.statusNeutral}>SIN EVALUAR</Text>
-                        ) : result.meets_criteria ? (
-                          <Text style={s.statusOk}>CUMPLE</Text>
-                        ) : (
-                          <Text style={s.statusFail}>NO CUMPLE</Text>
-                        )}
-                      </View>
+                        {Array.isArray(result.result_data?.photos) &&
+                        result.result_data.photos.length > 0 ? (
+                          <View style={s.photosRow}>
+                            <Text style={s.photosLabel}>
+                              Evidencia fotográfica — {specimensLabel}{' '}
+                              {result.specimen_number}
+                            </Text>
+                            {result.result_data.photos.map((url, photoIndex) => (
+                              // eslint-disable-next-line jsx-a11y/alt-text
+                              <Image key={photoIndex} src={url} style={s.photo} />
+                            ))}
+                          </View>
+                        ) : null}
+                      </React.Fragment>
                     ))
                   )}
                 </View>

@@ -25,7 +25,8 @@ import {
   Sparkles,
   FileBarChart,
   ClipboardList,
-  Mail
+  Mail,
+  FlaskConical
 } from 'lucide-react'
 import Link from 'next/link'
 import { OfflineIndicator } from '@/components/shared/OfflineIndicator'
@@ -128,6 +129,13 @@ export default function DashboardLayout({
         name: 'Plantillas Email',
         href: '/admin/email-templates',
         icon: Mail
+      }
+    ] : []),
+    ...(profile?.role && ['admin', 'super_admin'].includes(profile.role) ? [
+      {
+        name: 'Plantillas Calidad',
+        href: '/admin/quality-templates',
+        icon: FlaskConical
       }
     ] : []),
     ...(profile?.role && ['admin', 'super_admin', 'gerente', 'supervisor'].includes(profile.role) ? [

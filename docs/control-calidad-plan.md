@@ -15,12 +15,14 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 | 7 | Mallas electrosoldadas NTC-5806 (fluencia ≥485, tracción ≥550) | ✅ En producción | v0.0.15 | 097 | Pendiente |
 | 8 | PDF del informe de control de calidad | ✅ En producción | v0.0.16 | — | Pendiente |
 | 9 | Ola 1 formatos: morteros, muretes, unidades de mampostería (absorción ≤ NTC-4205) | ✅ En producción | v0.0.17 | 098 | Pendiente |
-| 10 | Veredicto concreto: por cilindro individual (decisión 2026-08-28) | 🔧 En desarrollo | — | — | — |
-| 14 | Designaciones de malla D-50 a D-335 en plantilla de acero | ✅ Migración aplicada | pendiente release | 099 | — |
-| 15 | Ensayo de 56 días en muestras de concreto existentes | 🔧 En desarrollo | — | 100 | — |
-| 11 | Ola 2 formatos: presurización agua/gas y estanqueidad (lecturas pareadas + fotos por prueba) | 🔧 En desarrollo | — | 102 | — |
-| 12 | UI admin de plantillas de calidad (sin migraciones) | ⏳ Pendiente | — | — | — |
-| 13 | Ola 3 formatos: asentamientos (serie temporal) y avance de pilas (volumen teórico vs real) | ⏳ Pendiente | — | — | — |
+| 10 | Veredicto concreto: por cilindro individual (decisión 2026-08-28) | ✅ En producción | v0.0.18 | — | Pendiente |
+| 14 | Designaciones de malla D-50 a D-335 en plantilla de acero | ✅ En producción | v0.0.18 | 099 | Pendiente |
+| 15 | Ensayo de 56 días en muestras de concreto existentes | ✅ En producción | v0.0.18 | 100 | Pendiente (confirmar migración 100 aplicada) |
+| 11 | Ola 2 formatos: presurización agua/gas y estanqueidad (lecturas pareadas + fotos por prueba) | ✅ En producción | v0.0.20 | 102 | Pendiente |
+| 16 | PDF del informe con fotos de evidencia y unidades dinámicas | 🔧 En develop | — | — | — |
+| 12 | UI admin de plantillas de calidad (sin migraciones) | 🔧 En develop | — | — | — |
+| 13a | Ola 3: avance de pilas (volumen teórico vs real, una muestra por pila) | 🔧 En desarrollo (`feature/quality-control-ola3-pilas`) | — | 103 | — |
+| 13b | Ola 3: asentamientos (serie temporal) | ⏳ Pendiente (pregunta abierta #4) | — | — | — |
 
 ## Decisiones técnicas
 
@@ -31,7 +33,8 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 - **Criterios por especificación del proyecto** (`value_from`): las unidades de mampostería no usan límites fijos de norma; el residente ingresa resistencia mínima y absorción máxima de la especificación al crear la muestra y el motor evalúa contra esos valores.
 - **Mortero de pega**: 75% de f'cp a 7 días y 100% a 28 días — confirmado 2026-08-28 ("vamos con el de nosotros").
 - **Presurizaciones (audio Santi 2026-09-03)**: se registra presión inicial, final y duración; criterio = NO se admite ninguna caída (lectura a 24h igual a la inicial); evidencia = foto del manómetro al inicio y al final. Implementado con métrica calculada `diff:inicial/final ≤ 0`, unidad dinámica (`unit_from`: PSI/bar/kPa elegida en la muestra) y fotos por resultado en `result_data.photos` (bucket `quality-control-photos`).
-- **Avance de pilas (confirmado)**: volumen m³ teórico versus volumen m³ real — Ola 3.
+- **Avance de pilas (confirmado con Santi; detalles decididos por Felipe 2026-09-16)**: volumen m³ teórico versus volumen m³ real. Una muestra = una pila (el número de muestra es la identificación de la pila). El volumen teórico se calcula al crear la muestra como π·D²/4·L desde diámetro y profundidad de diseño y es editable (campo calculado `cylinder_volume:diametro/profundidad`, `lib/quality-control/custom-fields.ts`). Al registrar el vaciado se captura el volumen real y la variación se calcula con `pct_diff:volumen_real/volumen_teorico` (el motor toma operandos faltantes desde `custom_data`). Criterio: rango 0 – `sobreconsumo_maximo` (%), es decir, no se admite subconsumo y el sobreconsumo máximo es configurable por pila con 10 % por defecto. Migración 103, `template_type = 'pile_progress'`.
+- **Etiqueta del número de muestra por plantilla**: `test_configuration.sample_number_label` / `sample_number_placeholder` (ej. "Identificación de la Pila"); si no existen se mantiene "Número de Muestra".
 
 ## Registro de validaciones
 
@@ -49,3 +52,4 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 2. ~~Criterios de morteros/muretes~~ → Resuelto: se mantienen los nuestros (75%/100%).
 3. ~~Presurizaciones~~ → Resuelto por audio 2026-09-03 (lecturas pareadas, sin caída admisible, 2 fotos).
 4. Asentamientos (Santi pidió especificar la pregunta): ¿qué datos anota en cada visita de control? Propuesta para enviarle: "En tu planilla de asentamientos, ¿qué anotas por cada medición? Por ejemplo: fecha, punto/mojon de medición, cota o lectura en mm, asentamiento acumulado, y si hay un límite máximo permitido. Mándanos una foto de la planilla que usas hoy."
+5. Pilas: confirmar con Santi el 10 % de sobreconsumo admisible por defecto y que cualquier subconsumo (volumen real menor al teórico) se marque como NO CUMPLE. Ambos quedaron como decisión interna de Felipe (2026-09-16) hasta su validación.

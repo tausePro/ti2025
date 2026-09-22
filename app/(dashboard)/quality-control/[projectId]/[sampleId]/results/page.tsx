@@ -15,6 +15,7 @@ import { ArrowLeft, Save, CheckCircle, Clock, AlertTriangle, Camera, X } from 'l
 import Link from 'next/link'
 import { formatDateValue } from '@/lib/utils'
 import { evaluateTestResults } from '@/lib/quality-control/evaluation'
+import type { CustomFieldDefinition } from '@/lib/quality-control/custom-fields'
 import {
   evaluateNamedTest,
   findNamedTest,
@@ -90,6 +91,20 @@ export default function RegisterResultsPage() {
     sample?.template?.test_configuration?.specimens_label ||
     'Cilindro'
 
+  // Datos capturados al crear la muestra (ej. volumen teórico y tolerancia de una pila)
+  const sampleDetails: Array<{ name: string; label: string; value: string }> = (
+    (sample?.template?.custom_fields as CustomFieldDefinition[] | undefined) || []
+  )
+    .filter(field => {
+      const value = sample?.custom_data?.[field.name]
+      return value !== undefined && value !== null && String(value).trim() !== ''
+    })
+    .map(field => ({
+      name: field.name,
+      label: field.label,
+      value: `${sample.custom_data[field.name]}${field.unit ? ` ${field.unit}` : ''}`
+    }))
+
   const namedEvaluation = useMemo(() => {
     if (!namedTest) return null
 
@@ -131,7 +146,7 @@ export default function RegisterResultsPage() {
         .from('quality_control_samples')
         .select(`
           *,
-          template:quality_control_templates(template_name, template_type, test_configuration, validation_rules)
+          template:quality_control_templates(template_name, template_type, custom_fields, test_configuration, validation_rules)
         `)
         .eq('id', params.sampleId)
         .single()
@@ -451,6 +466,18 @@ export default function RegisterResultsPage() {
         <p className="text-gray-600">
           Muestra #{sample?.sample_number} &bull; {sample?.template?.template_name}
         </p>
+        {sampleDetails.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {sampleDetails.map(detail => (
+              <span
+                key={detail.name}
+                className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700"
+              >
+                {detail.label}: <span className="font-medium">{detail.value}</span>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {error && (

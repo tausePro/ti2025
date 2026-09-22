@@ -12,23 +12,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowLeft, Save } from 'lucide-react'
 import Link from 'next/link'
+import {
+  computeCustomFieldValue,
+  type CustomFieldDefinition
+} from '@/lib/quality-control/custom-fields'
 
-interface CustomField {
-  name: string
-  type: string
-  label: string
-  required?: boolean
-  placeholder?: string
-  options?: string[]
-  unit?: string
-  default?: unknown
-  min?: number
-  max?: number
-}
+type CustomField = CustomFieldDefinition
 
 interface SampleTemplate {
   template_name: string
   custom_fields: CustomField[]
+  test_configuration?: {
+    sample_number_label?: string
+    sample_number_placeholder?: string
+  } | null
 }
 
 type CustomFormData = Record<string, unknown>
@@ -61,7 +58,7 @@ export default function EditSamplePage() {
         .from('quality_control_samples')
         .select(`
           *,
-          template:quality_control_templates(template_name, custom_fields)
+          template:quality_control_templates(template_name, custom_fields, test_configuration)
         `)
         .eq('id', params.sampleId)
         .single()
@@ -103,7 +100,8 @@ export default function EditSamplePage() {
     }
 
     for (const field of template?.custom_fields || []) {
-      if (field.required && !customFormData[field.name]) {
+      const value = customFormData[field.name]
+      if (field.required && (value === undefined || value === null || value === '')) {
         setError(`El campo "${field.label}" es requerido`)
         return false
       }
@@ -182,6 +180,7 @@ export default function EditSamplePage() {
           <div className="flex gap-2">
             <Input
               type="number"
+              step="any"
               value={value}
               onChange={(e) =>
                 handleCustomFieldChange(
@@ -307,11 +306,14 @@ export default function EditSamplePage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="sampleNumber">Número de Muestra *</Label>
+                <Label htmlFor="sampleNumber">
+                  {template.test_configuration?.sample_number_label || 'Número de Muestra'} *
+                </Label>
                 <Input
                   id="sampleNumber"
                   value={sampleNumber}
                   onChange={(e) => setSampleNumber(e.target.value)}
+                  placeholder={template.test_configuration?.sample_number_placeholder}
                   required
                 />
               </div>
@@ -362,14 +364,37 @@ export default function EditSamplePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {template.custom_fields.map(field => (
-                <div key={field.name}>
-                  <Label htmlFor={field.name}>
-                    {field.label} {field.required && <span className="text-red-500">*</span>}
-                  </Label>
-                  {renderCustomField(field)}
-                </div>
-              ))}
+              {template.custom_fields.map(field => {
+                // En edición no se recalcula solo: el usuario decide si actualiza el valor guardado
+                const computedValue = field.computed
+                  ? computeCustomFieldValue(field, customFormData)
+                  : null
+                const canRecalculate =
+                  computedValue !== null && computedValue !== Number(customFormData[field.name])
+                return (
+                  <div key={field.name}>
+                    <Label htmlFor={field.name}>
+                      {field.label} {field.required && <span className="text-red-500">*</span>}
+                    </Label>
+                    {renderCustomField(field)}
+                    {(field.help || canRecalculate) && (
+                      <p className="mt-1 text-xs text-gray-500 flex flex-wrap items-center gap-x-2">
+                        {field.help && <span>{field.help}</span>}
+                        {canRecalculate && (
+                          <button
+                            type="button"
+                            onClick={() => handleCustomFieldChange(field.name, computedValue)}
+                            className="text-blue-600 hover:text-blue-800 underline"
+                          >
+                            Recalcular automáticamente ({computedValue}
+                            {field.unit ? ` ${field.unit}` : ''})
+                          </button>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
             </CardContent>
           </Card>
         )}

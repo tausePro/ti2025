@@ -15,6 +15,11 @@ import { ArrowLeft, Plus, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { getCurrentDateInputValue } from '@/lib/utils'
 import type { NamedTestDefinition } from '@/lib/quality-control/metrics'
+import {
+  applyComputedCustomFields,
+  computeCustomFieldValue,
+  type CustomFieldDefinition
+} from '@/lib/quality-control/custom-fields'
 
 interface Project {
   id: string
@@ -26,24 +31,15 @@ interface QualityTemplate {
   id: string
   template_name: string
   template_type: string
-  custom_fields: Array<{
-    name: string
-    type: string
-    label: string
-    required?: boolean
-    placeholder?: string
-    options?: string[]
-    unit?: string
-    default?: any
-    min?: number
-    max?: number
-  }>
+  custom_fields: CustomFieldDefinition[]
   test_configuration: {
     test_name: string
     test_periods?: number[]
     samples_per_test?: number
     optional_periods?: number[]
     named_tests?: NamedTestDefinition[]
+    sample_number_label?: string
+    sample_number_placeholder?: string
   }
 }
 
@@ -61,6 +57,8 @@ export default function NewSamplePage() {
   const [templates, setTemplates] = useState<QualityTemplate[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<QualityTemplate | null>(null)
   const [customFormData, setCustomFormData] = useState<CustomFormData>({})
+  // Campos calculados (ej. volumen teórico) que el usuario ajustó a mano
+  const [overriddenFields, setOverriddenFields] = useState<Set<string>>(new Set())
   const [sampleNumber, setSampleNumber] = useState('')
   const [sampleCode, setSampleCode] = useState('')
   const [sampleDate, setSampleDate] = useState(getCurrentDateInputValue())
@@ -120,7 +118,8 @@ export default function NewSamplePage() {
         initialData[field.name] = field.default
       }
     })
-    setCustomFormData(initialData)
+    setOverriddenFields(new Set())
+    setCustomFormData(applyComputedCustomFields(template.custom_fields, initialData, []))
 
     // Generar código de muestra automático
     if (project) {
@@ -131,13 +130,38 @@ export default function NewSamplePage() {
   }
 
   const handleCustomFieldChange = (fieldName: string, value: any) => {
-    setCustomFormData(prev => ({
-      ...prev,
-      [fieldName]: value
-    }))
+    if (!selectedTemplate) return
+
+    // Si el usuario escribe en un campo calculado, se respeta su valor;
+    // si lo deja vacío, vuelve a calcularse automáticamente.
+    const field = selectedTemplate.custom_fields.find(f => f.name === fieldName)
+    const nextOverridden = new Set(overriddenFields)
+    if (field?.computed) {
+      const cleared = value === '' || value === null || value === undefined
+      if (cleared) nextOverridden.delete(fieldName)
+      else nextOverridden.add(fieldName)
+    }
+    setOverriddenFields(nextOverridden)
+    setCustomFormData(prev =>
+      applyComputedCustomFields(
+        selectedTemplate.custom_fields,
+        { ...prev, [fieldName]: value },
+        nextOverridden
+      )
+    )
   }
 
-  const renderCustomField = (field: any) => {
+  const recalculateField = (fieldName: string) => {
+    if (!selectedTemplate) return
+    const nextOverridden = new Set(overriddenFields)
+    nextOverridden.delete(fieldName)
+    setOverriddenFields(nextOverridden)
+    setCustomFormData(prev =>
+      applyComputedCustomFields(selectedTemplate.custom_fields, prev, nextOverridden)
+    )
+  }
+
+  const renderCustomField = (field: CustomFieldDefinition) => {
     const value = customFormData[field.name] || ''
 
     switch (field.type) {
@@ -156,8 +180,14 @@ export default function NewSamplePage() {
           <div className="flex gap-2">
             <Input
               type="number"
+              step="any"
               value={value}
-              onChange={(e) => handleCustomFieldChange(field.name, Number(e.target.value))}
+              onChange={(e) =>
+                handleCustomFieldChange(
+                  field.name,
+                  e.target.value === '' ? '' : Number(e.target.value)
+                )
+              }
               min={field.min}
               max={field.max}
               required={field.required}
@@ -240,7 +270,8 @@ export default function NewSamplePage() {
 
     // Validar campos personalizados requeridos
     for (const field of selectedTemplate.custom_fields) {
-      if (field.required && !customFormData[field.name]) {
+      const value = customFormData[field.name]
+      if (field.required && (value === undefined || value === null || value === '')) {
         setError(`El campo "${field.label}" es requerido`)
         return false
       }
@@ -431,12 +462,14 @@ export default function NewSamplePage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="sampleNumber">Número de Muestra *</Label>
+                  <Label htmlFor="sampleNumber">
+                    {selectedTemplate.test_configuration?.sample_number_label || 'Número de Muestra'} *
+                  </Label>
                   <Input
                     id="sampleNumber"
                     value={sampleNumber}
                     onChange={(e) => setSampleNumber(e.target.value)}
-                    placeholder="Ej: 342"
+                    placeholder={selectedTemplate.test_configuration?.sample_number_placeholder || 'Ej: 342'}
                     required
                   />
                 </div>
@@ -492,6 +525,23 @@ export default function NewSamplePage() {
                     {field.label} {field.required && <span className="text-red-500">*</span>}
                   </Label>
                   {renderCustomField(field)}
+                  {(field.help || (field.computed && overriddenFields.has(field.name))) && (
+                    <p className="mt-1 text-xs text-gray-500 flex flex-wrap items-center gap-x-2">
+                      {field.help && <span>{field.help}</span>}
+                      {field.computed &&
+                        overriddenFields.has(field.name) &&
+                        computeCustomFieldValue(field, customFormData) !== null && (
+                          <button
+                            type="button"
+                            onClick={() => recalculateField(field.name)}
+                            className="text-blue-600 hover:text-blue-800 underline"
+                          >
+                            Recalcular automáticamente ({computeCustomFieldValue(field, customFormData)}
+                            {field.unit ? ` ${field.unit}` : ''})
+                          </button>
+                        )}
+                    </p>
+                  )}
                 </div>
               ))}
             </CardContent>
