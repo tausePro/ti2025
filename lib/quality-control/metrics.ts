@@ -64,13 +64,14 @@ export interface NamedTestEvaluation {
 const COMPARISON_TOLERANCE = 1e-9
 const RATIO_PATTERN = /^ratio\s*:\s*([a-z0-9_]+)\s*\/\s*([a-z0-9_]+)$/i
 const DIFF_PATTERN = /^diff\s*:\s*([a-z0-9_]+)\s*\/\s*([a-z0-9_]+)$/i
+const PCT_DIFF_PATTERN = /^pct_diff\s*:\s*([a-z0-9_]+)\s*\/\s*([a-z0-9_]+)$/i
 
-function roundTo(value: number, decimals: number): number {
+export function roundTo(value: number, decimals: number): number {
   const factor = 10 ** decimals
   return Math.round(value * factor) / factor
 }
 
-function toFiniteNumber(value: unknown): number | null {
+export function toFiniteNumber(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value === 'string' && value.trim() !== '') {
     const parsed = Number(value)
@@ -182,16 +183,24 @@ export function evaluateMetricValue(value: number, criterion: MetricCriterion): 
 
 export function computeMetricValue(
   metric: MetricDefinition,
-  values: Record<string, number | null | undefined>
+  values: Record<string, number | null | undefined>,
+  customData?: Record<string, unknown> | null
 ): number | null {
   if (!metric.computed) {
     return toFiniteNumber(values[metric.key])
   }
 
+  // Los operandos se leen de la probeta y, si no existen ahí, de los datos de la
+  // muestra (ej. volumen teórico definido al crear la pila).
+  const operand = (key: string): number | null => {
+    const own = toFiniteNumber(values[key])
+    return own !== null ? own : toFiniteNumber(customData?.[key])
+  }
+
   const ratioMatch = RATIO_PATTERN.exec(metric.computed)
   if (ratioMatch) {
-    const numerator = toFiniteNumber(values[ratioMatch[1]])
-    const denominator = toFiniteNumber(values[ratioMatch[2]])
+    const numerator = operand(ratioMatch[1])
+    const denominator = operand(ratioMatch[2])
     if (numerator === null || denominator === null || denominator === 0) return null
 
     return roundTo(numerator / denominator, metric.decimals ?? 2)
@@ -200,11 +209,21 @@ export function computeMetricValue(
   // diff:a/b = a - b (ej. caída de presión = inicial - final)
   const diffMatch = DIFF_PATTERN.exec(metric.computed)
   if (diffMatch) {
-    const first = toFiniteNumber(values[diffMatch[1]])
-    const second = toFiniteNumber(values[diffMatch[2]])
+    const first = operand(diffMatch[1])
+    const second = operand(diffMatch[2])
     if (first === null || second === null) return null
 
     return roundTo(first - second, metric.decimals ?? 2)
+  }
+
+  // pct_diff:a/b = (a - b) / b * 100 (ej. variación % del volumen real vs teórico)
+  const pctDiffMatch = PCT_DIFF_PATTERN.exec(metric.computed)
+  if (pctDiffMatch) {
+    const actual = operand(pctDiffMatch[1])
+    const reference = operand(pctDiffMatch[2])
+    if (actual === null || reference === null || reference === 0) return null
+
+    return roundTo(((actual - reference) / reference) * 100, metric.decimals ?? 2)
   }
 
   return null
@@ -216,7 +235,7 @@ export function evaluateSpecimenMetrics(
   customData: Record<string, unknown> | null | undefined
 ): SpecimenMetricsEvaluation {
   const metrics: MetricEvaluation[] = test.metrics.map(metric => {
-    const value = computeMetricValue(metric, specimen.values)
+    const value = computeMetricValue(metric, specimen.values, customData)
     const criterion = resolveMetricCriterion(metric, customData)
     const unit = resolveMetricUnit(metric, customData)
     const meets =

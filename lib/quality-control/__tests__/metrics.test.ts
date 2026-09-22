@@ -444,3 +444,102 @@ describe('presurización: métrica diff y unidad dinámica (Ola 2)', () => {
     expect(caida?.criterionLabel).toBe('≤ 0 bar')
   })
 })
+
+describe('avance de pilas: pct_diff contra datos de la muestra (Ola 3)', () => {
+  const vaciado: NamedTestDefinition = {
+    key: 'vaciado',
+    name: 'Vaciado de pila',
+    samples_per_test: 1,
+    specimens_label: 'Pila',
+    metrics: [
+      { key: 'volumen_real', label: 'Volumen real de concreto', unit: 'm³' },
+      { key: 'profundidad_real', label: 'Profundidad real excavada', unit: 'm' },
+      {
+        key: 'variacion',
+        label: 'Variación de volumen',
+        unit: '%',
+        computed: 'pct_diff:volumen_real/volumen_teorico',
+        decimals: 2,
+        criteria: [
+          {
+            operator: 'range',
+            min: 0,
+            max_from: 'sobreconsumo_maximo',
+            message: 'Volumen fuera del rango admisible'
+          }
+        ]
+      }
+    ]
+  }
+  const pila = { diametro: 1.2, profundidad: 12, volumen_teorico: 13.57, sobreconsumo_maximo: 10 }
+
+  it('calcula la variación porcentual con pct_diff:a/b', () => {
+    const metric = vaciado.metrics[2]
+    expect(computeMetricValue(metric, { volumen_real: 110, volumen_teorico: 100 })).toBe(10)
+    expect(computeMetricValue(metric, { volumen_real: 95, volumen_teorico: 100 })).toBe(-5)
+    expect(computeMetricValue(metric, { volumen_real: 100, volumen_teorico: 100 })).toBe(0)
+    expect(computeMetricValue(metric, { volumen_real: 100, volumen_teorico: 0 })).toBeNull()
+    expect(computeMetricValue(metric, { volumen_real: 100 })).toBeNull()
+  })
+
+  it('toma los operandos faltantes desde los datos de la muestra (custom_data)', () => {
+    const metric = vaciado.metrics[2]
+    expect(computeMetricValue(metric, { volumen_real: 14.25 }, pila)).toBe(5.01)
+    // el valor de la probeta tiene prioridad sobre el de la muestra
+    expect(
+      computeMetricValue(metric, { volumen_real: 110, volumen_teorico: 100 }, pila)
+    ).toBe(10)
+    expect(computeMetricValue(metric, { volumen_real: 14.25 }, {})).toBeNull()
+  })
+
+  it('cumple cuando el sobreconsumo está dentro del máximo especificado', () => {
+    const result = evaluateNamedTest(
+      [{ specimenNumber: 1, values: { volumen_real: 14.5, profundidad_real: 12.1 } }],
+      vaciado,
+      pila
+    )
+    expect(result.meetsCriteria).toBe(true)
+    const variacion = result.specimens[0].metrics.find(m => m.key === 'variacion')
+    expect(variacion?.value).toBe(6.85)
+    expect(variacion?.criterionLabel).toBe('0 – 10 %')
+  })
+
+  it('no cumple con sobreconsumo mayor al máximo', () => {
+    const result = evaluateNamedTest(
+      [{ specimenNumber: 1, values: { volumen_real: 15.5 } }],
+      vaciado,
+      pila
+    )
+    expect(result.meetsCriteria).toBe(false)
+    expect(result.failures[0]).toContain('Variación de volumen = 14.22 %')
+  })
+
+  it('no cumple con cualquier subconsumo (real menor al teórico)', () => {
+    const result = evaluateNamedTest(
+      [{ specimenNumber: 1, values: { volumen_real: 13.5 } }],
+      vaciado,
+      pila
+    )
+    expect(result.meetsCriteria).toBe(false)
+    const variacion = result.specimens[0].metrics.find(m => m.key === 'variacion')
+    expect(variacion?.value).toBe(-0.52)
+    expect(variacion?.message).toBe('Volumen fuera del rango admisible')
+  })
+
+  it('queda sin evaluar si la muestra no trae volumen teórico o tolerancia', () => {
+    expect(
+      evaluateNamedTest(
+        [{ specimenNumber: 1, values: { volumen_real: 14 } }],
+        vaciado,
+        { volumen_teorico: 13.57 }
+      ).meetsCriteria
+    ).toBeNull()
+    expect(
+      evaluateNamedTest(
+        [{ specimenNumber: 1, values: { volumen_real: 14 } }],
+        vaciado,
+        { sobreconsumo_maximo: 10 }
+      ).meetsCriteria
+    ).toBeNull()
+  })
+})

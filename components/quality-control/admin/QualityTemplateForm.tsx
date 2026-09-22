@@ -46,7 +46,12 @@ const TEMPLATE_TYPES = [
   { value: 'soil', label: 'Suelos' },
   { value: 'mortar', label: 'Mortero' },
   { value: 'masonry', label: 'Mampostería' },
+  { value: 'masonry_prism', label: 'Muretes de mampostería' },
+  { value: 'masonry_unit', label: 'Unidades de mampostería' },
   { value: 'plumbing', label: 'Instalaciones' },
+  { value: 'pressurization', label: 'Presurización de redes' },
+  { value: 'watertightness', label: 'Estanqueidad' },
+  { value: 'pile_progress', label: 'Avance de pilas' },
   { value: 'custom', label: 'Personalizado' }
 ]
 
