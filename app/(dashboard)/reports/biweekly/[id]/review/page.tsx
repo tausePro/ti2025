@@ -33,6 +33,8 @@ interface Report {
   created_at: string
   rejection_reason?: string | null
   supervisor_notes?: string | null
+  source_frozen_at?: string | null
+  source_modified_at?: string | null
   project?: {
     name: string
     project_code: string
@@ -271,6 +273,17 @@ export default function ReviewBiweeklyReportPage() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {report.source_frozen_at && report.source_modified_at && (
+        <Alert className="border-amber-200 bg-amber-50">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            <strong>Fuente modificada:</strong> una bitácora incluida en este informe cambió el{' '}
+            {new Date(report.source_modified_at).toLocaleString('es-CO')}, después de que el residente lo envió.
+            Considera devolverlo para que regenere el contenido.
+          </AlertDescription>
         </Alert>
       )}
 

@@ -5,8 +5,10 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { formatDateValue } from '@/lib/utils'
+import { PHOTO_GALLERY_MARKER, type CollectedPhoto } from './report-photos'
+import { getPhotoCaptions } from '@/lib/photo-captions'
 
-interface CollectedData {
+export interface CollectedData {
   project: any
   dailyLogs: any[]
   qualityControl: any[]
@@ -34,14 +36,19 @@ function isFailedResult(value: unknown): boolean {
 
 function normalizeDailyLogPhotos(dailyLogs: any[] = []) {
   return dailyLogs.flatMap((log: any) => {
-    const photos = Array.isArray(log.photos) ? log.photos : []
+    const photos: string[] = Array.isArray(log.photos) ? log.photos : []
+    const captions = getPhotoCaptions(log.custom_fields?.photo_captions, photos.length, log.photos)
+    const dateLabel = log.date ? formatDateValue(log.date) : ''
+    const frontLabel = log.work_front ? ` – ${log.work_front}` : ''
 
     return photos
-      .filter(Boolean)
-      .map((photoUrl: string, index: number) => ({
+      .map((photoUrl: string, index: number) => ({ photoUrl, caption: captions[index] || '' }))
+      .filter(({ photoUrl }) => Boolean(photoUrl))
+      .map(({ photoUrl, caption }, index: number) => ({
         file_url: photoUrl,
         file_name: `bitacora-${log.date || 'sin-fecha'}-${index + 1}`,
-        description: log.activities || `Foto de bitácora ${log.date || ''}`,
+        // Pie propuesto: leyenda de la bitácora; si no hay, fecha y frente.
+        description: caption || `Bitácora ${dateLabel}${frontLabel}`.trim(),
         uploaded_at: log.time
           ? `${log.date}T${log.time}:00`
           : `${log.date}T00:00:00`,
@@ -410,27 +417,186 @@ export function formatQualityControlData(qualityControl: any[]): string {
 }
 
 /**
- * Formatea galería de fotos para insertar en el informe
+ * Formatea galería de fotos para insertar en el informe.
+ *
+ * Desde la etapa 1 del informe quincenal la galería NO se incrusta en el
+ * HTML al generar: se deja un marcador que preview/impresión resuelven con
+ * las fotos curadas del informe (biweekly_reports.report_photos). Así el
+ * residente puede elegir, ordenar y titular las fotos después de generar,
+ * sin límite artificial de cantidad.
  */
-export function formatPhotosGallery(photos: any[]): string {
-  if (!photos || photos.length === 0) {
-    return '<p>No se cargaron fotos en este período.</p>'
+export function formatPhotosGallery(_photos: any[]): string {
+  return PHOTO_GALLERY_MARKER
+}
+
+// -----------------------------------------------------------------------
+// Conclusiones alimentadas por bitácora
+// -----------------------------------------------------------------------
+
+type PeriodNoteKind = 'observations' | 'issues' | 'recommendations'
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function collectPeriodNotes(dailyLogs: any[] = [], kind: PeriodNoteKind) {
+  return (dailyLogs || [])
+    .map((log: any) => ({
+      date: log?.date as string | undefined,
+      workFront: log?.work_front as string | undefined,
+      text: typeof log?.[kind] === 'string' ? log[kind].trim() : ''
+    }))
+    .filter((note) => note.text.length > 0)
+    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
+}
+
+function renderPeriodNotes(notes: ReturnType<typeof collectPeriodNotes>, emptyMessage: string): string {
+  if (notes.length === 0) {
+    return `<p>${emptyMessage}</p>`
   }
 
-  let html = '<div class="grid grid-cols-3 gap-4">'
-  
-  photos.slice(0, 9).forEach(photo => { // Máximo 9 fotos
-    html += `<div class="border border-gray-300 p-2">`
-    html += `<img src="${photo.file_url}" alt="${photo.file_name}" class="w-full h-48 object-cover" />`
-    html += `<p class="text-sm text-gray-600 mt-2">${photo.description || photo.file_name}</p>`
-    html += `</div>`
-  })
+  const items = notes
+    .map((note) => {
+      const dateLabel = note.date ? formatDateValue(note.date) : 'Sin fecha'
+      const front = note.workFront ? ` – ${escapeHtml(note.workFront)}` : ''
+      return `<li><strong>${dateLabel}${front}:</strong> ${escapeHtml(note.text)}</li>`
+    })
+    .join('')
 
-  html += '</div>'
-  
-  if (photos.length > 9) {
-    html += `<p class="text-sm text-gray-500 mt-2">+ ${photos.length - 9} fotos adicionales</p>`
+  return `<ul>${items}</ul>`
+}
+
+/** Observaciones registradas día a día en las bitácoras del período. */
+export function formatDailyLogObservations(dailyLogs: any[]): string {
+  return renderPeriodNotes(
+    collectPeriodNotes(dailyLogs, 'observations'),
+    'No se registraron observaciones en las bitácoras del período.'
+  )
+}
+
+/** Novedades / incidencias registradas en las bitácoras del período. */
+export function formatDailyLogIssues(dailyLogs: any[]): string {
+  return renderPeriodNotes(
+    collectPeriodNotes(dailyLogs, 'issues'),
+    'No se registraron novedades en las bitácoras del período.'
+  )
+}
+
+/** Recomendaciones registradas en las bitácoras del período. */
+export function formatDailyLogRecommendations(dailyLogs: any[]): string {
+  return renderPeriodNotes(
+    collectPeriodNotes(dailyLogs, 'recommendations'),
+    'No se registraron recomendaciones en las bitácoras del período.'
+  )
+}
+
+/**
+ * Bloque consolidado para la sección de conclusiones: observaciones,
+ * novedades y recomendaciones del período, cada una con fecha y frente.
+ * Es el insumo que el residente complementa con su análisis.
+ */
+export function formatDailyLogConclusions(dailyLogs: any[]): string {
+  const observations = collectPeriodNotes(dailyLogs, 'observations')
+  const issues = collectPeriodNotes(dailyLogs, 'issues')
+  const recommendations = collectPeriodNotes(dailyLogs, 'recommendations')
+
+  if (observations.length + issues.length + recommendations.length === 0) {
+    return '<p>Las bitácoras del período no registran observaciones, novedades ni recomendaciones.</p>'
   }
 
+  let html = ''
+  html += `<h4>Observaciones (${observations.length})</h4>`
+  html += renderPeriodNotes(observations, 'Sin observaciones registradas.')
+  html += `<h4>Novedades e incidencias (${issues.length})</h4>`
+  html += renderPeriodNotes(issues, 'Sin novedades registradas.')
+  html += `<h4>Recomendaciones (${recommendations.length})</h4>`
+  html += renderPeriodNotes(recommendations, 'Sin recomendaciones registradas.')
   return html
+}
+
+// -----------------------------------------------------------------------
+// Snapshot serializable para biweekly_reports.source_data
+// -----------------------------------------------------------------------
+
+/**
+ * Construye el snapshot que se guarda en biweekly_reports.source_data.
+ * Incluye los IDs de bitácora para poder detectar cambios posteriores y
+ * las fotos recopiladas (bitácora + documentos) para la curaduría.
+ */
+export type ReportSourceSnapshot = ReturnType<typeof buildSourceSnapshot>
+
+export function buildSourceSnapshot(collected: CollectedData) {
+  const dailyLogs = (collected.dailyLogs || []).map((log: any) => ({
+    id: log.id,
+    date: log.date,
+    time: log.time ?? null,
+    weather: log.weather ?? null,
+    personnel_count: log.personnel_count ?? null,
+    work_front: log.work_front ?? null,
+    element: log.element ?? null,
+    activities: log.activities ?? null,
+    observations: log.observations ?? null,
+    issues: log.issues ?? null,
+    recommendations: log.recommendations ?? null,
+    photo_count: Array.isArray(log.photos) ? log.photos.filter(Boolean).length : 0,
+    created_by: log.created_by ?? null,
+    created_by_name: log.created_by_profile?.full_name ?? null,
+    updated_at: log.updated_at ?? null
+  }))
+
+  const qualitySamples = (collected.qualityControl || []).map((qc: any) => ({
+    id: qc.id,
+    sample_code: qc.sample_code,
+    sample_date: qc.sample_date,
+    location: qc.location ?? null,
+    overall_result: qc.overall_result ?? null,
+    template_name: qc.template?.template_name ?? null,
+    template_type: qc.template?.template_type ?? null
+  }))
+
+  const photos: CollectedPhoto[] = (collected.photos || []).map((photo: any) => ({
+    id: photo.id ?? undefined,
+    file_url: photo.file_url,
+    file_name: photo.file_name ?? undefined,
+    description: photo.description ?? undefined,
+    uploaded_at: photo.uploaded_at ?? undefined,
+    source_type: photo.source_type ?? 'project_document',
+    source_id: photo.source_id ?? photo.id ?? undefined
+  }))
+
+  return {
+    project_info: {
+      id: collected.project?.id ?? null,
+      name: collected.project?.name ?? null,
+      project_code: collected.project?.project_code ?? null,
+      address: collected.project?.address ?? collected.project?.location ?? null
+    },
+    daily_logs: dailyLogs,
+    daily_log_ids: dailyLogs.map((log) => log.id).filter(Boolean),
+    quality_samples: qualitySamples,
+    photos,
+    summary: {
+      total_days: collected.summary.totalDays,
+      work_days: collected.summary.workDays,
+      rain_days: collected.summary.rainDays,
+      total_workers: collected.summary.totalWorkers,
+      total_tests: collected.summary.totalTests,
+      passed_tests: collected.summary.passedTests,
+      failed_tests: collected.summary.failedTests,
+      total_photos: photos.length,
+      // Compatibilidad con la UI que lee camelCase
+      totalDays: collected.summary.totalDays,
+      workDays: collected.summary.workDays,
+      rainDays: collected.summary.rainDays,
+      totalWorkers: collected.summary.totalWorkers,
+      totalTests: collected.summary.totalTests,
+      passedTests: collected.summary.passedTests,
+      failedTests: collected.summary.failedTests
+    },
+    collected_at: new Date().toISOString()
+  }
 }

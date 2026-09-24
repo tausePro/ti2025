@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
 import { RichTextEditor } from '@/components/reports/RichTextEditor'
+import { ReportPhotoCurator } from '@/components/reports/ReportPhotoCurator'
+import {
+  buildInitialReportPhotos,
+  mergeReportPhotos,
+  type ReportPhoto
+} from '@/lib/reports/report-photos'
+import type { ReportSourceSnapshot } from '@/lib/reports/data-collector'
 import { 
   ArrowLeft, 
   Save, 
@@ -12,7 +19,8 @@ import {
   Loader2, 
   FileText,
   Eye,
-  AlertCircle
+  AlertCircle,
+  Camera
 } from 'lucide-react'
 import Link from 'next/link'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -58,6 +66,8 @@ export default function NewBiweeklyReportPage() {
   const [longTitle, setLongTitle] = useState('INFORME QUINCENAL DE INTERVENTORÍA Y SUPERVISIÓN TÉCNICA INDEPENDIENTE')
   const [content, setContent] = useState<Record<string, string>>({})
   const [reportId, setReportId] = useState<string | null>(null)
+  const [reportPhotos, setReportPhotos] = useState<ReportPhoto[]>([])
+  const [sourceSnapshot, setSourceSnapshot] = useState<ReportSourceSnapshot | null>(null)
   
   // Templates state
   const [availableTemplates, setAvailableTemplates] = useState<ProjectTemplate[]>([])
@@ -134,6 +144,8 @@ export default function NewBiweeklyReportPage() {
       setShortTitle(data.short_title || '')
       setLongTitle(data.long_title || longTitle)
       setContent(data.content || {})
+      setReportPhotos(Array.isArray(data.report_photos) ? data.report_photos : [])
+      setSourceSnapshot(data.source_data || null)
       setEditingReportTemplateId(data.report_template_id || null)
     } catch (error) {
       console.error('Error in loadExistingReport:', error)
@@ -280,6 +292,13 @@ export default function NewBiweeklyReportPage() {
       setContent(data.content)
       setShortTitle(data.shortTitle)
       setLongTitle(data.longTitle)
+      setSourceSnapshot(data.snapshot || null)
+      // Conservar la curaduría previa (pies, orden, inclusión) si ya existía
+      setReportPhotos((prev) =>
+        prev.length > 0
+          ? mergeReportPhotos(prev, data.snapshot?.photos || [])
+          : (data.reportPhotos || [])
+      )
 
       // Mostrar resumen de datos recopilados
       const summary = data.sourceData?.summary
@@ -319,13 +338,28 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
           p_period_start: periodStart
         })
 
-      // Recopilar datos fuente
-      const { data: sourceData } = await supabase
-        .rpc('collect_report_data', {
-          p_project_id: selectedProject,
-          p_period_start: periodStart,
-          p_period_end: periodEnd
+      // Recopilar datos fuente (snapshot con bitácoras, calidad y fotos con pie)
+      let snapshot: ReportSourceSnapshot | null = sourceSnapshot
+      try {
+        const snapshotResponse = await fetch('/api/reports/collect-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectId: selectedProject, periodStart, periodEnd })
         })
+        if (snapshotResponse.ok) {
+          const snapshotData = await snapshotResponse.json()
+          snapshot = snapshotData.snapshot || snapshot
+        }
+      } catch (snapshotError) {
+        console.error('Error recopilando snapshot, se conserva el anterior:', snapshotError)
+      }
+
+      // Combinar curaduría existente con las fotos recopiladas
+      const nextPhotos = reportPhotos.length > 0
+        ? mergeReportPhotos(reportPhotos, snapshot?.photos || [])
+        : buildInitialReportPhotos(snapshot?.photos || [])
+      setReportPhotos(nextPhotos)
+      setSourceSnapshot(snapshot)
 
       // Regenerar short_title con las fechas actuales del formulario
       const startDate = new Date(periodStart + 'T00:00:00')
@@ -340,7 +374,9 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
         short_title: generatedShortTitle,
         long_title: longTitle || 'INFORME QUINCENAL DE INTERVENTORÍA Y SUPERVISIÓN TÉCNICA INDEPENDIENTE',
         content: content,
-        source_data: sourceData,
+        source_data: snapshot,
+        report_photos: nextPhotos,
+        source_daily_log_ids: snapshot?.daily_log_ids || [],
         status: 'draft',
         created_by: profile?.id
       }
@@ -386,6 +422,13 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
 
     try {
       setSaving(true)
+
+      // Congelar la fuente: registra las bitácoras incluidas para detectar
+      // cambios posteriores mientras el informe está en revisión.
+      const { error: freezeError } = await supabase
+        .rpc('freeze_biweekly_report_source', { p_report_id: reportId })
+
+      if (freezeError) throw freezeError
 
       const { error } = await supabase
         .from('biweekly_reports')
@@ -660,6 +703,21 @@ El contenido se generó automáticamente desde la plantilla del proyecto.`
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Curaduría de fotos */}
+      {Object.keys(content).length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-1">
+            <Camera className="w-5 h-5 text-gray-700" />
+            <h3 className="text-lg font-semibold text-gray-900">Registro fotográfico del informe</h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Selecciona las fotos de las bitácoras del período que irán al informe, ordénalas y ajusta el pie de foto.
+            La galería se inserta donde la plantilla tenga el marcador de fotografías.
+          </p>
+          <ReportPhotoCurator photos={reportPhotos} onChange={setReportPhotos} />
         </div>
       )}
 

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { collectReportData } from '@/lib/reports/data-collector'
+import { collectReportData, buildSourceSnapshot } from '@/lib/reports/data-collector'
 import { replacePlaceholders } from '@/lib/reports/placeholder-replacer'
+import { buildInitialReportPhotos } from '@/lib/reports/report-photos'
 
 export async function POST(request: NextRequest) {
   try {
@@ -121,7 +122,11 @@ export async function POST(request: NextRequest) {
     const shortTitle = `Informe Quincenal ${startDate.toLocaleDateString('es-CO')} - ${endDate.toLocaleDateString('es-CO')}`
     const longTitle = `INFORME QUINCENAL DE INTERVENTORÍA Y SUPERVISIÓN TÉCNICA INDEPENDIENTE`
 
-    // 6. Retornar contenido generado
+    // 6. Snapshot serializable (se guarda en source_data) y fotos iniciales
+    const snapshot = buildSourceSnapshot(collectedData)
+    const reportPhotos = buildInitialReportPhotos(snapshot.photos)
+
+    // 7. Retornar contenido generado
     return NextResponse.json({
       success: true,
       content,
@@ -131,6 +136,8 @@ export async function POST(request: NextRequest) {
         id: template.id,
         name: template.template_name
       },
+      snapshot,
+      reportPhotos,
       sourceData: {
         dailyLogsCount: collectedData.dailyLogs.length,
         qualityControlCount: collectedData.qualityControl.length,
