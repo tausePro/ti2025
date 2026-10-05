@@ -498,6 +498,7 @@ export default function DailyLogsPage() {
               selectable={selectionMode}
               selectedIds={selectedIds}
               onToggleSelect={handleToggleSelect}
+              currentUser={{ id: profile?.id, role: profile?.role }}
             />
           )}
         </div>
