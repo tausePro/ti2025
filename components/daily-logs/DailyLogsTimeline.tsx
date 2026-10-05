@@ -5,6 +5,7 @@ import { PhotoGallery } from './PhotoGallery'
 import { Camera, Clock, MapPin, User, FileText, CheckCircle2, XCircle, AlertCircle, Settings } from 'lucide-react'
 import { formatDateValue, getCustomFieldLabelsMap } from '@/lib/utils'
 import { getPhotoCaptions } from '@/lib/photo-captions'
+import { canEditDailyLog } from '@/lib/daily-log-permissions'
 import { SyncStatusBadge } from '@/components/shared/OfflineIndicator'
 
 interface DailyLogsTimelineProps {
@@ -14,9 +15,10 @@ interface DailyLogsTimelineProps {
   selectable?: boolean
   selectedIds?: Set<string>
   onToggleSelect?: (id: string) => void
+  currentUser?: { id?: string | null; role?: string | null }
 }
 
-export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {}, selectable = false, selectedIds, onToggleSelect }: DailyLogsTimelineProps) {
+export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {}, selectable = false, selectedIds, onToggleSelect, currentUser }: DailyLogsTimelineProps) {
   // Función para obtener resumen de checklists
   const getChecklistSummary = (log: any) => {
     if (!log.custom_fields?.checklists) return null
@@ -166,12 +168,14 @@ export function DailyLogsTimeline({ logs, projectId, customFieldLabels = {}, sel
                       >
                         Ver
                       </Link>
-                      <Link
-                        href={`/projects/${projectId}/daily-logs/${log.id}/edit`}
-                        className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 rounded transition-colors"
-                      >
-                        Editar
-                      </Link>
+                      {(!currentUser || canEditDailyLog(currentUser, log)) && (
+                        <Link
+                          href={`/projects/${projectId}/daily-logs/${log.id}/edit`}
+                          className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 rounded transition-colors"
+                        >
+                          Editar
+                        </Link>
+                      )}
                     </div>
                   </div>
 

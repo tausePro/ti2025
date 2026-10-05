@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import DailyLogFormTabs from '@/components/daily-logs/DailyLogFormTabs'
+import { canEditDailyLog } from '@/lib/daily-log-permissions'
 
 export default async function EditDailyLogPage({ 
   params 
@@ -36,6 +37,17 @@ export default async function EditDailyLogPage({
 
   if (logError || !log) {
     redirect(`/projects/${id}/daily-logs`)
+  }
+
+  // El residente puede ver bitácoras de compañeros, pero solo editar las suyas
+  const { data: currentProfile } = await (supabase
+    .from('profiles') as any)
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (!canEditDailyLog({ id: user.id, role: currentProfile?.role }, log)) {
+    redirect(`/projects/${id}/daily-logs/${logId}`)
   }
 
   return (
