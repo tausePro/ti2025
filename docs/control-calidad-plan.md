@@ -17,11 +17,11 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 | 9 | Ola 1 formatos: morteros, muretes, unidades de mampostería (absorción ≤ NTC-4205) | ✅ En producción | v0.0.17 | 098 | Pendiente |
 | 10 | Veredicto concreto: por cilindro individual (decisión 2026-08-28) | ✅ En producción | v0.0.18 | — | Pendiente |
 | 14 | Designaciones de malla D-50 a D-335 en plantilla de acero | ✅ En producción | v0.0.18 | 099 | Pendiente |
-| 15 | Ensayo de 56 días en muestras de concreto existentes | ✅ En producción | v0.0.18 | 100 | Pendiente (confirmar migración 100 aplicada) |
+| 15 | Ensayo de 56 días en muestras de concreto existentes | ✅ En producción | v0.0.18 | 100 | Pendiente |
 | 11 | Ola 2 formatos: presurización agua/gas y estanqueidad (lecturas pareadas + fotos por prueba) | ✅ En producción | v0.0.20 | 102 | Pendiente |
-| 16 | PDF del informe con fotos de evidencia y unidades dinámicas | 🔧 En develop | — | — | — |
-| 12 | UI admin de plantillas de calidad (sin migraciones) | 🔧 En develop | — | — | — |
-| 13a | Ola 3: avance de pilas (volumen teórico vs real, una muestra por pila) | 🔧 En desarrollo (`feature/quality-control-ola3-pilas`) | — | 103 | — |
+| 16 | PDF del informe con fotos de evidencia y unidades dinámicas | ✅ En producción | v0.0.21 | — | Pendiente |
+| 12 | UI admin de plantillas de calidad (sin migraciones) | ✅ En producción | v0.0.21 | — | Pendiente |
+| 13a | Ola 3: avance de pilas (volumen teórico vs real, una muestra por pila) | ✅ En producción | v0.0.21 | 103 | Pendiente |
 | 13b | Ola 3: asentamientos (serie temporal) | ⏳ Pendiente (pregunta abierta #4) | — | — | — |
 
 ## Decisiones técnicas
@@ -43,6 +43,7 @@ Documento de seguimiento del feedback de supervisión. Se actualiza en cada rele
 | 2026-08-24 | Migraciones 095, 096, 097 aplicadas en Supabase | Felipe | OK — verificación SQL correcta |
 | 2026-08-28 | Migración 098 aplicada: 3 plantillas de Ola 1 creadas | Felipe | OK — verificación SQL correcta |
 | 2026-08-28 | Formatos de acero de Santi (químico por diámetro y mallas NTC-5806): límites químicos y criterios de malla (tracción ≥550, fluencia ≥485, resultado único) coinciden con lo implementado en v0.0.15 | Santi (pantallazos) | OK — solo faltaban las designaciones D-50 a D-335 (migración 099) |
+| 2026-10-29 | Migraciones 099, 100, 101, 102 y 103 verificadas en Supabase producción (designaciones D-50..D-335, 5 ensayos 56d, plantillas de presurización/estanqueidad y avance de pilas activas) | Felipe/Devin | OK — verificación SQL correcta |
 | — | Flujo de acero en producción (crear muestra, físico, químico, malla) | Santi/Felipe | Pendiente |
 | — | Concreto: 56 días y veredicto por edad decisiva con muestra real | Santi | Pendiente |
 
