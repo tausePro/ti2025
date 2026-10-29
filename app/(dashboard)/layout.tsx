@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { OfflineIndicator } from '@/components/shared/OfflineIndicator'
+import { ReleaseTourManager } from '@/components/shared/ReleaseTourManager'
 
 export default function DashboardLayout({
   children,
@@ -191,6 +192,7 @@ export default function DashboardLayout({
                 <Link
                   key={item.name}
                   href={item.href}
+                  data-tour-href={item.href}
                   className="flex items-center px-4 py-3 text-base font-medium text-gray-700 rounded-lg hover:bg-talento-green/10 hover:text-talento-green transition-colors"
                 >
                   <Icon className="mr-3 h-5 w-5" />
@@ -257,6 +259,7 @@ export default function DashboardLayout({
                 <Link
                   key={item.name}
                   href={item.href}
+                  data-tour-href={item.href}
                   className="flex items-center px-4 py-3 text-base font-medium text-gray-700 rounded-lg hover:bg-talento-green/10 hover:text-talento-green transition-colors"
                 >
                   <Icon className="mr-3 h-5 w-5" />
@@ -320,6 +323,7 @@ export default function DashboardLayout({
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
             <div className="flex flex-1"></div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
+              <ReleaseTourManager userId={user?.id} userRole={profile?.role} />
               <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200" />
               <div className="flex items-center space-x-3">
                 <div className="text-right">
