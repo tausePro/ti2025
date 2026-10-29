@@ -4,6 +4,7 @@ import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { WebVitalsProvider } from '@/components/providers/WebVitalsProvider'
+import { Toaster } from 'sonner'
 import Script from 'next/script'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -50,6 +51,7 @@ export default function RootLayout({
           <AuthProvider>
             <WebVitalsProvider />
             {children}
+            <Toaster position="top-right" richColors closeButton />
           </AuthProvider>
         </ErrorBoundary>
         {isProduction && (
