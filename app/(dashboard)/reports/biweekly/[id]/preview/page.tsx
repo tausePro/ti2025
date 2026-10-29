@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { resolveReportContent, type ReportPhoto } from '@/lib/reports/report-photos'
 import { Button } from '@/components/ui/button'
 import { 
   ArrowLeft, 
@@ -49,6 +50,9 @@ interface Report {
   status: string
   created_at: string
   source_data?: any
+  report_photos?: ReportPhoto[]
+  source_frozen_at?: string | null
+  source_modified_at?: string | null
   project?: {
     name: string
     project_code: string
@@ -318,8 +322,17 @@ export default function ReportPreviewPage() {
               </table>
             </div>
 
+            {/* Aviso: la fuente cambió después de congelar el informe */}
+            {report.source_frozen_at && report.source_modified_at && (
+              <div className="mb-6 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 print:hidden">
+                <strong>Fuente modificada:</strong> una bitácora incluida en este informe cambió el{' '}
+                {new Date(report.source_modified_at).toLocaleString('es-CO')}, después de enviarlo a revisión.
+                El contenido mostrado corresponde al snapshot congelado.
+              </div>
+            )}
+
             {/* Secciones del contenido */}
-            {report.content && Object.entries(report.content).map(([key, html]) => (
+            {report.content && Object.entries(resolveReportContent(report.content, report.report_photos || [])).map(([key, html]) => (
               <div key={key} className="mb-6">
                 <div 
                   className="prose prose-sm max-w-none"

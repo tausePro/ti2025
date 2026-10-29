@@ -8,6 +8,10 @@ import {
   formatDailyLogChecklistSummary,
   formatDailyLogChecklists,
   formatDailyLogCustomFields,
+  formatDailyLogObservations,
+  formatDailyLogIssues,
+  formatDailyLogRecommendations,
+  formatDailyLogConclusions,
   formatQualityControlData, 
   formatPhotosGallery 
 } from './data-collector'
@@ -94,6 +98,17 @@ export function replacePlaceholders(
   result = result.replace(/\{\{bitacora\.checklists\}\}/g, formatDailyLogChecklists(context.dailyLogs))
   result = result.replace(/\{\{bitacora\.campos_personalizados\}\}/g, formatDailyLogCustomFields(context.dailyLogs))
   result = result.replace(/\{\{bitacora\.custom_fields\}\}/g, formatDailyLogCustomFields(context.dailyLogs))
+
+  // Conclusiones alimentadas por bitácora (agregado del período)
+  result = result.replace(/\{\{bitacora\.observaciones_periodo\}\}/g, formatDailyLogObservations(context.dailyLogs))
+  result = result.replace(/\{\{bitacora\.novedades_periodo\}\}/g, formatDailyLogIssues(context.dailyLogs))
+  result = result.replace(/\{\{bitacora\.recomendaciones_periodo\}\}/g, formatDailyLogRecommendations(context.dailyLogs))
+  result = result.replace(/\{\{bitacora\.conclusiones\}\}/g, formatDailyLogConclusions(context.dailyLogs))
+
+  // Alias usados por las plantillas por defecto (migración 080)
+  result = result.replace(/\{\{daily_logs_html\}\}/g, formatDailyLogsData(context.dailyLogs))
+  result = result.replace(/\{\{quality_control_html\}\}/g, formatQualityControlData(context.qualityControl))
+  result = result.replace(/\{\{photos_html\}\}/g, formatPhotosGallery(context.photos))
 
   // Placeholders de bitacora diaria (registro puntual)
   result = result.replace(/\{\{bitacora\.fecha\}\}/g, dailyLog?.date ? formatDateValue(dailyLog.date) : 'N/A')
@@ -203,6 +218,10 @@ export function getAvailablePlaceholders(): Array<{ placeholder: string, descrip
     { placeholder: '{{bitacora.checklist_resumen}}', description: 'Resumen consolidado de checklist', category: 'Bitácoras' },
     { placeholder: '{{bitacora.checklist}}', description: 'Detalle de checklist por bitácora', category: 'Bitácoras' },
     { placeholder: '{{bitacora.campos_personalizados}}', description: 'Campos personalizados por bitácora', category: 'Bitácoras' },
+    { placeholder: '{{bitacora.observaciones_periodo}}', description: 'Observaciones registradas en bitácora durante el período', category: 'Bitácoras' },
+    { placeholder: '{{bitacora.novedades_periodo}}', description: 'Novedades e incidencias registradas en bitácora durante el período', category: 'Bitácoras' },
+    { placeholder: '{{bitacora.recomendaciones_periodo}}', description: 'Recomendaciones registradas en bitácora durante el período', category: 'Bitácoras' },
+    { placeholder: '{{bitacora.conclusiones}}', description: 'Observaciones, novedades y recomendaciones del período (insumo para conclusiones)', category: 'Bitácoras' },
     
     // Control de Calidad
     { placeholder: '{{qc.ensayos}}', description: 'Tabla de ensayos', category: 'Control de Calidad' },
@@ -210,8 +229,8 @@ export function getAvailablePlaceholders(): Array<{ placeholder: string, descrip
     { placeholder: '{{qc.resultados}}', description: 'Resumen de resultados', category: 'Control de Calidad' },
     
     // Fotos
-    { placeholder: '{{fotos}}', description: 'Galería de fotos', category: 'Fotos' },
-    { placeholder: '{{fotos.galeria}}', description: 'Galería de fotos', category: 'Fotos' },
+    { placeholder: '{{fotos}}', description: 'Galería de fotos curadas del informe (sin límite)', category: 'Fotos' },
+    { placeholder: '{{fotos.galeria}}', description: 'Galería de fotos curadas del informe (sin límite)', category: 'Fotos' },
     { placeholder: '{{total_fotos}}', description: 'Total de fotos', category: 'Fotos' },
     
     // Otros

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { resolveReportContent, type ReportPhoto } from '@/lib/reports/report-photos'
 import { Loader2, Phone, Mail, Globe, MapPin } from 'lucide-react'
 
 // Configuración de marca de Talento Inmobiliario
@@ -36,6 +37,7 @@ interface Report {
   status: string
   created_at: string
   source_data?: any
+  report_photos?: ReportPhoto[]
   project?: {
     name: string
     project_code: string
@@ -265,7 +267,7 @@ export default function PrintReportPage() {
         </section>
 
         {/* Secciones del contenido */}
-        {report.content && Object.entries(report.content).map(([key, html]) => (
+        {report.content && Object.entries(resolveReportContent(report.content, report.report_photos || [])).map(([key, html]) => (
           <section key={key} className="mb-6">
             <div 
               className="prose prose-sm max-w-none prose-headings:text-gray-800 prose-headings:border-b-2 prose-headings:pb-1 prose-headings:mb-3"
