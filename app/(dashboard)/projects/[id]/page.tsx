@@ -26,6 +26,7 @@ import {
 import Link from 'next/link'
 import { Project, Company, User, ProjectStatus, InterventionType } from '@/types'
 import { BitacoraTab } from '@/components/projects/BitacoraTab'
+import { LegacyReportsTab } from '@/components/legacy-wp/LegacyReportsTab'
 // import { ReportsTab } from '@/components/projects/ReportsTab'
 import { ProjectOverview } from '@/components/projects/ProjectOverview'
 // import { ChatTab } from '@/components/chat/ChatTab'
@@ -45,6 +46,8 @@ export default function ProjectDetailPage() {
   const { hasPermission } = useAuth()
   const [project, setProject] = useState<ProjectWithCompany | null>(null)
   const [teamMembersCount, setTeamMembersCount] = useState(0)
+  const [legacyReportsCount, setLegacyReportsCount] = useState(0)
+  const [activeTab, setActiveTab] = useState('overview')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const supabase = createClient()
@@ -56,6 +59,12 @@ export default function ProjectDetailPage() {
       loadProject()
     }
   }, [projectId])
+
+  // Permite volver a una pestaña concreta, por ejemplo ?tab=historico
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get('tab')
+    if (tab) setActiveTab(tab)
+  }, [])
 
   const loadProject = async () => {
     try {
@@ -87,6 +96,14 @@ export default function ProjectDetailPage() {
       }
 
       setTeamMembersCount(membersCount || 0)
+
+      // Informes importados de WordPress; RLS no se los muestra a los clientes
+      const { count: legacyCount } = await supabase
+        .from('legacy_wp_reports')
+        .select('id', { count: 'exact', head: true })
+        .eq('project_id', projectId)
+
+      setLegacyReportsCount(legacyCount || 0)
     } catch (error: any) {
       console.error('❌ Error loading project:', error)
       setError(error.message || 'Error al cargar el proyecto')
@@ -154,6 +171,7 @@ export default function ProjectDetailPage() {
   }
 
   const hasInterventoriaDesembolsos = project?.intervention_types.includes('interventoria_desembolsos')
+  const tabCount = 5 + (hasInterventoriaDesembolsos ? 1 : 0) + (legacyReportsCount > 0 ? 1 : 0)
 
   if (loading) {
     return (
@@ -311,12 +329,15 @@ export default function ProjectDetailPage() {
 
       {/* Tabs Content */}
       <div className="mt-6">
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}>
             <TabsTrigger value="overview">Resumen</TabsTrigger>
             <TabsTrigger value="team">Equipo</TabsTrigger>
             <TabsTrigger value="bitacora">Bitácora</TabsTrigger>
             <TabsTrigger value="reports">Informes</TabsTrigger>
+            {legacyReportsCount > 0 && (
+              <TabsTrigger value="historico">Histórico</TabsTrigger>
+            )}
             {hasInterventoriaDesembolsos && (
               <TabsTrigger value="financial">Financiero</TabsTrigger>
             )}
@@ -398,6 +419,12 @@ export default function ProjectDetailPage() {
               </Card>
             </div>
           </TabsContent>
+
+          {legacyReportsCount > 0 && (
+            <TabsContent value="historico" className="space-y-4">
+              <LegacyReportsTab projectId={project.id} />
+            </TabsContent>
+          )}
 
           {hasInterventoriaDesembolsos && (
             <TabsContent value="financial" className="space-y-4">

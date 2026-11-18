@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { UploadDocumentDialog } from '@/components/projects/UploadDocumentDialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { logger } from '@/lib/logger'
+import { LEGACY_DOCUMENT_URL_PREFIX } from '@/lib/legacy-wp/document-path.mjs'
 
 interface ProjectDocument {
   id: string
@@ -167,7 +168,8 @@ export default function ProjectDocumentsPage() {
     try {
       // Crear un link temporal para descargar
       const link = window.document.createElement('a')
-      link.href = document.file_url
+      // Los documentos de la plataforma anterior se descargan con una URL firmada
+      link.href = document.file_url.startsWith(LEGACY_DOCUMENT_URL_PREFIX) ? `${document.file_url}?download=1` : document.file_url
       link.download = document.file_name
       link.click()
       
