@@ -1,19 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
-// OpenAI se configura dinámicamente desde la BD o env
+// La clave de OpenAI vive solo en el servidor (variable OPENAI_API_KEY);
+// ai_settings guarda el modelo, la temperatura y los límites.
 async function getOpenAIClient(supabase: any) {
-  // Primero intentar obtener de la BD
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) return null
+
   const { data: aiSettings } = await supabase
     .from('ai_settings')
-    .select('api_key, model_name, temperature, max_tokens')
+    .select('model_name, temperature, max_tokens')
     .eq('provider', 'openai')
     .eq('is_active', true)
-    .single()
-
-  let apiKey = aiSettings?.api_key || process.env.OPENAI_API_KEY
-  
-  if (!apiKey) return null
+    .maybeSingle()
 
   const OpenAI = require('openai')
   return {
@@ -202,7 +201,7 @@ export async function POST(request: Request) {
         content = `<div class="placeholder">
           <h3>${section.section_name}</h3>
           <p>${section.content_template}</p>
-          <p><em>Nota: Configura la API key de OpenAI en Administración → Configuración de IA</em></p>
+          <p><em>Nota: la generación con IA no está configurada en el servidor. Avisa al administrador.</em></p>
         </div>`
       }
 

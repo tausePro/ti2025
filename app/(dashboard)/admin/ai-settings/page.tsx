@@ -7,8 +7,6 @@ import {
   Settings, 
   Key, 
   Save, 
-  Eye, 
-  EyeOff, 
   Loader2,
   TrendingUp,
   DollarSign,
@@ -19,8 +17,6 @@ import { useRouter } from 'next/navigation'
 interface AISetting {
   id: string
   provider: string
-  api_key: string
-  api_key_last_4: string
   model_name: string
   temperature: number
   max_tokens: number
@@ -44,13 +40,11 @@ export default function AISettingsPage() {
   
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [showApiKey, setShowApiKey] = useState(false)
   
   const [settings, setSettings] = useState<AISetting | null>(null)
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null)
   
   // Form state
-  const [apiKey, setApiKey] = useState('')
   const [modelName, setModelName] = useState('gpt-4o')
   const [temperature, setTemperature] = useState(0.7)
   const [maxTokens, setMaxTokens] = useState(2000)
@@ -73,14 +67,13 @@ export default function AISettingsPage() {
       // Cargar configuración actual
       const { data: settingsData } = await supabase
         .from('ai_settings')
-        .select('*')
+        .select('id, provider, model_name, temperature, max_tokens, is_active, daily_token_limit, tokens_used_today, system_prompt')
         .eq('provider', 'openai')
         .eq('is_active', true)
         .single()
 
       if (settingsData) {
         setSettings(settingsData)
-        setApiKey(settingsData.api_key || '')
         setModelName(settingsData.model_name)
         setTemperature(settingsData.temperature)
         setMaxTokens(settingsData.max_tokens)
@@ -131,12 +124,11 @@ export default function AISettingsPage() {
     try {
       setSaving(true)
 
-      const last4 = apiKey.slice(-4)
-
+      // La clave ya no se guarda en la base de datos: se borra la anterior
       const settingsData = {
         provider: 'openai',
-        api_key: apiKey,
-        api_key_last_4: last4,
+        api_key: null,
+        api_key_last_4: null,
         model_name: modelName,
         temperature,
         max_tokens: maxTokens,
@@ -250,32 +242,10 @@ export default function AISettingsPage() {
 
         <div className="space-y-4">
           {/* API Key */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Key className="w-4 h-4 inline mr-1" />
-              API Key de OpenAI *
-            </label>
-            <div className="relative">
-              <input
-                type={showApiKey ? 'text' : 'password'}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-..."
-                className="w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                type="button"
-                onClick={() => setShowApiKey(!showApiKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {showApiKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-            {settings?.api_key_last_4 && (
-              <p className="text-xs text-gray-500 mt-1">
-                Actual: ****{settings.api_key_last_4}
-              </p>
-            )}
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <Key className="w-4 h-4 inline mr-1" />
+            La clave de OpenAI se configura en el servidor, como variable de entorno <code>OPENAI_API_KEY</code> en Vercel.
+            Por seguridad ya no se guarda aquí; al guardar se borra la que hubiera quedado en la base de datos.
           </div>
 
           {/* Modelo */}
@@ -378,7 +348,7 @@ export default function AISettingsPage() {
         <div className="mt-6 flex justify-end">
           <button
             onClick={handleSave}
-            disabled={saving || !apiKey}
+            disabled={saving}
             className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? (
@@ -400,7 +370,7 @@ export default function AISettingsPage() {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="font-semibold text-blue-900 mb-2">ℹ️ Información</h3>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• La API key se guarda de forma segura en la base de datos</li>
+          <li>• La API key vive solo en el servidor (variable OPENAI_API_KEY), nunca en la base de datos</li>
           <li>• El límite diario ayuda a controlar los costos</li>
           <li>• GPT-4o es el modelo recomendado para informes técnicos</li>
           <li>• Puedes obtener tu API key en: <a href="https://platform.openai.com/api-keys" target="_blank" className="underline">platform.openai.com</a></li>
