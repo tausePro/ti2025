@@ -24,6 +24,7 @@ interface Company {
   contact_phone: string | null
   contact_email: string | null
   website: string | null
+  report_notification_emails?: string[] | null
   is_active: boolean | null
 }
 

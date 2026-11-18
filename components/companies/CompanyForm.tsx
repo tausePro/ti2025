@@ -13,8 +13,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building, Loader2, Upload, X } from 'lucide-react'
+import { Building, Loader2, Mail, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { parseEmailList } from '@/lib/companies/notification-emails'
 
 // Ciudades principales de Colombia
 const COLOMBIAN_CITIES = [
@@ -43,9 +44,11 @@ const COLOMBIAN_CITIES = [
 // Esquema de validación mejorado
 const companySchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
+  // El dígito de verificación es opcional: las empresas que vienen de la
+  // plataforma anterior lo tienen sin él.
   nit: z.string()
     .min(1, 'El NIT es requerido')
-    .regex(/^\d{8,9}-\d$/, 'Formato de NIT inválido (ej: 900123456-7)'),
+    .regex(/^\d{8,10}(-\d)?$/, 'Formato de NIT inválido (ej: 900123456-7)'),
   company_type: z.enum(['cliente', 'constructora', 'gerencia', 'otra'], {
     required_error: 'El tipo de empresa es requerido'
   }),
@@ -59,6 +62,12 @@ const companySchema = z.object({
   contact_phone: z.string().optional(),
   contact_email: z.string().email('Email inválido').optional().or(z.literal('')),
   website: z.string().url('URL inválida').optional().or(z.literal('')),
+  report_notification_emails: z.string().optional().superRefine((value, ctx) => {
+    const { invalid } = parseEmailList(value)
+    if (invalid.length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `No son correos válidos: ${invalid.join(', ')}` })
+    }
+  }),
   is_active: z.boolean().default(true)
 })
 
@@ -79,6 +88,7 @@ interface Company {
   contact_phone: string | null
   contact_email: string | null
   website: string | null
+  report_notification_emails?: string[] | null
   is_active: boolean | null
 }
 
@@ -119,6 +129,7 @@ export function CompanyForm({
       contact_phone: company?.contact_phone || '',
       contact_email: company?.contact_email || '',
       website: company?.website || '',
+      report_notification_emails: (company?.report_notification_emails ?? []).join('\n'),
       is_active: company?.is_active ?? true
     }
   })
@@ -252,6 +263,7 @@ export function CompanyForm({
         contact_phone: data.contact_phone?.trim() || null,
         contact_email: data.contact_email?.trim() || null,
         website: data.website?.trim() || null,
+        report_notification_emails: parseEmailList(data.report_notification_emails).emails,
         is_active: data.is_active ?? true,
         created_by: user.id
       }
@@ -665,7 +677,37 @@ export function CompanyForm({
           </CardContent>
         </Card>
 
-        {/* 5. ESTADO */}
+        {/* 5. NOTIFICACIÓN DE INFORMES */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Mail className="h-5 w-5 mr-2" />
+              Notificación de Informes
+            </CardTitle>
+            <CardDescription>
+              Correos que recibirán los informes publicados de los proyectos de esta empresa
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Label htmlFor="report_notification_emails">Correos de notificación</Label>
+            <Textarea
+              id="report_notification_emails"
+              {...register('report_notification_emails')}
+              placeholder={'gerencia@empresa.com\ninterventoria@empresa.com'}
+              rows={3}
+              disabled={loading}
+              className={errors.report_notification_emails ? 'border-red-500' : ''}
+            />
+            {errors.report_notification_emails && (
+              <p className="text-sm text-red-500">{errors.report_notification_emails.message}</p>
+            )}
+            <p className="text-xs text-gray-500">
+              Uno por línea o separados por coma.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* 6. ESTADO */}
         <Card>
           <CardHeader>
             <CardTitle>Estado de la Empresa</CardTitle>
