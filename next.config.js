@@ -75,6 +75,15 @@ const withPWA = require('next-pwa')({
 
 const nextConfig = {
   outputFileTracingRoot: __dirname,
+  // El PDF de informes lee en tiempo de ejecución el Chromium comprimido, la
+  // fuente y el membrete; hay que incluirlos en la función de Vercel.
+  outputFileTracingIncludes: {
+    '/api/legacy-wp/reports/\\[id\\]/pdf': [
+      './node_modules/@sparticuz/chromium/bin/**/*',
+      './node_modules/@fontsource/arimo/files/arimo-latin-{400,700}-{normal,italic}.woff2',
+      './public/brand/Membrete Talento Inmobiliario.jpg',
+    ],
+  },
   images: {
     remotePatterns: [
       {
